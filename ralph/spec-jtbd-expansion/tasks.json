@@ -1,0 +1,89 @@
+{
+  "objective": "Expand lazyjob specs into JTBD → Topics of Concern → Specs → Tasks hierarchy",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "jtbd-extraction-audience",
+      "description": "Read all 36 existing specs in specs/ and extract: who the audiences are (job seekers, recruiters, power users), what outcomes they want, and which high-level Jobs To Be Done emerge. Apply the ralph wiggum scope test: each JTBD should be expressible in one sentence without 'and'. Output AUDIENCE_JTBD.md covering: audiences, their JTBDs, and verb-form activities per JTBD. This is the anchor document for all downstream specs.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "spec-inventory-consolidation-plan",
+      "description": "Read all existing specs and AUDIENCE_JTBD.md from output/. Produce a spec-inventory.md that: (1) maps each existing spec to a JTBD, (2) identifies overlapping/redundant specs that should be merged, (3) identifies topics of concern that exist in research but lack a dedicated spec file, (4) proposes the final spec file structure organized by JTBD domain. This is the blueprint for tasks 3-11.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "specs-job-search-discovery",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write proper JTBD-scoped specs for the Job Search & Discovery domain. JTBDs: 'Find relevant job opportunities without wasting time', 'Understand company culture before applying'. Relevant existing specs to synthesize from: feed-algorithm.md, search-and-discovery.md, company-pages.md, job-platforms-comparison.md, job-search-marketplace.md, job-search-workflow-today.md. Each output spec: one file per topic, one-sentence scope, covers what/why/how/design-decisions/open-questions. Output to output/specs/ directory.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "specs-profile-resume",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Profile & Resume domain. JTBDs: 'Present myself compellingly to employers', 'Know my skill gaps before applying'. Relevant existing specs: profile-system.md, resume-optimization.md, gap-analysis-and-critique.md, skills-endorsements.md, projects-portfolio.md, 03-life-sheet-data-model.md. Each output spec: one file per topic, passes scope test, covers what/why/how/design-decisions/open-questions. Output to output/specs/.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "specs-application-tracking",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Application & Tracking domain. JTBDs: 'Apply to jobs efficiently without repetitive work', 'Track my position in each hiring process at a glance'. Relevant existing specs: cover-letters-applications.md, 08-cover-letter-generation.md, 07-resume-tailoring-pipeline.md, 10-application-workflow.md, 09-tui-design-keybindings.md. Output to output/specs/.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "specs-networking-referrals",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Networking & Referrals domain. JTBD: 'Get warm introductions that beat cold applications'. Relevant existing specs: networking-referrals-agentic.md, network-graph.md, messaging-inmail.md, recruiter-workflow.md. Output to output/specs/.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "specs-interview-salary",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Interview & Salary Negotiation domain. JTBDs: 'Prepare for interviews systematically', 'Negotiate the best possible offer'. Relevant existing specs: interview-prep-agentic.md, salary-negotiation-offers.md, 12-15-interview-salary-networking-notifications.md. Output to output/specs/.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "specs-agentic-ai-layer",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the AI/Agentic Intelligence Layer domain. JTBD: 'Let AI handle tedious job search work autonomously while I focus on high-signal decisions'. Relevant existing specs: 06-ralph-loop-integration.md, agentic-job-matching.md, networking-referrals-agentic.md, interview-prep-agentic.md, 17-ralph-prompt-templates.md, 02-llm-provider-abstraction.md. The loom LLM pattern (server-side proxy, LlmClient trait, SSE streaming) is the reference architecture. Output to output/specs/.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "specs-platform-integrations",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Platform Integrations domain. JTBD: 'Access all major job platforms from one tool without maintaining separate accounts or workflows'. Relevant existing specs: 11-platform-api-integrations.md, agent-interfaces-job-platforms.md, job-platforms-comparison.md, job-search-marketplace.md. Output to output/specs/.",
+      "phase": "spec",
+      "done": false
+    },
+    {
+      "id": 10,
+      "name": "specs-architecture-infrastructure",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Architecture & Infrastructure domain. JTBDs: 'A fast reliable tool that works offline', 'Keep my data private and portable'. Relevant existing specs: 01-architecture.md, 02-llm-provider-abstraction.md, 04-sqlite-persistence.md, 03-life-sheet-data-model.md, 16-privacy-security.md, 20-openapi-mvp.md. Use loom's crate organization pattern as reference. Output to output/specs/.",
+      "phase": "spec",
+      "done": false
+    },
+    {
+      "id": 11,
+      "name": "specs-saas-monetization",
+      "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the SaaS & Monetization domain. JTBDs: 'Access premium AI features without complex setup', 'Understand the product's business model'. Relevant existing specs: 18-saas-migration-path.md, premium-monetization.md, x-professional-features.md, 19-competitor-analysis.md. Output to output/specs/.",
+      "phase": "spec",
+      "done": false
+    },
+    {
+      "id": 12,
+      "name": "generate-implementation-plan",
+      "description": "Read all spec files from output/specs/ and AUDIENCE_JTBD.md. Generate IMPLEMENTATION_PLAN.md at the project root (/home/ren/repos/lazyjob/IMPLEMENTATION_PLAN.md). The plan is a prioritized bullet list of concrete implementation tasks derived from every spec. Each task: one sentence, action verb, references the spec it comes from, ordered by: (1) foundational infrastructure first, (2) core user-facing features second, (3) agentic/AI features third, (4) premium/SaaS last. This is the direct input for future ralph build loops.",
+      "phase": "spec",
+      "done": false
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "objective": "Research the actual job-seeking workflow and how AI agents can transform every step of it. Focus on practical mechanics, not platform features.",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "job-search-workflow-today",
+      "description": "Map the complete modern job search workflow as it actually happens. How do people in tech find jobs today? Step by step: where they look, how they filter, how they evaluate fit, how they track applications, how they follow up. Cover LinkedIn, Indeed, company career pages, referrals, cold outreach, recruiters. Document the pain points at each step — what's tedious, what's broken, where people waste time. Interview real job search guides, Reddit threads, career coach advice. Write spec to ../../specs/job-search-workflow-today.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "resume-optimization",
+      "description": "Deep dive into resume optimization and ATS (Applicant Tracking Systems). How do ATS systems parse resumes? What formats work, what breaks? How do recruiters actually screen resumes (6-second scan research)? How does keyword matching work? Research resume tailoring — the practice of customizing a resume per job posting. What tools exist today (Jobscan, Teal, Resume Worded)? How effective is AI-generated resume tailoring? What are the risks (detected as AI, over-optimization)? Write spec to ../../specs/resume-optimization.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "cover-letters-applications",
+      "description": "Research cover letters and application materials in 2026. Do cover letters still matter? Which industries/roles require them? How are hiring managers using them? Research AI cover letter generators — what exists, how good are they, can hiring managers tell? What makes a cover letter effective vs generic? How do application questions (the custom ones on job postings) factor in? Research the 'spray and pray' vs 'targeted' application strategies and their success rates. Write spec to ../../specs/cover-letters-applications.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "agentic-job-matching",
+      "description": "Research what 'agentic job matching' could mean. How would an AI agent evaluate job-candidate fit better than keyword matching? Research: semantic matching (understanding that 'built distributed systems' matches 'microservices experience'), skill inference (inferring capabilities from project descriptions), culture fit signals, compensation alignment. What APIs and data sources exist for job listings (LinkedIn API restrictions, Indeed API, Greenhouse/Lever APIs, scraping legality)? How would an agent continuously monitor and surface opportunities? Write spec to ../../specs/agentic-job-matching.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "agent-interfaces-job-platforms",
+      "description": "Research how AI agents currently interface with job platforms and how they could. What APIs exist? LinkedIn's API restrictions and what's available. Indeed Publisher API. Greenhouse, Lever, Workday, iCIMS APIs from the employer side. Browser automation approaches (Playwright, Puppeteer) for platforms without APIs. What are the legal/ToS boundaries? Research existing AI job-seeking agents and bots — what's been built, what works, what got shut down. How do platforms detect and block automated applications? Write spec to ../../specs/agent-interfaces-job-platforms.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "recruiter-workflow",
+      "description": "Research the recruiter side of the equation. How do internal recruiters and agency recruiters actually work? Their tools (LinkedIn Recruiter, Gem, Seekout, HireEZ), their workflows, their pain points. How do they source candidates, screen resumes, manage pipelines? What does a recruiter's day look like? How much time is spent on manual work that agents could handle? How are recruiters already using AI? Research both corporate recruiting and staffing agencies. Write spec to ../../specs/recruiter-workflow.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "networking-referrals-agentic",
+      "description": "Research networking and referrals as a job-seeking channel and how agents could transform it. Referrals account for 30-50% of hires at many companies — how does this actually work? How do people network effectively for jobs? Cold outreach on LinkedIn — what works, what doesn't? Research: could an agent manage your professional network, identify warm paths to target companies, draft personalized outreach, track relationship strength? What tools exist (Dex, Clay, folk CRM)? Write spec to ../../specs/networking-referrals-agentic.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "interview-prep-agentic",
+      "description": "Research interview preparation and how agents could help. Technical interview prep (LeetCode, system design, behavioral). Mock interview tools and AI interviewers that exist today (Pramp, Interviewing.io, various AI mock tools). Company-specific research — how to prep for a specific company's process. Research: how could an agent prepare a customized interview prep plan based on the job posting, company culture, and candidate's background? What data is available about company interview processes (Glassdoor, Blind, levels.fyi)? Write spec to ../../specs/interview-prep-agentic.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "salary-negotiation-offers",
+      "description": "Research salary negotiation and offer evaluation. How do people evaluate offers today? Compensation data sources (levels.fyi, Glassdoor, Blind, Payscale). Total comp breakdown (base, equity, bonus, benefits). How negotiation actually works — research from career coaches, negotiation experts. Could an agent help with negotiation strategy, market rate research, counter-offer drafting? What's the state of pay transparency laws and how does that change the game? Write spec to ../../specs/salary-negotiation-offers.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 10,
+      "name": "critique-first-ralph-specs",
+      "description": "Read ALL specs produced by the first ralph loop (in ../reverse-engineer-linkedin/ and ../../ralph/specs/). For each spec, write a critique focused on: what's missing from a job-seeker's perspective, what's too platform-focused and not practical enough, what assumptions need challenging, what additional sources should be consulted. Are there features or workflows we missed entirely? Produce a gap analysis and recommendations for additional research. Write to ../../specs/gap-analysis-and-critique.md",
+      "phase": "research",
+      "done": true
+    }
+  ]
+}

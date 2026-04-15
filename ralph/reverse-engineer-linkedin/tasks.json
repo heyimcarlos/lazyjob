@@ -1,0 +1,89 @@
+{
+  "objective": "Reverse-engineer LinkedIn, job search platforms, and X.com professional features. Write a research spec per feature to ../specs/",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "profile-system",
+      "description": "Reverse-engineer LinkedIn's profile system. How profiles are structured (headline, summary, experience, education, certifications, featured section). How the 'All-Star' profile strength meter works. What makes a profile rank well in search. How profile views and analytics work. Write spec to ../../specs/profile-system.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "skills-endorsements",
+      "description": "Reverse-engineer LinkedIn's skills and endorsements system. How skills are categorized and suggested. How endorsements work socially. LinkedIn Skill Assessments (quizzes, badges). How skills influence job matching and search ranking. The skill graph and how it connects to jobs. Write spec to ../../specs/skills-endorsements.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "network-graph",
+      "description": "Reverse-engineer LinkedIn's connection and networking system. 1st/2nd/3rd degree connections. 'People You May Know' algorithm. Connection request flow and limits. Follow vs connect. How network size affects visibility and reach. Write spec to ../../specs/network-graph.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "feed-algorithm",
+      "description": "Reverse-engineer LinkedIn's feed and content algorithm. How posts are ranked (engagement signals, dwell time, content type weighting). Post types: text, image, video, polls, documents, newsletters, articles. Creator mode. How virality works on LinkedIn vs other platforms. Write spec to ../../specs/feed-algorithm.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "job-search-marketplace",
+      "description": "Reverse-engineer LinkedIn's job search and marketplace. Job posting structure, Easy Apply vs external apply. Job recommendations algorithm. Recruiter tools and LinkedIn Recruiter product. Job alerts, salary insights, 'Open to Work' signal. How employers post and manage listings. Application tracking from both sides. Write spec to ../../specs/job-search-marketplace.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "search-and-discovery",
+      "description": "Reverse-engineer LinkedIn's search system. People search, job search, content search, company search. Filters and facets. How LinkedIn ranks search results (profile completeness, connections, activity). Boolean search for recruiters. How SEO works on LinkedIn profiles. Write spec to ../../specs/search-and-discovery.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "messaging-inmail",
+      "description": "Reverse-engineer LinkedIn's messaging and InMail system. Free messaging vs InMail credits. Sponsored InMail. Message request filtering. How response rates are tracked. Conversation UI patterns. How messaging drives engagement and retention. Write spec to ../../specs/messaging-inmail.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "company-pages",
+      "description": "Reverse-engineer LinkedIn Company Pages and employer branding. Page structure, employee advocacy, life section. How companies use pages for recruiting. Company follower mechanics. Competitor analytics. How this ties into the job marketplace. Write spec to ../../specs/company-pages.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "premium-monetization",
+      "description": "Reverse-engineer LinkedIn's monetization model. Free vs Premium tiers (Career, Business, Sales Navigator, Recruiter). What each tier unlocks. LinkedIn Learning as a product. Advertising platform (sponsored content, InMail, dynamic ads). Revenue breakdown and what drives it. Write spec to ../../specs/premium-monetization.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 10,
+      "name": "projects-portfolio",
+      "description": "Reverse-engineer LinkedIn's project and portfolio features. Featured section, media attachments, project listings. How creators and professionals showcase work. What's missing — compare to portfolio sites like Behance, Dribbble, GitHub. What a better project showcase could look like. Write spec to ../../specs/projects-portfolio.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 11,
+      "name": "job-platforms-comparison",
+      "description": "Research competing job search platforms: Indeed, Glassdoor, ZipRecruiter, Wellfound (AngelList), Handshake, Hired. For each: what they do differently from LinkedIn, what they do better, unique features, monetization. How job seekers actually use multiple platforms together. Write spec to ../../specs/job-platforms-comparison.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 12,
+      "name": "x-professional-features",
+      "description": "Research X.com (Twitter) as a professional/hiring platform. How tech hiring happens on X. Verified Organizations. How X profiles function as professional identity. DM-based recruiting. The 'build in public' culture as a hiring signal. What X does that LinkedIn doesn't. Write spec to ../../specs/x-professional-features.md",
+      "phase": "research",
+      "done": true
+    }
+  ]
+}

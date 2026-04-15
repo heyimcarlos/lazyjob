@@ -1,0 +1,145 @@
+{
+  "objective": "Deep architecture research for LazyJob: a lazygit-style job search TUI built in Rust. Produce comprehensive specs covering all aspects of building, running, and evolving this product.",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "architecture-overview",
+      "description": "Research the overall LazyJob architecture. Study lazygit's Go codebase patterns (gocui, panel navigation, keybindings). Study ratatui/rust TUI patterns. Research loom's Cargo workspace architecture. Design the LazyJob crate structure. Write specs/01-architecture.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "llm-provider-abstraction",
+      "description": "Deep dive into the LLM provider abstraction. Study trait-based provider patterns. Design LazyJob's LLM provider layer. Write specs/02-llm-provider-abstraction.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "life-sheet-data-model",
+      "description": "Research and design the life sheet data model. Write specs/03-life-sheet-data-model.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "sqlite-persistence",
+      "description": "Design the SQLite persistence layer. Write specs/04-sqlite-persistence.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "job-discovery-layer",
+      "description": "Design the job discovery and matching architecture. Write specs/05-job-discovery-layer.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "ralph-loop-integration",
+      "description": "Design how ralph loops integrate with the TUI. Write specs/06-ralph-loop-integration.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "resume-tailoring-pipeline",
+      "description": "Deep dive into the resume tailoring pipeline. Write specs/07-resume-tailoring-pipeline.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "cover-letter-generation",
+      "description": "Research cover letter generation. Write specs/08-cover-letter-generation.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "tui-design-keybindings",
+      "description": "Design the TUI in detail. Write specs/09-tui-design-keybindings.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 10,
+      "name": "application-workflow",
+      "description": "Design the full job application workflow. Write specs/10-application-workflow.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 11,
+      "name": "platform-api-integrations",
+      "description": "Research platform API integrations. Write specs/11-platform-api-integrations.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 12,
+      "name": "interview-preparation",
+      "description": "Research interview preparation. Write specs/12-interview-preparation.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 13,
+      "name": "salary-negotiation",
+      "description": "Research salary negotiation. Write specs/13-salary-negotiation.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 14,
+      "name": "networking-referrals",
+      "description": "Research networking and referrals. Write specs/14-networking-referrals.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 15,
+      "name": "morning-brief-notifications",
+      "description": "Design morning brief and notifications. Write specs/15-morning-brief-notifications.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 16,
+      "name": "privacy-security",
+      "description": "Research privacy and security. Write specs/16-privacy-security.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 17,
+      "name": "ralph-prompt-templates",
+      "description": "Design ralph prompt templates. Write specs/17-ralph-prompt-templates.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 18,
+      "name": "saas-migration-path",
+      "description": "Design SaaS migration path. Write specs/18-saas-migration-path.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 19,
+      "name": "competitor-analysis",
+      "description": "Competitive analysis. Write specs/19-competitor-analysis.md.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 20,
+      "name": "openapi-mvp",
+      "description": "Synthesize all research into OpenAPI MVP. Write specs/20-openapi-mvp.md.",
+      "phase": "research",
+      "done": false
+    }
+  ]
+}
