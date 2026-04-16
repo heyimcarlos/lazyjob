@@ -1,0 +1,16 @@
+[package]
+name = "lazyjob-tui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+lazyjob-core = { workspace = true }
+lazyjob-llm = { workspace = true }
+lazyjob-ralph = { workspace = true }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+futures = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }

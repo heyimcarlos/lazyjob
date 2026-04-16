@@ -1,0 +1,123 @@
+basics:
+  name: Jane Doe
+  label: Senior Software Engineer
+  email: jane@example.com
+  phone: "+1-555-0100"
+  url: https://janedoe.dev
+  summary: Full-stack engineer with 8 years of experience building scalable web applications.
+  location:
+    city: San Francisco
+    region: California
+    country: US
+    remote_preference: hybrid
+
+work_experience:
+  - company: Acme Corp
+    position: Senior Software Engineer
+    location: San Francisco, CA
+    url: https://acme.com
+    start_date: "2021-03"
+    is_current: true
+    summary: Leading backend team building microservices architecture.
+    achievements:
+      - description: Reduced API latency by 40% through caching layer redesign
+        metric_type: percentage
+        metric_value: "40"
+        metric_unit: percent
+      - description: Mentored 3 junior engineers through onboarding program
+    team_size: 8
+    industry: SaaS
+    tech_stack:
+      - Rust
+      - PostgreSQL
+      - Redis
+      - Kubernetes
+
+  - company: StartupXYZ
+    position: Software Engineer
+    location: Remote
+    start_date: "2018-06"
+    end_date: "2021-02"
+    summary: Built core product features for early-stage startup.
+    achievements:
+      - description: Shipped v1.0 of the product in 4 months
+        metric_type: duration
+        metric_value: "4"
+        metric_unit: months
+    industry: FinTech
+    tech_stack:
+      - Python
+      - Django
+      - AWS
+
+education:
+  - institution: MIT
+    degree: Bachelor of Science
+    field: Computer Science
+    start_date: "2014-09"
+    end_date: "2018-05"
+    score: "3.8"
+
+skills:
+  - name: Backend
+    level: Expert
+    skills:
+      - name: Rust
+        years_experience: 4
+        proficiency: advanced
+      - name: Python
+        years_experience: 8
+        proficiency: expert
+      - name: PostgreSQL
+        years_experience: 6
+        proficiency: advanced
+
+  - name: Infrastructure
+    level: Intermediate
+    skills:
+      - name: Kubernetes
+        years_experience: 3
+        proficiency: intermediate
+      - name: AWS
+        years_experience: 5
+        proficiency: advanced
+
+certifications:
+  - name: AWS Solutions Architect
+    authority: Amazon Web Services
+    issue_date: "2022-01"
+    expiry_date: "2025-01"
+    url: https://aws.amazon.com/certification
+
+languages:
+  - name: English
+    proficiency: native
+  - name: Spanish
+    proficiency: professional
+
+projects:
+  - name: LazyJob
+    description: AI-powered job search TUI built in Rust
+    url: https://github.com/janedoe/lazyjob
+    start_date: "2024-01"
+    highlights:
+      - Built semantic job matching with cosine similarity
+      - Integrated with Greenhouse and Lever APIs
+
+preferences:
+  job_types:
+    - full-time
+    - contract
+  locations:
+    - San Francisco
+    - Remote
+  salary_currency: USD
+  salary_min: 180000
+  salary_max: 250000
+  remote: true
+  notice_period_weeks: 2
+
+goals:
+  short_term: Move into a Staff Engineer role at a mid-stage startup
+  long_term: Become a founding engineer or CTO
+  timeline: 1-2 years
