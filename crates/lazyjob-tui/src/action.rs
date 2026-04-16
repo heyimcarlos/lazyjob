@@ -8,6 +8,8 @@ pub enum Action {
     ScrollDown,
     ScrollUp,
     Select,
+    CancelRalphLoop(String),
+    RalphDetail(String),
 }
 
 impl Action {
@@ -21,6 +23,8 @@ impl Action {
             Self::ScrollDown => "Scroll Down",
             Self::ScrollUp => "Scroll Up",
             Self::Select => "Select",
+            Self::CancelRalphLoop(_) => "Cancel Loop",
+            Self::RalphDetail(_) => "Loop Detail",
         }
     }
 }

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crossterm::event::{KeyCode, KeyModifiers};
 use sqlx::PgPool;
 use tokio::sync::broadcast;
 
@@ -102,7 +103,31 @@ impl App {
                 self.help_open = !self.help_open;
             }
             Action::Refresh => {}
-            Action::ScrollDown | Action::ScrollUp | Action::Select => {}
+            Action::ScrollDown => {
+                if let Some(action) = self
+                    .active_view_mut()
+                    .handle_key(KeyCode::Down, KeyModifiers::NONE)
+                {
+                    self.handle_action(action);
+                }
+            }
+            Action::ScrollUp => {
+                if let Some(action) = self
+                    .active_view_mut()
+                    .handle_key(KeyCode::Up, KeyModifiers::NONE)
+                {
+                    self.handle_action(action);
+                }
+            }
+            Action::Select => {
+                if let Some(action) = self
+                    .active_view_mut()
+                    .handle_key(KeyCode::Enter, KeyModifiers::NONE)
+                {
+                    self.handle_action(action);
+                }
+            }
+            Action::CancelRalphLoop(_) | Action::RalphDetail(_) => {}
         }
     }
 
@@ -117,8 +142,8 @@ impl App {
         }
     }
 
-    pub fn handle_ralph_update(&mut self, _update: RalphUpdate) {
-        // Ralph panel state will be managed in task 22
+    pub fn handle_ralph_update(&mut self, update: RalphUpdate) {
+        self.views.ralph_panel.on_update(update);
     }
 }
 
