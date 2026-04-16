@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 20 — ralph-loop-types</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+
+  /* Sidebar nav */
+  nav {
+    width: 220px; min-width: 220px; background: #161b22; border-right: 1px solid #30363d;
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  nav h2 { padding: 16px; font-size: 13px; color: #58a6ff; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #30363d; }
+  nav a {
+    display: block; padding: 10px 16px; font-size: 13px; color: #8b949e;
+    text-decoration: none; border-left: 3px solid transparent; transition: all 0.15s;
+  }
+  nav a:hover { color: #c9d1d9; background: #1c2128; }
+  nav a.active { color: #58a6ff; border-left-color: #58a6ff; background: #1c2128; }
+
+  /* Main content area */
+  main { flex: 1; overflow-y: auto; padding: 40px; }
+
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  h1 { font-size: 28px; color: #e6edf3; margin-bottom: 8px; }
+  h2 { font-size: 20px; color: #58a6ff; margin: 24px 0 12px; }
+  h3 { font-size: 16px; color: #79c0ff; margin: 16px 0 8px; }
+  p { line-height: 1.6; color: #8b949e; margin-bottom: 12px; }
+  .subtitle { color: #58a6ff; font-size: 15px; margin-bottom: 24px; }
+
+  /* Badge */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: #0d4a1e; color: #3fb950; border: 1px solid #238636; }
+  .badge-blue { background: #0c2d6b; color: #79c0ff; border: 1px solid #1f6feb; }
+  .badge-purple { background: #2d1f6e; color: #d2a8ff; border: 1px solid #6e40c9; }
+
+  /* Code blocks */
+  pre {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace; margin-bottom: 16px;
+  }
+  code { color: #e6edf3; }
+  .kw { color: #ff7b72; } /* keywords */
+  .ty { color: #ffa657; } /* types */
+  .str { color: #a5d6ff; } /* strings */
+  .num { color: #79c0ff; } /* numbers */
+  .cmt { color: #8b949e; } /* comments */
+  .fn { color: #d2a8ff; } /* functions */
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
+  th { background: #21262d; color: #8b949e; padding: 10px 14px; text-align: left; border-bottom: 2px solid #30363d; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:hover td { background: #161b22; }
+  .prio-high { color: #ff7b72; font-weight: 700; }
+  .prio-mid { color: #ffa657; font-weight: 700; }
+  .prio-low { color: #3fb950; font-weight: 700; }
+
+  /* Cards */
+  .card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h3 { margin-top: 0; }
+
+  /* Grid */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* Terminal output */
+  .terminal {
+    background: #000; border: 1px solid #30363d; border-radius: 8px;
+    padding: 20px; font-family: monospace; font-size: 13px; line-height: 1.6;
+    color: #c9d1d9; margin-bottom: 16px;
+  }
+  .t-green { color: #3fb950; }
+  .t-blue { color: #58a6ff; }
+  .t-yellow { color: #d29922; }
+  .t-dim { color: #484f58; }
+  .t-bold { font-weight: 700; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid #30363d; margin: 24px 0; }
+
+  /* Pills row */
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .pill { padding: 4px 12px; border-radius: 20px; font-size: 12px; background: #21262d; border: 1px solid #30363d; }
+
+  /* Priority bar */
+  .prio-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .prio-bar-fill { height: 8px; border-radius: 4px; }
+  .prio-label { font-size: 13px; min-width: 120px; }
+  .prio-num { font-size: 12px; color: #8b949e; min-width: 30px; text-align: right; }
+
+  /* Test result */
+  .test-line { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; font-family: monospace; font-size: 13px; }
+  .test-ok { color: #3fb950; }
+  .test-name { color: #c9d1d9; }
+
+  /* Arrow diagram */
+  .flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .flow-box { background: #21262d; border: 1px solid #30363d; border-radius: 6px; padding: 8px 14px; font-size: 13px; }
+  .flow-arrow { color: #58a6ff; font-size: 18px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 20</h2>
+  <a href="#" class="nav-link active" data-slide="overview">Overview</a>
+  <a href="#" class="nav-link" data-slide="loop-type">LoopType Enum</a>
+  <a href="#" class="nav-link" data-slide="dispatch">LoopDispatch</a>
+  <a href="#" class="nav-link" data-slide="scheduler">LoopScheduler</a>
+  <a href="#" class="nav-link" data-slide="errors">Error Types</a>
+  <a href="#" class="nav-link" data-slide="tests">Test Results</a>
+  <a href="#" class="nav-link" data-slide="architecture">Architecture</a>
+</nav>
+
+<main>
+
+<!-- SLIDE: Overview -->
+<div class="slide active" id="overview">
+  <h1>Task 20: ralph-loop-types</h1>
+  <p class="subtitle">LoopType enum · LoopDispatch priority queue · LoopScheduler cron scheduler</p>
+  <div class="pills">
+    <span class="pill">lazyjob-ralph</span>
+    <span class="pill">cron v0.12</span>
+    <span class="pill">BinaryHeap</span>
+    <span class="pill">chrono</span>
+    <span class="pill badge-green">328 tests passing</span>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <h3>LoopType</h3>
+      <p>5-variant enum defining all Ralph agent loop types with methods for concurrency limits, priority, interactivity, and CLI subcommands.</p>
+    </div>
+    <div class="card">
+      <h3>LoopDispatch</h3>
+      <p>Priority queue backed by <code>BinaryHeap&lt;QueuedLoop&gt;</code> with a hard cap of 20 items. Higher priority loops drain first.</p>
+    </div>
+    <div class="card">
+      <h3>LoopScheduler</h3>
+      <p>Wraps <code>cron::Schedule</code> to check if a cron expression has fired since last check. Prevents double-fires on repeated calls.</p>
+    </div>
+  </div>
+
+  <h2>Files Changed</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>Cargo.toml</code></td><td>Added <code>cron = "0.12"</code> to workspace deps</td></tr>
+    <tr><td><code>crates/lazyjob-ralph/Cargo.toml</code></td><td>Added <code>chrono</code>, <code>cron</code> deps</td></tr>
+    <tr><td><code>crates/lazyjob-ralph/src/error.rs</code></td><td>Added <code>CronParse(String)</code> and <code>QueueFull(usize)</code> variants</td></tr>
+    <tr><td><code>crates/lazyjob-ralph/src/loop_types.rs</code></td><td>NEW — LoopType, QueuedLoop, LoopDispatch</td></tr>
+    <tr><td><code>crates/lazyjob-ralph/src/loop_scheduler.rs</code></td><td>NEW — LoopScheduler with cron parsing</td></tr>
+    <tr><td><code>crates/lazyjob-ralph/src/lib.rs</code></td><td>Added pub mods + re-exports</td></tr>
+  </table>
+</div>
+
+<!-- SLIDE: LoopType -->
+<div class="slide" id="loop-type">
+  <h1>LoopType Enum</h1>
+  <p class="subtitle">5 variants · 4 methods · priority-ordered</p>
+
+  <h2>Priority Table</h2>
+  <table>
+    <tr>
+      <th>Variant</th>
+      <th>Priority</th>
+      <th>Concurrency</th>
+      <th>Interactive?</th>
+      <th>CLI Subcommand</th>
+    </tr>
+    <tr>
+      <td><code>CoverLetter</code></td>
+      <td><span class="prio-high">90</span></td>
+      <td>3</td>
+      <td>No</td>
+      <td><code>cover-letter</code></td>
+    </tr>
+    <tr>
+      <td><code>ResumeTailor</code></td>
+      <td><span class="prio-high">85</span></td>
+      <td>3</td>
+      <td>No</td>
+      <td><code>resume-tailor</code></td>
+    </tr>
+    <tr>
+      <td><code>InterviewPrep</code></td>
+      <td><span class="prio-mid">70</span></td>
+      <td>2</td>
+      <td><strong style="color:#3fb950">Yes</strong></td>
+      <td><code>interview-prep</code></td>
+    </tr>
+    <tr>
+      <td><code>CompanyResearch</code></td>
+      <td><span class="prio-mid">50</span></td>
+      <td>2</td>
+      <td>No</td>
+      <td><code>company-research</code></td>
+    </tr>
+    <tr>
+      <td><code>JobDiscovery</code></td>
+      <td><span class="prio-low">30</span></td>
+      <td>1</td>
+      <td>No</td>
+      <td><code>job-discovery</code></td>
+    </tr>
+  </table>
+
+  <h2>Priority Visual</h2>
+  <div class="prio-bar">
+    <span class="prio-label">CoverLetter</span>
+    <div class="prio-bar-fill" style="width: 90%; background: #ff7b72;"></div>
+    <span class="prio-num">90</span>
+  </div>
+  <div class="prio-bar">
+    <span class="prio-label">ResumeTailor</span>
+    <div class="prio-bar-fill" style="width: 85%; background: #ffa657;"></div>
+    <span class="prio-num">85</span>
+  </div>
+  <div class="prio-bar">
+    <span class="prio-label">InterviewPrep</span>
+    <div class="prio-bar-fill" style="width: 70%; background: #d29922;"></div>
+    <span class="prio-num">70</span>
+  </div>
+  <div class="prio-bar">
+    <span class="prio-label">CompanyResearch</span>
+    <div class="prio-bar-fill" style="width: 50%; background: #58a6ff;"></div>
+    <span class="prio-num">50</span>
+  </div>
+  <div class="prio-bar">
+    <span class="prio-label">JobDiscovery</span>
+    <div class="prio-bar-fill" style="width: 30%; background: #3fb950;"></div>
+    <span class="prio-num">30</span>
+  </div>
+
+  <h2>Implementation</h2>
+  <pre><code><span class="kw">pub enum</span> <span class="ty">LoopType</span> {
+    <span class="ty">JobDiscovery</span>, <span class="ty">CompanyResearch</span>, <span class="ty">ResumeTailor</span>,
+    <span class="ty">CoverLetter</span>, <span class="ty">InterviewPrep</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">LoopType</span> {
+    <span class="kw">pub fn</span> <span class="fn">priority</span>(&amp;<span class="kw">self</span>) -&gt; <span class="ty">u8</span> {
+        <span class="kw">match self</span> {
+            <span class="ty">CoverLetter</span>     =&gt; <span class="num">90</span>,  <span class="cmt">// user-initiated, urgent</span>
+            <span class="ty">ResumeTailor</span>    =&gt; <span class="num">85</span>,
+            <span class="ty">InterviewPrep</span>   =&gt; <span class="num">70</span>,
+            <span class="ty">CompanyResearch</span> =&gt; <span class="num">50</span>,  <span class="cmt">// background enrichment</span>
+            <span class="ty">JobDiscovery</span>    =&gt; <span class="num">30</span>,  <span class="cmt">// periodic sweep</span>
+        }
+    }
+
+    <span class="kw">pub fn</span> <span class="fn">concurrency_limit</span>(&amp;<span class="kw">self</span>) -&gt; <span class="ty">usize</span> {
+        <span class="kw">match self</span> {
+            <span class="ty">JobDiscovery</span> =&gt; <span class="num">1</span>,  <span class="cmt">// serial to protect APIs</span>
+            <span class="ty">CompanyResearch</span> | <span class="ty">InterviewPrep</span> =&gt; <span class="num">2</span>,
+            <span class="ty">ResumeTailor</span> | <span class="ty">CoverLetter</span> =&gt; <span class="num">3</span>,
+        }
+    }
+
+    <span class="kw">pub fn</span> <span class="fn">is_interactive</span>(&amp;<span class="kw">self</span>) -&gt; <span class="ty">bool</span> {
+        <span class="fn">matches!</span>(<span class="kw">self</span>, <span class="ty">LoopType::InterviewPrep</span>)
+    }
+}</code></pre>
+
+  <h2>Design Rationale</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>User-initiated = highest priority</h3>
+      <p>When a user triggers a CoverLetter or ResumeTailor from the TUI, they're waiting for output. These must preempt background sweeps.</p>
+    </div>
+    <div class="card">
+      <h3>JobDiscovery concurrency = 1</h3>
+      <p>Greenhouse and Lever have rate limits. Running parallel discovery sweeps risks 429 errors. Serial execution is safer.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE: LoopDispatch -->
+<div class="slide" id="dispatch">
+  <h1>LoopDispatch Priority Queue</h1>
+  <p class="subtitle">BinaryHeap · capacity 20 · higher priority drains first</p>
+
+  <h2>Queue Drain Order Demonstration</h2>
+  <div class="card">
+    <h3>Enqueue order</h3>
+    <div class="flow">
+      <div class="flow-box" style="border-color:#3fb950">JobDiscovery (30)</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box" style="border-color:#ff7b72">CoverLetter (90)</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box" style="border-color:#58a6ff">CompanyResearch (50)</div>
+    </div>
+    <h3 style="margin-top:12px">Drain order (priority wins)</h3>
+    <div class="flow">
+      <div class="flow-box" style="border-color:#ff7b72">1st: CoverLetter (90)</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box" style="border-color:#58a6ff">2nd: CompanyResearch (50)</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box" style="border-color:#3fb950">3rd: JobDiscovery (30)</div>
+    </div>
+  </div>
+
+  <h2>Implementation</h2>
+  <pre><code><span class="kw">pub struct</span> <span class="ty">QueuedLoop</span> {
+    <span class="kw">pub</span> loop_type: <span class="ty">LoopType</span>,
+    <span class="kw">pub</span> params: <span class="ty">serde_json::Value</span>,
+    enqueued_at: <span class="ty">Instant</span>,  <span class="cmt">// private — tie-break: earlier = higher</span>
+}
+
+<span class="kw">impl</span> <span class="ty">Ord</span> <span class="kw">for</span> <span class="ty">QueuedLoop</span> {
+    <span class="kw">fn</span> <span class="fn">cmp</span>(&amp;<span class="kw">self</span>, other: &amp;<span class="ty">Self</span>) -&gt; <span class="ty">Ordering</span> {
+        <span class="kw">let</span> priority_ord = <span class="kw">self</span>.loop_type.<span class="fn">priority</span>().<span class="fn">cmp</span>(&amp;other.loop_type.<span class="fn">priority</span>());
+        <span class="kw">if</span> priority_ord != <span class="ty">Ordering::Equal</span> {
+            <span class="kw">return</span> priority_ord;
+        }
+        <span class="cmt">// Tie-break: earlier enqueued has higher priority</span>
+        other.enqueued_at.<span class="fn">cmp</span>(&amp;<span class="kw">self</span>.enqueued_at)
+    }
+}
+
+<span class="kw">pub struct</span> <span class="ty">LoopDispatch</span> {
+    heap: <span class="ty">BinaryHeap</span>&lt;<span class="ty">QueuedLoop</span>&gt;,
+    cap: <span class="ty">usize</span>,  <span class="cmt">// always 20</span>
+}
+
+<span class="kw">impl</span> <span class="ty">LoopDispatch</span> {
+    <span class="kw">pub fn</span> <span class="fn">enqueue</span>(&amp;<span class="kw">mut self</span>, lt: <span class="ty">LoopType</span>, params: <span class="ty">Value</span>) -&gt; <span class="ty">Result</span>&lt;()&gt; {
+        <span class="kw">if</span> <span class="kw">self</span>.heap.<span class="fn">len</span>() &gt;= <span class="kw">self</span>.cap {
+            <span class="kw">return</span> <span class="ty">Err</span>(<span class="ty">RalphError::QueueFull</span>(<span class="kw">self</span>.cap));
+        }
+        <span class="kw">self</span>.heap.<span class="fn">push</span>(<span class="ty">QueuedLoop::new</span>(lt, params));
+        <span class="ty">Ok</span>(())
+    }
+
+    <span class="kw">pub fn</span> <span class="fn">drain_next</span>(&amp;<span class="kw">mut self</span>) -&gt; <span class="ty">Option</span>&lt;<span class="ty">QueuedLoop</span>&gt; { <span class="kw">self</span>.heap.<span class="fn">pop</span>() }
+}</code></pre>
+
+  <h2>Key Properties</h2>
+  <div class="grid-3">
+    <div class="card">
+      <h3>Hard cap = 20</h3>
+      <p>Returns <code>Err(QueueFull(20))</code> on the 21st enqueue. Never silently discards.</p>
+    </div>
+    <div class="card">
+      <h3>FIFO tie-break</h3>
+      <p>Same-priority loops drain in insertion order (earlier-enqueued first).</p>
+    </div>
+    <div class="card">
+      <h3>O(log n) ops</h3>
+      <p>BinaryHeap provides O(log n) push and pop. Fine for cap=20.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE: LoopScheduler -->
+<div class="slide" id="scheduler">
+  <h1>LoopScheduler</h1>
+  <p class="subtitle">Cron expression parsing · single-fire guarantee · time-travel testable</p>
+
+  <h2>How It Works</h2>
+  <div class="card">
+    <div class="flow" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+      <div class="flow" style="gap: 8px; align-items: center;">
+        <div class="flow-box">Parse <code>expr</code> → <code>cron::Schedule</code></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box"><code>last_checked = now - 1ms</code></div>
+      </div>
+      <div class="flow" style="gap: 8px; align-items: center; margin-top:8px;">
+        <div class="flow-box"><code>should_run(now)</code></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box">Find <code>next_tick = schedule.after(&amp;last_checked).next()</code></div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-box" style="border-color:#3fb950">if <code>next_tick ≤ now</code> → return true, advance <code>last_checked</code></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Implementation</h2>
+  <pre><code><span class="kw">pub struct</span> <span class="ty">LoopScheduler</span> {
+    schedule: <span class="ty">cron::Schedule</span>,
+    last_checked: <span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;,
+}
+
+<span class="kw">impl</span> <span class="ty">LoopScheduler</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(expr: &amp;<span class="ty">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">Self</span>&gt; {
+        <span class="kw">let</span> schedule = <span class="ty">cron::Schedule::from_str</span>(expr)
+            .<span class="fn">map_err</span>(|e| <span class="ty">RalphError::CronParse</span>(e.<span class="fn">to_string</span>()))?;
+        <span class="kw">let</span> last_checked = <span class="ty">Utc::now</span>() - <span class="ty">Duration::milliseconds</span>(<span class="num">1</span>);
+        <span class="ty">Ok</span>(<span class="ty">Self</span> { schedule, last_checked })
+    }
+
+    <span class="kw">pub fn</span> <span class="fn">should_run</span>(&amp;<span class="kw">mut self</span>, now: <span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;) -&gt; <span class="ty">bool</span> {
+        <span class="kw">if let</span> <span class="ty">Some</span>(next_tick) = <span class="kw">self</span>.schedule.<span class="fn">after</span>(&amp;<span class="kw">self</span>.last_checked).<span class="fn">next</span>()
+            &amp;&amp; next_tick &lt;= now
+        {
+            <span class="kw">self</span>.last_checked = now;
+            <span class="kw">return true</span>;
+        }
+        <span class="kw">false</span>
+    }
+}</code></pre>
+
+  <h2>Cron Format (cron v0.12 — 6 fields)</h2>
+  <table>
+    <tr><th>Field</th><th>Values</th><th>Example</th></tr>
+    <tr><td>Seconds</td><td>0–59</td><td><code>0</code></td></tr>
+    <tr><td>Minutes</td><td>0–59</td><td><code>*</code></td></tr>
+    <tr><td>Hours</td><td>0–23</td><td><code>*/6</code></td></tr>
+    <tr><td>Day of month</td><td>1–31</td><td><code>*</code></td></tr>
+    <tr><td>Month</td><td>1–12</td><td><code>*</code></td></tr>
+    <tr><td>Day of week</td><td>0–6 (Sun=0)</td><td><code>1-5</code></td></tr>
+  </table>
+  <p><strong>Note:</strong> <code>cron = "0.12"</code> requires 6 fields (seconds prefix) unlike standard 5-field cron.</p>
+</div>
+
+<!-- SLIDE: Error Types -->
+<div class="slide" id="errors">
+  <h1>Error Additions</h1>
+  <p class="subtitle">Two new RalphError variants for Task 20</p>
+
+  <h2>Updated RalphError</h2>
+  <pre><code><span class="kw">pub enum</span> <span class="ty">RalphError</span> {
+    <span class="cmt">// Existing:</span>
+    <span class="ty">Decode</span>(<span class="ty">String</span>),
+    <span class="ty">Io</span>(#[from] <span class="ty">std::io::Error</span>),
+    <span class="ty">NotFound</span>(<span class="ty">String</span>),
+
+    <span class="cmt">// New in Task 20:</span>
+    <span class="ty">CronParse</span>(<span class="ty">String</span>),
+    <span class="cmt">// Emitted by: LoopScheduler::new() when cron expression is invalid</span>
+    <span class="cmt">// Message: "cron parse error: {reason}"</span>
+
+    <span class="ty">QueueFull</span>(<span class="ty">usize</span>),
+    <span class="cmt">// Emitted by: LoopDispatch::enqueue() when heap.len() >= cap</span>
+    <span class="cmt">// Message: "dispatch queue is full (capacity {cap})"</span>
+}</code></pre>
+
+  <h2>Error Behavior</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>CronParse</h3>
+      <pre style="margin:0"><code><span class="kw">let</span> r = <span class="ty">LoopScheduler::new</span>(<span class="str">"not valid"</span>);
+<span class="cmt">// Err(CronParse("failed to parse ..."))</span></code></pre>
+    </div>
+    <div class="card">
+      <h3>QueueFull</h3>
+      <pre style="margin:0"><code><span class="cmt">// After 20 enqueues:</span>
+<span class="kw">let</span> r = dispatch.<span class="fn">enqueue</span>(lt, json!({}));
+<span class="cmt">// Err(QueueFull(20))</span></code></pre>
+    </div>
+  </div>
+
+  <h2>Design Note</h2>
+  <p>No <code>#[from]</code> on <code>CronParse</code> — cron errors are only produced in <code>LoopScheduler::new()</code>, so wrapping them as a String keeps the dependency surface minimal. The cron crate's error type doesn't need to leak into RalphError's public API.</p>
+</div>
+
+<!-- SLIDE: Tests -->
+<div class="slide" id="tests">
+  <h1>Test Results</h1>
+  <p class="subtitle">21 new tests · 328 total passing · 0 failures</p>
+
+  <div class="terminal">
+<span class="t-dim">$ cargo test -p lazyjob-ralph -- loop</span><br>
+<span class="t-dim">    Finished `test` profile in 1.18s</span><br>
+<span class="t-dim">     Running unittests src/lib.rs</span><br><br>
+<span class="t-bold">running 21 tests</span><br>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::cron_schedule_parses_standard_expr</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::cron_schedule_upcoming_iterator</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::scheduler_does_not_fire_twice_for_same_tick</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::scheduler_fires_on_matching_tick</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::scheduler_next_run_after_returns_future_time</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::scheduler_rejects_invalid_cron</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_scheduler::tests::scheduler_silent_before_tick</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::all_concurrency_limits_positive</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::all_loop_types_have_positive_priority</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::cli_subcommands_are_kebab_case</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::cli_subcommands_unique</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::cover_letter_higher_priority_than_discovery</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::interactive_only_for_interview_prep</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::job_discovery_concurrency_limit_is_1</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::loop_dispatch_drain_empty_returns_none</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::loop_dispatch_len_and_is_empty</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::loop_dispatch_priority_ordering</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::loop_dispatch_respects_cap</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::loop_type_serde_roundtrip</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::queued_loop_same_priority_earlier_enqueue_wins</span></span>
+<span class="test-line"><span class="test-ok">ok</span> <span class="test-name">loop_types::tests::resume_tailor_higher_priority_than_company_research</span></span><br>
+<span class="t-green t-bold">test result: ok. 21 passed; 0 failed; 0 ignored</span>
+  </div>
+
+  <h2>Learning Tests</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>cron_schedule_parses_standard_expr</h3>
+      <p>Proves <code>cron::Schedule::from_str("0 * * * * *")</code> accepts a standard 6-field expression. Validates the crate API before we depend on it.</p>
+    </div>
+    <div class="card">
+      <h3>cron_schedule_upcoming_iterator</h3>
+      <p>Proves <code>schedule.upcoming(Utc).next()</code> returns a <code>DateTime&lt;Utc&gt;</code> strictly in the future. Validates our core assumption for <code>should_run</code>.</p>
+    </div>
+  </div>
+
+  <h2>Test Highlights</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>loop_dispatch_priority_ordering</h3>
+      <p>Enqueues JobDiscovery(30), CoverLetter(90), CompanyResearch(50) in that order. Asserts drain order is CoverLetter → CompanyResearch → JobDiscovery.</p>
+    </div>
+    <div class="card">
+      <h3>scheduler_does_not_fire_twice</h3>
+      <p>Calls <code>should_run(t)</code> twice with the same timestamp. First returns true, second returns false — proving the single-fire guarantee.</p>
+    </div>
+    <div class="card">
+      <h3>queued_loop_same_priority_earlier_enqueue_wins</h3>
+      <p>Enqueues two CoverLetter loops 5ms apart. First enqueued drains first. Proves FIFO tie-break works.</p>
+    </div>
+    <div class="card">
+      <h3>loop_dispatch_respects_cap</h3>
+      <p>Enqueues 20 items successfully. 21st enqueue returns <code>Err(QueueFull(20))</code>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- SLIDE: Architecture -->
+<div class="slide" id="architecture">
+  <h1>Architecture</h1>
+  <p class="subtitle">How Task 20 fits into the lazyjob-ralph crate</p>
+
+  <h2>Module Layout</h2>
+  <pre><code>crates/lazyjob-ralph/src/
+├── lib.rs           <span class="cmt">// pub use LoopType, LoopDispatch, QueuedLoop, LoopScheduler</span>
+├── error.rs         <span class="cmt">// RalphError: +CronParse, +QueueFull (Task 20)</span>
+├── protocol.rs      <span class="cmt">// WorkerCommand, WorkerEvent, NdjsonCodec (Task 18)</span>
+├── process_manager.rs  <span class="cmt">// RalphProcessManager, RunId (Task 19)</span>
+├── loop_types.rs    <span class="cmt">// LoopType, QueuedLoop, LoopDispatch (Task 20) ← NEW</span>
+└── loop_scheduler.rs   <span class="cmt">// LoopScheduler (Task 20) ← NEW</span></code></pre>
+
+  <h2>How LoopDispatch + RalphProcessManager Work Together</h2>
+  <div class="flow" style="flex-direction: column; align-items: flex-start; gap:8px">
+    <div class="flow" style="gap:8px">
+      <div class="flow-box">TUI triggers CoverLetter</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><code>dispatch.enqueue(CoverLetter, params)</code></div>
+    </div>
+    <div class="flow-arrow" style="margin-left: 20px;">↓</div>
+    <div class="flow" style="gap:8px">
+      <div class="flow-box"><code>dispatch.drain_next()</code></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box"><code>manager.spawn("cover-letter", params)</code></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">Subprocess broadcasts WorkerEvent</div>
+    </div>
+  </div>
+
+  <h2>How LoopScheduler Fits In</h2>
+  <div class="card">
+    <p>Task 21 (ralph-crash-recovery) will use <code>LoopScheduler</code> to periodically check for stale <code>running</code> loop runs and mark them as <code>failed</code>. Example: check every 30 seconds with <code>"0/30 * * * * *"</code>.</p>
+    <pre style="margin-top:12px"><code><span class="kw">let mut</span> checker = <span class="ty">LoopScheduler::new</span>(<span class="str">"0/30 * * * * *"</span>)?;
+<span class="cmt">// In the TUI event loop tick:</span>
+<span class="kw">if</span> checker.<span class="fn">should_run</span>(<span class="ty">Utc::now</span>()) {
+    repo.<span class="fn">recover_pending</span>(&amp;pool).<span class="kw">await</span>?;
+}</code></pre>
+  </div>
+
+  <h2>Cumulative Progress</h2>
+  <table>
+    <tr><th>Task</th><th>Component</th><th>Tests</th></tr>
+    <tr><td>1–9</td><td>Workspace, domain, DB, repos, config, credentials</td><td>103</td></tr>
+    <tr><td>10–13</td><td>TUI event loop, views, keybindings, widgets</td><td>+118 = 221</td></tr>
+    <tr><td>14–17</td><td>LLM providers, registry, cost estimation</td><td>+62 = 283</td></tr>
+    <tr><td>18–19</td><td>Ralph protocol, process manager</td><td>+24 = 307</td></tr>
+    <tr><td><strong>20</strong></td><td><strong>Loop types, dispatch queue, cron scheduler</strong></td><td><strong>+21 = 328</strong></td></tr>
+  </table>
+</div>
+
+</main>
+
+<script>
+  const links = document.querySelectorAll('.nav-link');
+  const slides = document.querySelectorAll('.slide');
+
+  links.forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = link.dataset.slide;
+      links.forEach(l => l.classList.remove('active'));
+      slides.forEach(s => s.classList.remove('active'));
+      link.classList.add('active');
+      document.getElementById(target).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

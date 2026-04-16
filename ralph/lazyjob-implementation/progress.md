@@ -555,6 +555,36 @@ Next iteration should know:
 - sqlx and uuid are now direct deps of lazyjob-llm (in addition to lazyjob-core which also has them)
 - Task 18 (ralph-protocol) is next — WorkerCommand/WorkerEvent NDJSON protocol types in lazyjob-ralph
 
+## Task 20: ralph-loop-types — DONE
+Date: 2026-04-16
+Files created/modified:
+- Cargo.toml (added cron = "0.12" to workspace deps)
+- crates/lazyjob-ralph/Cargo.toml (added chrono, cron deps)
+- crates/lazyjob-ralph/src/error.rs (added CronParse(String) and QueueFull(usize) variants)
+- crates/lazyjob-ralph/src/loop_types.rs (new: LoopType enum, QueuedLoop, LoopDispatch)
+- crates/lazyjob-ralph/src/loop_scheduler.rs (new: LoopScheduler with cron expression checking)
+- crates/lazyjob-ralph/src/lib.rs (added pub mod loop_types, loop_scheduler + re-exports)
+Key decisions:
+- Priority ordering: CoverLetter(90) > ResumeTailor(85) > InterviewPrep(70) > CompanyResearch(50) > JobDiscovery(30) — user-initiated tasks always beat background tasks
+- Only InterviewPrep is interactive (needs stdin I/O loop for mock interview exchanges)
+- JobDiscovery concurrency_limit=1 to avoid hammering job APIs; others allow 2-3 concurrent
+- LoopDispatch BinaryHeap Ord impl: primary key = priority (higher first); tie-break = enqueued_at (earlier first via reverse comparison on other.enqueued_at.cmp(&self.enqueued_at))
+- QueueFull(cap) error returned on 21st enqueue, not silently dropped
+- LoopScheduler uses cron::Schedule::after(&last_checked).next() to find next tick; if next_tick <= now, fires and advances last_checked to prevent double-fire
+- Used cron v0.12.1 (latest compatible — workspace lock picked 0.12.1 over 0.16.0)
+- Let chains (`if let Some(x) = y && condition`) used in loop_scheduler.rs per clippy suggestion (stable since Rust 1.88)
+Learning tests written:
+- cron_schedule_parses_standard_expr — proves cron::Schedule::from_str() accepts a 6-field cron expression
+- cron_schedule_upcoming_iterator — proves schedule.upcoming(Utc).next() returns a future DateTime<Utc>
+Tests passing: 328 total (21 new: 13 loop_types tests + 6 loop_scheduler tests + 2 learning tests)
+Next iteration should know:
+- LoopType, QueuedLoop, LoopDispatch are in lazyjob_ralph::loop_types, re-exported from crate root
+- LoopScheduler is in lazyjob_ralph::loop_scheduler, re-exported from crate root
+- RalphError now has CronParse(String) and QueueFull(usize) variants
+- cron v0.12 uses 6-field expressions (sec min hour day month weekday) — NOT 5-field standard cron
+- LoopScheduler.last_checked is pub(crate) — tests in the same module set it directly for time-travel testing
+- Task 21 (ralph-crash-recovery) is next — RalphLoopRunRepository, PG table migration, recover_pending()
+
 ## Task 19: ralph-process-manager — DONE
 Date: 2026-04-16
 Files created/modified:

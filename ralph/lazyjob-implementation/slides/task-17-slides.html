@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task 17: LLM Registry — LazyJob</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --accent2: #79c0ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --orange: #ffa657;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --nav-w: 220px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      width: var(--nav-w);
+      min-width: var(--nav-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 16px 0;
+    }
+
+    nav .logo {
+      padding: 0 16px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+
+    nav .logo span { color: var(--muted); font-weight: 400; }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 13px;
+      border-left: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    nav a:hover { color: var(--text); background: var(--surface2); }
+    nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(88,166,255,0.08); }
+
+    nav .section-label {
+      padding: 12px 16px 4px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    /* ── SLIDES ── */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .slide {
+      min-height: 100vh;
+      padding: 48px 60px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .slide:last-child { border-bottom: none; }
+
+    .slide-num {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+
+    h2 { font-size: 28px; font-weight: 700; margin-bottom: 20px; }
+    h3 { font-size: 18px; font-weight: 600; margin-bottom: 12px; color: var(--accent2); }
+
+    p { font-size: 16px; line-height: 1.7; color: var(--muted); margin-bottom: 12px; }
+    p strong { color: var(--text); }
+
+    .subtitle { font-size: 20px; color: var(--muted); margin-bottom: 32px; }
+
+    /* badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-green { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+    .badge-blue  { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
+    .badge-purple{ background: rgba(188,140,255,.15); color: var(--purple); border: 1px solid rgba(188,140,255,.3); }
+    .badge-orange{ background: rgba(255,166,87,.15); color: var(--orange); border: 1px solid rgba(255,166,87,.3); }
+
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+
+    /* code blocks */
+    pre {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+      margin-bottom: 16px;
+    }
+
+    code { font-family: inherit; }
+
+    .kw  { color: #ff7b72; }
+    .ty  { color: #ffa657; }
+    .fn  { color: #d2a8ff; }
+    .st  { color: #a5d6ff; }
+    .cm  { color: #8b949e; font-style: italic; }
+    .nm  { color: #79c0ff; }
+    .op  { color: #ff7b72; }
+
+    /* cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    /* grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+
+    /* tests */
+    .test-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .test-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--muted);
+      padding: 5px 0;
+    }
+
+    .test-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+
+    /* flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+
+    .flow-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .flow-box.active { border-color: var(--accent); color: var(--accent); }
+    .flow-box.fallback { border-color: var(--green); color: var(--green); }
+    .flow-box.fail { border-color: var(--red); color: var(--red); }
+
+    .flow-arrow {
+      font-size: 20px;
+      color: var(--muted);
+      padding: 0 8px;
+    }
+
+    /* terminal */
+    .terminal {
+      background: #0a0d11;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .terminal-bar {
+      background: var(--surface2);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .dot-r { background: #ff5f57; }
+    .dot-y { background: #febc2e; }
+    .dot-g { background: #28c840; }
+
+    .terminal pre {
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      margin: 0;
+      padding: 16px 20px;
+    }
+
+    .t-prompt { color: #58a6ff; }
+    .t-cmd    { color: #e6edf3; }
+    .t-out    { color: #8b949e; }
+    .t-ok     { color: #3fb950; }
+    .t-pass   { color: #3fb950; font-weight: bold; }
+
+    /* stat cards */
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .stat-label { font-size: 13px; color: var(--muted); }
+
+    /* pricing table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(48,54,61,0.5);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--surface2); }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .pill-g { background: rgba(63,185,80,.15); color: var(--green); }
+    .pill-b { background: rgba(88,166,255,.15); color: var(--accent); }
+    .pill-p { background: rgba(188,140,255,.15); color: var(--purple); }
+    .pill-o { background: rgba(255,166,87,.15); color: var(--orange); }
+
+    /* summary checklist */
+    .checklist { list-style: none; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .check { color: var(--green); font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  </style>
+</head>
+<body>
+
+<!-- ── NAVIGATION ── -->
+<nav>
+  <div class="logo">LazyJob <span>ralph loop</span></div>
+  <div class="section-label">Task 17</div>
+  <a href="#slide-1" class="active">① Overview</a>
+  <a href="#slide-2">② Architecture</a>
+  <a href="#slide-3">③ cost.rs</a>
+  <a href="#slide-4">④ ProviderRegistry</a>
+  <a href="#slide-5">⑤ LlmBuilder Fallback</a>
+  <a href="#slide-6">⑥ LoggingProvider</a>
+  <a href="#slide-7">⑦ Tests</a>
+  <a href="#slide-8">⑧ Build Output</a>
+  <a href="#slide-9">⑨ Summary</a>
+</nav>
+
+<!-- ── SLIDES ── -->
+<main id="slides">
+
+  <!-- ① OVERVIEW -->
+  <section class="slide" id="slide-1">
+    <div class="slide-num">Task 17 / 40 · lazyjob-llm</div>
+    <h1>LLM Registry</h1>
+    <p class="subtitle">Provider selection, cost estimation, and transparent token logging</p>
+
+    <div class="badges">
+      <span class="badge badge-blue">lazyjob-llm</span>
+      <span class="badge badge-green">✓ 283 tests passing</span>
+      <span class="badge badge-purple">22 new tests</span>
+      <span class="badge badge-orange">4 files created/modified</span>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title">cost.rs</div>
+        <p>Per-model microdollar pricing table. <strong>estimate_cost(model, tokens) → u64</strong> returns total cost in microdollars.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">ProviderRegistry</div>
+        <p><strong>Arc&lt;dyn LlmProvider&gt;</strong> keyed by name with default tracking. Add, get, list all providers.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">LlmBuilder</div>
+        <p>Fallback chain: <strong>configured → Anthropic → OpenAI → Ollama</strong>. Always returns a working provider.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">LoggingProvider (Decorator)</div>
+      <p>Wraps any <code>Arc&lt;dyn LlmProvider&gt;</code>, delegates <code>complete()</code>, then inserts a row into <strong>token_usage_log</strong>. Fire-and-forget — a DB failure never fails the completion.</p>
+    </div>
+  </section>
+
+  <!-- ② ARCHITECTURE -->
+  <section class="slide" id="slide-2">
+    <div class="slide-num">02 · Architecture</div>
+    <h2>Where This Fits</h2>
+    <p>Task 17 is the <strong>glue layer</strong> between configuration, credentials, and LLM providers. It was the last piece of the LLM abstraction stack before the Ralph loop integration starts.</p>
+
+    <pre><code><span class="cm">// Module hierarchy after task 17:</span>
+lazyjob-llm/
+├── <span class="nm">cost.rs</span>         <span class="cm">// NEW — pricing table + estimate_cost()</span>
+├── <span class="nm">registry.rs</span>     <span class="cm">// NEW — ProviderRegistry, LlmBuilder, LoggingProvider</span>
+├── error.rs
+├── message.rs       <span class="cm">// ChatMessage, CompletionOptions, LlmResponse, TokenUsage</span>
+├── provider.rs      <span class="cm">// LlmProvider trait, EmbeddingProvider trait</span>
+├── mock.rs          <span class="cm">// MockLlmProvider, MockEmbeddingProvider</span>
+└── providers/
+    ├── anthropic.rs <span class="cm">// ← from_credentials() used by LlmBuilder</span>
+    ├── openai.rs    <span class="cm">// ← from_credentials() used by LlmBuilder</span>
+    └── ollama.rs    <span class="cm">// ← new() always available, no credentials needed</span></code></pre>
+
+    <h3>Dependencies Added</h3>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">crates/lazyjob-llm/Cargo.toml</div>
+        <pre style="margin:0;padding:12px"><code><span class="nm">sqlx</span> = <span class="st">{ workspace = true }</span>
+<span class="nm">uuid</span> = <span class="st">{ workspace = true }</span></code></pre>
+      </div>
+      <div class="card">
+        <div class="card-title">Why sqlx in lazyjob-llm?</div>
+        <p><code>LoggingProvider</code> holds a <code>PgPool</code> and inserts into <code>token_usage_log</code> after each completion. sqlx was already in the workspace, just not declared in llm's Cargo.toml.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ COST.RS -->
+  <section class="slide" id="slide-3">
+    <div class="slide-num">03 · cost.rs</div>
+    <h2>Cost Estimation</h2>
+    <p>Microdollar pricing: <strong>1 microdollar = $0.000001</strong>. The table stores blended input/output rates per 1,000 tokens. Matching is done by substring so model variants like <code>claude-haiku-4-5-20251001</code> match the <code>"claude-haiku"</code> prefix.</p>
+
+    <pre><code><span class="cm">// Microdollar pricing per 1000 tokens (blended input/output)</span>
+<span class="kw">const</span> <span class="nm">PRICING</span>: <span class="op">&amp;</span>[(<span class="op">&amp;</span><span class="ty">str</span>, <span class="ty">u64</span>)] = <span class="op">&amp;</span>[
+    (<span class="st">"claude-opus"</span>,  <span class="nm">45_000</span>),   <span class="cm">// ~$45 per 1M tokens</span>
+    (<span class="st">"claude-sonnet"</span>, <span class="nm">9_000</span>),   <span class="cm">// ~$9 per 1M tokens</span>
+    (<span class="st">"claude-haiku"</span>,    <span class="nm">750</span>),   <span class="cm">// ~$0.75 per 1M tokens</span>
+    (<span class="st">"gpt-4o-mini"</span>,     <span class="nm">375</span>),   <span class="cm">// ~$0.375 per 1M tokens</span>
+    (<span class="st">"gpt-4o"</span>,        <span class="nm">10_000</span>), <span class="cm">// ~$10 per 1M tokens</span>
+    (<span class="st">"gpt-4"</span>,         <span class="nm">45_000</span>), <span class="cm">// ~$45 per 1M tokens</span>
+    (<span class="st">"gpt-3.5"</span>,        <span class="nm">1_000</span>), <span class="cm">// ~$1 per 1M tokens</span>
+    (<span class="st">"llama"</span>,               <span class="nm">0</span>),   <span class="cm">// free (local)</span>
+    (<span class="st">"mistral"</span>,             <span class="nm">0</span>),   <span class="cm">// free (local)</span>
+    (<span class="st">"nomic"</span>,               <span class="nm">0</span>),   <span class="cm">// free (local)</span>
+];
+
+<span class="kw">pub fn</span> <span class="fn">estimate_cost</span>(model: <span class="op">&amp;</span><span class="ty">str</span>, tokens: <span class="ty">u32</span>) -&gt; <span class="ty">u64</span> {
+    <span class="kw">let</span> rate = PRICING
+        .<span class="fn">iter</span>()
+        .<span class="fn">find</span>(|(prefix, _)| model.<span class="fn">contains</span>(prefix))
+        .<span class="fn">map</span>(|(_, rate)| *rate)
+        .<span class="fn">unwrap_or</span>(DEFAULT_RATE);
+    (tokens <span class="kw">as</span> <span class="ty">u64</span>).<span class="fn">saturating_mul</span>(rate) / <span class="nm">1_000</span>
+}</code></pre>
+
+    <h3>Pricing Examples</h3>
+    <table>
+      <tr><th>Model</th><th>1K tokens</th><th>100K tokens</th><th>1M tokens</th><th>Type</th></tr>
+      <tr><td>claude-haiku-4-5-20251001</td><td>750 µ$</td><td>$0.075</td><td>$0.75</td><td><span class="pill pill-b">Anthropic</span></td></tr>
+      <tr><td>claude-sonnet-4-6</td><td>9,000 µ$</td><td>$0.90</td><td>$9.00</td><td><span class="pill pill-b">Anthropic</span></td></tr>
+      <tr><td>gpt-4o-mini</td><td>375 µ$</td><td>$0.0375</td><td>$0.375</td><td><span class="pill pill-g">OpenAI</span></td></tr>
+      <tr><td>gpt-4o</td><td>10,000 µ$</td><td>$1.00</td><td>$10.00</td><td><span class="pill pill-g">OpenAI</span></td></tr>
+      <tr><td>llama3.2:latest</td><td>0 µ$</td><td>$0.00</td><td>$0.00</td><td><span class="pill pill-p">Ollama (local)</span></td></tr>
+    </table>
+  </section>
+
+  <!-- ④ PROVIDER REGISTRY -->
+  <section class="slide" id="slide-4">
+    <div class="slide-num">04 · ProviderRegistry</div>
+    <h2>Provider Registry</h2>
+    <p>A named container for <code>Arc&lt;dyn LlmProvider&gt;</code> instances. The first provider added automatically becomes the default; you can override with <code>set_default()</code>.</p>
+
+    <pre><code><span class="kw">pub struct</span> <span class="ty">ProviderRegistry</span> {
+    providers: <span class="ty">HashMap</span>&lt;<span class="ty">String</span>, <span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;&gt;,
+    default: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+}
+
+<span class="kw">impl</span> <span class="ty">ProviderRegistry</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>() -&gt; <span class="ty">Self</span>
+    <span class="kw">pub fn</span> <span class="fn">add</span>(<span class="op">&amp;</span><span class="kw">mut</span> <span class="kw">self</span>, name: <span class="kw">impl</span> <span class="ty">Into</span>&lt;<span class="ty">String</span>&gt;, provider: <span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;)
+    <span class="kw">pub fn</span> <span class="fn">get</span>(<span class="op">&amp;</span><span class="kw">self</span>, name: <span class="op">&amp;</span><span class="ty">str</span>) -&gt; <span class="ty">Option</span>&lt;<span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;&gt;
+    <span class="kw">pub fn</span> <span class="fn">default_provider</span>(<span class="op">&amp;</span><span class="kw">self</span>) -&gt; <span class="ty">Option</span>&lt;<span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;&gt;
+    <span class="kw">pub fn</span> <span class="fn">all</span>(<span class="op">&amp;</span><span class="kw">self</span>) -&gt; <span class="ty">Vec</span>&lt;(<span class="ty">String</span>, <span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;)&gt;
+    <span class="kw">pub fn</span> <span class="fn">set_default</span>(<span class="op">&amp;</span><span class="kw">mut</span> <span class="kw">self</span>, name: <span class="kw">impl</span> <span class="ty">Into</span>&lt;<span class="ty">String</span>&gt;)
+}</code></pre>
+
+    <h3>Usage Pattern</h3>
+    <pre><code><span class="kw">let mut</span> reg = <span class="ty">ProviderRegistry</span>::<span class="fn">new</span>();
+reg.<span class="fn">add</span>(<span class="st">"anthropic"</span>, <span class="ty">Arc</span>::<span class="fn">new</span>(<span class="ty">AnthropicProvider</span>::<span class="fn">new</span>(key)));
+reg.<span class="fn">add</span>(<span class="st">"ollama"</span>,    <span class="ty">Arc</span>::<span class="fn">new</span>(<span class="ty">OllamaProvider</span>::<span class="fn">new</span>()));
+
+<span class="cm">// First added (anthropic) is default:</span>
+<span class="kw">let</span> provider = reg.<span class="fn">default_provider</span>().<span class="fn">unwrap</span>();
+<span class="kw">let</span> resp = provider.<span class="fn">complete</span>(messages, opts).<span class="kw">await</span>?;</code></pre>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Why Arc&lt;dyn LlmProvider&gt;?</div>
+        <p>Allows <strong>cheap cloning</strong> of provider handles. Multiple components (TUI panel, CLI, Ralph loops) can hold a reference to the same provider without duplication.</p>
+      </div>
+      <div class="card">
+        <div class="card-title">Future Extension</div>
+        <p>Tasks 22-36 (Ralph loops, resume tailoring, cover letters) will use <code>ProviderRegistry</code> to pick the appropriate provider per operation type.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ LLMBUILDER FALLBACK -->
+  <section class="slide" id="slide-5">
+    <div class="slide-num">05 · LlmBuilder</div>
+    <h2>LlmBuilder::from_config</h2>
+    <p>Builds the best available provider from <code>Config</code> and <code>CredentialManager</code> — never panics, never errors. When all else fails it returns an <strong>Ollama</strong> provider (always available locally).</p>
+
+    <h3>Fallback Chain</h3>
+    <div class="flow">
+      <div class="flow-box active">config.default_llm_provider</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">key present?</div>
+      <div class="flow-arrow">✓ →</div>
+      <div class="flow-box fallback">return configured</div>
+    </div>
+    <div class="flow">
+      <div class="flow-box">key missing</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">Anthropic key?</div>
+      <div class="flow-arrow">✓ →</div>
+      <div class="flow-box fallback">return Anthropic</div>
+    </div>
+    <div class="flow">
+      <div class="flow-box">no Anthropic</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">OpenAI key?</div>
+      <div class="flow-arrow">✓ →</div>
+      <div class="flow-box fallback">return OpenAI</div>
+    </div>
+    <div class="flow">
+      <div class="flow-box">no OpenAI</div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box fallback">return Ollama (always available)</div>
+    </div>
+
+    <pre><code><span class="kw">pub fn</span> <span class="fn">from_config</span>(config: <span class="op">&amp;</span><span class="ty">Config</span>, creds: <span class="op">&amp;</span><span class="ty">CredentialManager</span>)
+    -&gt; <span class="ty">Result</span>&lt;<span class="ty">Box</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;&gt;
+{
+    <span class="cm">// 1. Try the configured provider first</span>
+    <span class="kw">if let</span> <span class="ty">Some</span>(<span class="kw">ref</span> name) = config.default_llm_provider {
+        <span class="kw">match</span> name.<span class="fn">as_str</span>() {
+            <span class="st">"anthropic"</span> =&gt; <span class="kw">if let</span> <span class="ty">Ok</span>(p) = <span class="ty">AnthropicProvider</span>::<span class="fn">from_credentials</span>(creds) {
+                <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Box</span>::<span class="fn">new</span>(p));
+            }
+            <span class="st">"ollama"</span>    =&gt; <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Box</span>::<span class="fn">new</span>(<span class="ty">OllamaProvider</span>::<span class="fn">new</span>())),
+            _ =&gt; {}
+        }
+    }
+    <span class="cm">// 2. Try Anthropic, then OpenAI</span>
+    <span class="kw">if let</span> <span class="ty">Ok</span>(p) = <span class="ty">AnthropicProvider</span>::<span class="fn">from_credentials</span>(creds) { <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Box</span>::<span class="fn">new</span>(p)); }
+    <span class="kw">if let</span> <span class="ty">Ok</span>(p) = <span class="ty">OpenAiProvider</span>::<span class="fn">from_credentials</span>(creds)   { <span class="kw">return</span> <span class="ty">Ok</span>(<span class="ty">Box</span>::<span class="fn">new</span>(p)); }
+    <span class="cm">// 3. Always-available fallback</span>
+    <span class="ty">Ok</span>(<span class="ty">Box</span>::<span class="fn">new</span>(<span class="ty">OllamaProvider</span>::<span class="fn">new</span>()))
+}</code></pre>
+  </section>
+
+  <!-- ⑥ LOGGING PROVIDER -->
+  <section class="slide" id="slide-6">
+    <div class="slide-num">06 · LoggingProvider</div>
+    <h2>LoggingProvider — Decorator Pattern</h2>
+    <p>Wraps any <code>Arc&lt;dyn LlmProvider&gt;</code>, transparently delegates all calls, and after each successful <code>complete()</code> inserts a row into the <strong>token_usage_log</strong> PostgreSQL table.</p>
+
+    <pre><code><span class="kw">pub struct</span> <span class="ty">LoggingProvider</span> {
+    inner:     <span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;,
+    pool:      <span class="ty">Option</span>&lt;<span class="ty">PgPool</span>&gt;,   <span class="cm">// None → log silently skipped (for tests)</span>
+    operation: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,   <span class="cm">// optional label for the log row</span>
+}
+
+<span class="cm">// Decorator implementation — fully transparent</span>
+<span class="nm">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">LlmProvider</span> <span class="kw">for</span> <span class="ty">LoggingProvider</span> {
+    <span class="kw">fn</span> <span class="fn">provider_name</span>(<span class="op">&amp;</span><span class="kw">self</span>) -&gt; <span class="op">&amp;</span><span class="ty">str</span> { <span class="kw">self</span>.inner.<span class="fn">provider_name</span>() }
+    <span class="kw">fn</span> <span class="fn">model_name</span>(<span class="op">&amp;</span><span class="kw">self</span>) -&gt; <span class="op">&amp;</span><span class="ty">str</span>    { <span class="kw">self</span>.inner.<span class="fn">model_name</span>() }
+
+    <span class="kw">async fn</span> <span class="fn">complete</span>(<span class="op">&amp;</span><span class="kw">self</span>, messages, opts) -&gt; <span class="ty">Result</span>&lt;<span class="ty">LlmResponse</span>&gt; {
+        <span class="kw">let</span> response = <span class="kw">self</span>.inner.<span class="fn">complete</span>(messages, opts).<span class="kw">await</span>?;
+        <span class="kw">self</span>.<span class="fn">log_usage</span>(<span class="op">&amp;</span>response).<span class="kw">await</span>;  <span class="cm">// fire-and-forget</span>
+        <span class="ty">Ok</span>(response)
+    }
+}</code></pre>
+
+    <h3>DB Insert (runtime sqlx, no DATABASE_URL at build time)</h3>
+    <pre><code><span class="nm">sqlx</span>::<span class="fn">query</span>(<span class="st">"INSERT INTO token_usage_log
+    (id, provider, model, input_tokens, output_tokens, cost_microdollars, operation)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)"</span>)
+    .<span class="fn">bind</span>(<span class="nm">uuid</span>::<span class="ty">Uuid</span>::<span class="fn">new_v4</span>())
+    .<span class="fn">bind</span>(<span class="kw">self</span>.inner.<span class="fn">provider_name</span>())
+    .<span class="fn">bind</span>(<span class="op">&amp;</span>response.model)
+    .<span class="fn">bind</span>(response.usage.prompt_tokens <span class="kw">as</span> <span class="ty">i32</span>)
+    .<span class="fn">bind</span>(response.usage.completion_tokens <span class="kw">as</span> <span class="ty">i32</span>)
+    .<span class="fn">bind</span>(<span class="fn">estimate_cost</span>(<span class="op">&amp;</span>response.model, response.usage.total_tokens) <span class="kw">as</span> <span class="ty">i64</span>)
+    .<span class="fn">bind</span>(<span class="kw">self</span>.operation.<span class="fn">as_deref</span>())
+    .<span class="fn">execute</span>(pool).<span class="kw">await</span>;</code></pre>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">Construction</div>
+        <pre style="margin:0;padding:12px;font-size:12px"><code><span class="cm">// Production (with DB pool):</span>
+<span class="ty">LoggingProvider</span>::<span class="fn">new</span>(provider, pool)
+  .<span class="fn">with_operation</span>(<span class="st">"resume-tailor"</span>)
+
+<span class="cm">// Unit tests (no pool):</span>
+<span class="ty">LoggingProvider</span>::<span class="fn">without_pool</span>(provider)</code></pre>
+      </div>
+      <div class="card">
+        <div class="card-title">Design Decisions</div>
+        <p><strong>Fire-and-forget:</strong> <code>let _ = query.execute().await</code> — logging failure is silently swallowed so it never fails the LLM call.</p>
+        <p><strong>Option&lt;PgPool&gt;:</strong> Enables unit testing without a real DB.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑦ TESTS -->
+  <section class="slide" id="slide-7">
+    <div class="slide-num">07 · Tests</div>
+    <h2>Test Results — 22 New Tests</h2>
+
+    <div class="grid-3" style="margin-bottom:24px">
+      <div class="stat-card"><div class="stat-num">283</div><div class="stat-label">Total tests passing</div></div>
+      <div class="stat-card"><div class="stat-num">7</div><div class="stat-label">cost.rs tests</div></div>
+      <div class="stat-card"><div class="stat-num">15</div><div class="stat-label">registry.rs tests</div></div>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <h3>cost.rs tests</h3>
+        <div class="test-list" style="display:block">
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_zero_tokens</div>
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_claude_haiku</div>
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_claude_opus</div>
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_gpt4o_mini</div>
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_gpt4o</div>
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_ollama_is_free</div>
+          <div class="test-item"><div class="test-dot"></div>estimate_cost_unknown_model_uses_default</div>
+        </div>
+      </div>
+      <div>
+        <h3>registry.rs tests</h3>
+        <div class="test-list" style="display:block">
+          <div class="test-item"><div class="test-dot"></div>registry_add_and_get</div>
+          <div class="test-item"><div class="test-dot"></div>registry_get_missing_returns_none</div>
+          <div class="test-item"><div class="test-dot"></div>registry_default_provider_after_set_default</div>
+          <div class="test-item"><div class="test-dot"></div>registry_first_added_becomes_default</div>
+          <div class="test-item"><div class="test-dot"></div>registry_all_returns_all_providers</div>
+          <div class="test-item"><div class="test-dot"></div>registry_default_is_none_when_empty</div>
+          <div class="test-item"><div class="test-dot"></div>builder_falls_back_to_ollama_with_no_creds</div>
+          <div class="test-item"><div class="test-dot"></div>builder_uses_anthropic_when_key_set</div>
+          <div class="test-item"><div class="test-dot"></div>builder_uses_openai_when_anthropic_missing</div>
+          <div class="test-item"><div class="test-dot"></div>builder_respects_configured_provider_ollama</div>
+          <div class="test-item"><div class="test-dot"></div>builder_falls_through_when_key_missing</div>
+          <div class="test-item"><div class="test-dot"></div>logging_provider_delegates_provider_name</div>
+          <div class="test-item"><div class="test-dot"></div>logging_provider_delegates_model_name</div>
+          <div class="test-item"><div class="test-dot"></div>logging_provider_delegates_complete_without_pool</div>
+          <div class="test-item"><div class="test-dot"></div>logging_provider_with_operation_label</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">Key Test Technique: InMemoryStore for credential mocking</div>
+      <pre style="margin:0;padding:12px;font-size:12px"><code><span class="cm">// Simulates credentials without touching the OS keyring:</span>
+<span class="kw">let</span> store = <span class="ty">InMemoryStore</span>::<span class="fn">new</span>();
+store.<span class="fn">set</span>(<span class="st">"api_key:anthropic"</span>, <span class="st">"sk-ant-test123"</span>).<span class="fn">unwrap</span>();
+<span class="kw">let</span> creds = <span class="ty">CredentialManager</span>::<span class="fn">with_store</span>(<span class="ty">Box</span>::<span class="fn">new</span>(store));
+<span class="kw">let</span> provider = <span class="ty">LlmBuilder</span>::<span class="fn">from_config</span>(<span class="op">&amp;</span>config, <span class="op">&amp;</span>creds).<span class="fn">unwrap</span>();
+<span class="fn">assert_eq</span>!(provider.<span class="fn">provider_name</span>(), <span class="st">"anthropic"</span>);</code></pre>
+    </div>
+  </section>
+
+  <!-- ⑧ BUILD OUTPUT -->
+  <section class="slide" id="slide-8">
+    <div class="slide-num">08 · Build Output</div>
+    <h2>Verification</h2>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <span style="font-size:13px;color:var(--muted);margin-left:8px">cargo build</span>
+      </div>
+      <pre><code><span class="t-prompt">$</span> <span class="t-cmd">cargo build -p lazyjob-llm</span>
+<span class="t-out">   Compiling lazyjob-llm v0.1.0</span>
+<span class="t-ok">    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.08s</span></code></pre>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <span style="font-size:13px;color:var(--muted);margin-left:8px">cargo clippy</span>
+      </div>
+      <pre><code><span class="t-prompt">$</span> <span class="t-cmd">cargo clippy -p lazyjob-llm -- -D warnings</span>
+<span class="t-out">    Checking lazyjob-llm v0.1.0 (/home/lab-admin/repos/lazyjob/crates/lazyjob-llm)</span>
+<span class="t-ok">    Finished `dev` profile [unoptimized + debuginfo] target(s) in 5.03s</span></code></pre>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <span style="font-size:13px;color:var(--muted);margin-left:8px">cargo test</span>
+      </div>
+      <pre><code><span class="t-prompt">$</span> <span class="t-cmd">cargo test -p lazyjob-llm</span>
+<span class="t-out">running 62 tests</span>
+<span class="t-ok">test cost::tests::estimate_cost_claude_haiku     ... ok</span>
+<span class="t-ok">test cost::tests::estimate_cost_ollama_is_free   ... ok</span>
+<span class="t-ok">test registry::tests::builder_falls_back_to_ollama_with_no_creds ... ok</span>
+<span class="t-ok">test registry::tests::builder_uses_anthropic_when_key_set        ... ok</span>
+<span class="t-ok">test registry::tests::logging_provider_delegates_complete_without_pool ... ok</span>
+<span class="t-out">... (57 more) ...</span>
+<span class="t-pass">test result: ok. 62 passed; 0 failed; 0 ignored</span>
+
+<span class="t-prompt">$</span> <span class="t-cmd">cargo test  <span class="t-out">(full workspace)</span></span>
+<span class="t-out">running 283 tests total across all crates</span>
+<span class="t-pass">test result: ok. 283 passed; 0 failed; 0 ignored</span></code></pre>
+    </div>
+
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div>
+        <span style="font-size:13px;color:var(--muted);margin-left:8px">git commit</span>
+      </div>
+      <pre><code><span class="t-prompt">$</span> <span class="t-cmd">git commit</span>
+<span class="t-ok">[main ee7a59a] feat(llm): implement ProviderRegistry, LlmBuilder, LoggingProvider, and cost estimation</span>
+<span class="t-out"> 9 files changed, 657 insertions(+), 1 deletion(-)</span>
+<span class="t-out"> create mode 100644 crates/lazyjob-llm/src/cost.rs</span>
+<span class="t-out"> create mode 100644 crates/lazyjob-llm/src/registry.rs</span></code></pre>
+    </div>
+  </section>
+
+  <!-- ⑨ SUMMARY -->
+  <section class="slide" id="slide-9">
+    <div class="slide-num">09 · Summary</div>
+    <h2>Task 17 Complete</h2>
+
+    <ul class="checklist">
+      <li><span class="check">✓</span> <strong>cost.rs</strong> — per-model microdollar pricing (10 models), substring matching for variants, saturating arithmetic</li>
+      <li><span class="check">✓</span> <strong>ProviderRegistry</strong> — Arc&lt;dyn LlmProvider&gt; by name, auto-default on first add, set_default override</li>
+      <li><span class="check">✓</span> <strong>LlmBuilder::from_config</strong> — credential-aware fallback chain (configured → Anthropic → OpenAI → Ollama), never errors</li>
+      <li><span class="check">✓</span> <strong>LoggingProvider</strong> — transparent decorator, inserts token_usage_log row after each completion, fire-and-forget, Option&lt;PgPool&gt; for testability</li>
+      <li><span class="check">✓</span> <strong>sqlx/uuid added</strong> to lazyjob-llm Cargo.toml; runtime queries (no compile-time DATABASE_URL needed)</li>
+      <li><span class="check">✓</span> <strong>22 new tests</strong> — all passing, 283 total workspace tests green</li>
+      <li><span class="check">✓</span> <strong>cargo clippy</strong> — zero warnings, cargo fmt applied</li>
+      <li><span class="check">✓</span> <strong>Committed</strong> — <code>ee7a59a feat(llm): implement ProviderRegistry, LlmBuilder, LoggingProvider, and cost estimation</code></li>
+    </ul>
+
+    <div class="card" style="margin-top:24px;border-color:rgba(88,166,255,.3)">
+      <div class="card-title" style="color:var(--accent)">Next: Task 18 — ralph-protocol</div>
+      <p>Define <code>WorkerCommand</code> and <code>WorkerEvent</code> enums in <code>lazyjob-ralph/src/protocol.rs</code> with NDJSON codec for the subprocess communication protocol. This is the first task in the Ralph subprocess integration track.</p>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Highlight active nav link on scroll
+  const slides = document.querySelectorAll('.slide');
+  const navLinks = document.querySelectorAll('nav a');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navLinks.forEach(a => {
+          a.classList.toggle('active', a.getAttribute('href') === `#${id}`);
+        });
+      }
+    });
+  }, { threshold: 0.4 });
+
+  slides.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

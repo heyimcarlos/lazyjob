@@ -8,6 +8,10 @@ pub enum RalphError {
     Io(#[from] std::io::Error),
     #[error("run not found: {0}")]
     NotFound(String),
+    #[error("cron parse error: {0}")]
+    CronParse(String),
+    #[error("dispatch queue is full (capacity {0})")]
+    QueueFull(usize),
 }
 
 pub type Result<T> = std::result::Result<T, RalphError>;
