@@ -1,0 +1,518 @@
+{
+  "objective": "For every spec file in specs/ that lacks an implementation plan, deeply analyze it and write a thorough implementation plan in the same directory, then update specs/README.md with the new entry.",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "impl-plan-07-resume-tailoring-pipeline",
+      "spec": "specs/07-resume-tailoring-pipeline.md",
+      "output": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
+      "description": "Analyze the resume tailoring pipeline spec and write a thorough implementation plan covering: AI-powered resume bullet rewriting, gap analysis pipeline, keyword extraction from JDs, section-level diff rendering in TUI, resume version storage, Rust trait design for the tailoring pipeline, and integration with the LLM provider abstraction.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "impl-plan-08-cover-letter-generation",
+      "spec": "specs/08-cover-letter-generation.md",
+      "output": "specs/08-cover-letter-generation-implementation-plan.md",
+      "description": "Analyze the cover letter generation spec and produce an implementation plan covering: company research integration, prompt template design, multi-draft storage in SQLite, TUI editing workflow, tone/style parameters, and integration points with the life sheet and job discovery layers.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "impl-plan-09-tui-design-keybindings",
+      "spec": "specs/09-tui-design-keybindings.md",
+      "output": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "description": "Analyze the TUI design and keybindings spec. Produce a plan covering: ratatui widget hierarchy, layout system, vim-inspired modal keybindings, focus management, scrollable panels, popup/overlay system, color scheme, configurable key maps stored in config, and accessibility considerations.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "impl-plan-10-application-workflow",
+      "spec": "specs/10-application-workflow.md",
+      "output": "specs/10-application-workflow-implementation-plan.md",
+      "description": "Analyze the application workflow spec. Produce a plan covering: state machine transitions (Discovered→Applied→Phone Screen→Technical→On-site→Offer→Rejected/Accepted), kanban board TUI view, event sourcing for state history, SQLite schema for applications, bulk actions, reminder triggers, and integration with the Ralph AI loop.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "impl-plan-11-platform-api-integrations",
+      "spec": "specs/11-platform-api-integrations.md",
+      "output": "specs/11-platform-api-integrations-implementation-plan.md",
+      "description": "Analyze the platform API integrations spec. Produce a plan covering: Greenhouse API client, Lever API client, Workday scraping strategy, trait-based platform abstraction, rate limiting and retry logic, authentication storage (keyring), response normalization into the internal Job model, and browser automation fallback via headless Chromium.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "impl-plan-12-15-interview-salary-networking-notifications",
+      "spec": "specs/12-15-interview-salary-networking-notifications.md",
+      "output": "specs/12-15-interview-salary-networking-notifications-implementation-plan.md",
+      "description": "Analyze the combined interview prep, salary negotiation, networking, and notifications spec. Produce a plan covering each subsystem: interview question bank, mock interview loop, salary data integration (levels.fyi, Glassdoor), counter-offer drafting, contact graph, outreach templates, and desktop/terminal notification delivery.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "impl-plan-16-privacy-security",
+      "spec": "specs/16-privacy-security.md",
+      "output": "specs/16-privacy-security-implementation-plan.md",
+      "description": "Analyze the privacy and security spec. Produce a plan covering: at-rest encryption with AES-256-GCM, OS keychain integration (secret-service on Linux, Keychain on macOS), master password derivation (Argon2id), encrypted SQLite via SQLCipher, secure memory handling (zeroize crate), and data export/wipe flows.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "impl-plan-17-ralph-prompt-templates",
+      "spec": "specs/17-ralph-prompt-templates.md",
+      "output": "specs/17-ralph-prompt-templates-implementation-plan.md",
+      "description": "Analyze the Ralph prompt templates spec. Produce a plan covering: template storage format (YAML/TOML), variable interpolation engine, versioning strategy, per-task-type template registry, user-customizable overrides, prompt caching (Anthropic cache headers), and testing strategy for prompt quality.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "impl-plan-18-saas-migration-path",
+      "spec": "specs/18-saas-migration-path.md",
+      "output": "specs/18-saas-migration-path-implementation-plan.md",
+      "description": "Analyze the SaaS migration path spec. Produce a plan covering: SQLite-to-PostgreSQL migration strategy, feature flag system, sync protocol design, authentication layer (JWT/OAuth), multi-tenancy schema changes, API surface design (REST/GraphQL), pricing gate enforcement, and backward-compatible local-first fallback.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 10,
+      "name": "impl-plan-20-openapi-mvp",
+      "spec": "specs/20-openapi-mvp.md",
+      "output": "specs/20-openapi-mvp-implementation-plan.md",
+      "description": "Analyze the OpenAPI MVP spec. Produce a detailed phased implementation plan: Phase 1 (core scaffold, SQLite, life sheet), Phase 2 (TUI shell + job discovery), Phase 3 (Ralph integration + resume tailoring), Phase 4 (full pipeline + cover letters). Include dependency graph, verification checkpoints, and Cargo workspace setup.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 11,
+      "name": "impl-plan-agentic-llm-provider-abstraction",
+      "spec": "specs/agentic-llm-provider-abstraction.md",
+      "output": "specs/agentic-llm-provider-abstraction-implementation-plan.md",
+      "description": "Analyze the agentic LLM provider abstraction spec. Produce a plan covering: async trait design for chat/completion/embedding, provider implementations (Anthropic, OpenAI, Ollama), streaming response handling, token counting, cost tracking, fallback/retry logic, and test doubles for unit testing.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 12,
+      "name": "impl-plan-agentic-prompt-templates",
+      "spec": "specs/agentic-prompt-templates.md",
+      "output": "specs/agentic-prompt-templates-implementation-plan.md",
+      "description": "Analyze the agentic prompt templates spec. Produce a plan covering: template DSL design, compilation/validation pipeline, runtime variable substitution, per-provider token optimization, template inheritance, versioned storage, and CLI tooling for template development and testing.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 13,
+      "name": "impl-plan-agentic-ralph-orchestration",
+      "spec": "specs/agentic-ralph-orchestration.md",
+      "output": "specs/agentic-ralph-orchestration-implementation-plan.md",
+      "description": "Analyze the Ralph orchestration spec. Produce a plan covering: multi-loop concurrency model (tokio tasks), priority queue for loop scheduling, loop lifecycle (spawn, monitor, kill, restart), inter-loop communication via SQLite events, TUI progress panel updates, and resource budgets (max concurrent loops, token limits).",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 14,
+      "name": "impl-plan-agentic-ralph-subprocess-protocol",
+      "spec": "specs/agentic-ralph-subprocess-protocol.md",
+      "output": "specs/agentic-ralph-subprocess-protocol-implementation-plan.md",
+      "description": "Analyze the Ralph subprocess JSON protocol spec. Produce a plan covering: JSON message schema (envelope format, typed payloads), framing protocol (newline-delimited JSON), stdin/stdout/stderr handling, heartbeat/ping mechanism, graceful shutdown handshake, crash detection and restart policy, and Rust codec implementation using tokio-util.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 15,
+      "name": "impl-plan-application-state-machine",
+      "spec": "specs/application-state-machine.md",
+      "output": "specs/application-state-machine-implementation-plan.md",
+      "description": "Analyze the application state machine spec. Produce a plan covering: Rust state enum design, transition guards and side effects, event log table schema in SQLite, state history replay, invalid-transition error handling, TUI state visualization, and integration with reminder/notification triggers.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 16,
+      "name": "impl-plan-application-workflow-actions",
+      "spec": "specs/application-workflow-actions.md",
+      "output": "specs/application-workflow-actions-implementation-plan.md",
+      "description": "Analyze the application workflow actions spec. Produce a plan covering: action registry pattern, command trait design, async action execution, TUI action dispatch, keyboard shortcut binding to actions, action history/undo stack, and integration with Ralph AI triggers (auto-tailor resume on apply).",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 17,
+      "name": "impl-plan-application-pipeline-metrics",
+      "spec": "specs/application-pipeline-metrics.md",
+      "output": "specs/application-pipeline-metrics-implementation-plan.md",
+      "description": "Analyze the pipeline metrics spec. Produce a plan covering: metric collection (response rates, time-in-stage, rejection points), aggregation queries in SQLite, trend computation, TUI dashboard chart design (bar/sparkline with ratatui), export to CSV/JSON, and funnel analysis.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 18,
+      "name": "impl-plan-job-search-discovery-engine",
+      "spec": "specs/job-search-discovery-engine.md",
+      "output": "specs/job-search-discovery-engine-implementation-plan.md",
+      "description": "Analyze the job search discovery engine spec. Produce a plan covering: multi-source aggregation architecture, scheduling (cron-like background fetching), deduplication algorithm (title+company+location hash), relevance scoring pipeline, SQLite job store schema, and TUI job feed rendering.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 19,
+      "name": "impl-plan-job-search-semantic-matching",
+      "spec": "specs/job-search-semantic-matching.md",
+      "output": "specs/job-search-semantic-matching-implementation-plan.md",
+      "description": "Analyze the semantic matching spec. Produce a plan covering: embedding generation (local via candle or remote via OpenAI), vector storage options (sqlite-vec or hnswlib-rs), cosine similarity ranking, hybrid BM25+vector ranking, life sheet embedding, and incremental re-embedding on profile changes.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 20,
+      "name": "impl-plan-job-search-ghost-job-detection",
+      "spec": "specs/job-search-ghost-job-detection.md",
+      "output": "specs/job-search-ghost-job-detection-implementation-plan.md",
+      "description": "Analyze the ghost job detection spec. Produce a plan covering: staleness heuristics (days-since-posted, repost detection), job deduplication across sources, LLM-assisted signal detection, confidence scoring, user feedback loop for improving detection, and SQLite schema for tracking freshness.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 21,
+      "name": "impl-plan-job-search-company-research",
+      "spec": "specs/job-search-company-research.md",
+      "output": "specs/job-search-company-research-implementation-plan.md",
+      "description": "Analyze the company research spec. Produce a plan covering: data sources (Crunchbase, LinkedIn, HackerNews, company blog), Ralph loop design for research, structured output schema (CompanyProfile), caching strategy in SQLite, TUI company detail view, and freshness/TTL management.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 22,
+      "name": "impl-plan-profile-life-sheet-data-model",
+      "spec": "specs/profile-life-sheet-data-model.md",
+      "output": "specs/profile-life-sheet-data-model-implementation-plan.md",
+      "description": "Analyze the life sheet data model spec. Produce a plan covering: YAML schema definition and serde_yaml deserialization, validation rules, SQLite mirror schema and sync logic, ESCO/O*NET taxonomy integration, version history, TUI profile editor, and import/export flows.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 23,
+      "name": "impl-plan-profile-resume-tailoring",
+      "spec": "specs/profile-resume-tailoring.md",
+      "output": "specs/profile-resume-tailoring-implementation-plan.md",
+      "description": "Analyze the profile resume tailoring spec. Produce a plan covering: per-job resume variant storage, diff visualization between base and tailored resume, AI rewriting loop design, ATS keyword injection strategy, formatting preservation, and integration with the application workflow.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 24,
+      "name": "impl-plan-profile-cover-letter-generation",
+      "spec": "specs/profile-cover-letter-generation.md",
+      "output": "specs/profile-cover-letter-generation-implementation-plan.md",
+      "description": "Analyze the profile cover letter generation spec. Produce a plan covering: multi-stage generation (research→draft→refine), tone/style configuration, template inheritance from life sheet, company research injection, version management in SQLite, and TUI editing/preview workflow.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 25,
+      "name": "impl-plan-profile-skills-gap-analysis",
+      "spec": "specs/profile-skills-gap-analysis.md",
+      "output": "specs/profile-skills-gap-analysis-implementation-plan.md",
+      "description": "Analyze the skills gap analysis spec. Produce a plan covering: skill extraction from job descriptions (LLM + regex hybrid), gap scoring against life sheet skills, learning resource suggestions, gap report generation, ESCO taxonomy mapping, trend analysis across multiple target roles, and TUI gap dashboard.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 26,
+      "name": "impl-plan-interview-prep-question-generation",
+      "spec": "specs/interview-prep-question-generation.md",
+      "output": "specs/interview-prep-question-generation-implementation-plan.md",
+      "description": "Analyze the interview question generation spec. Produce a plan covering: question type taxonomy (behavioral, technical, role-specific, culture-fit), LLM prompt design for question generation, SQLite question bank schema, per-company/role question sets, STAR answer scaffolding, and TUI question bank browser.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 27,
+      "name": "impl-plan-interview-prep-mock-loop",
+      "spec": "specs/interview-prep-mock-loop.md",
+      "output": "specs/interview-prep-mock-loop-implementation-plan.md",
+      "description": "Analyze the mock interview loop spec. Produce a plan covering: turn-based conversation design, Ralph subprocess protocol for the mock interviewer, TUI terminal conversation view, session recording and playback, AI feedback on answers (STAR completeness, filler words), and session analytics.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 28,
+      "name": "impl-plan-interview-prep-agentic",
+      "spec": "specs/interview-prep-agentic.md",
+      "output": "specs/interview-prep-agentic-implementation-plan.md",
+      "description": "Analyze the agentic interview prep spec. Produce a plan covering: autonomous research loop (company news, team bios, product docs), prep dossier generation, question prediction based on job description, STAR story bank extraction from life sheet, and scheduling/reminder integration.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 29,
+      "name": "impl-plan-salary-market-intelligence",
+      "spec": "specs/salary-market-intelligence.md",
+      "output": "specs/salary-market-intelligence-implementation-plan.md",
+      "description": "Analyze the salary market intelligence spec. Produce a plan covering: data source integrations (levels.fyi, Glassdoor, Blind, LinkedIn Salary), scraping/API strategy, market range computation per role/location/YOE, local cache with TTL in SQLite, TUI salary comparison view, and export to compensation sheet.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 30,
+      "name": "impl-plan-salary-negotiation-offers",
+      "spec": "specs/salary-negotiation-offers.md",
+      "output": "specs/salary-negotiation-offers-implementation-plan.md",
+      "description": "Analyze the salary negotiation and offers spec. Produce a plan covering: offer data model (base, equity, bonus, benefits), multi-offer comparison engine, negotiation script generation, BATNA calculation, total compensation normalization (RSU vesting schedules), and TUI offer comparison view.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 31,
+      "name": "impl-plan-salary-counter-offer-drafting",
+      "spec": "specs/salary-counter-offer-drafting.md",
+      "output": "specs/salary-counter-offer-drafting-implementation-plan.md",
+      "description": "Analyze the counter-offer drafting spec. Produce a plan covering: negotiation context gathering (offer details + market data), LLM prompt chain for drafting, tone calibration (firm/collaborative), version history, email format output, and integration with the salary negotiation workflow.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 32,
+      "name": "impl-plan-networking-connection-mapping",
+      "spec": "specs/networking-connection-mapping.md",
+      "output": "specs/networking-connection-mapping-implementation-plan.md",
+      "description": "Analyze the networking connection mapping spec. Produce a plan covering: contact data model, relationship graph in SQLite (adjacency list), company→contact indexing, warm path identification algorithm, contact import from CSV/LinkedIn export, TUI contact browser, and connection quality scoring.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 33,
+      "name": "impl-plan-networking-outreach-drafting",
+      "spec": "specs/networking-outreach-drafting.md",
+      "output": "specs/networking-outreach-drafting-implementation-plan.md",
+      "description": "Analyze the outreach drafting spec. Produce a plan covering: message type taxonomy (cold outreach, referral request, thank-you, follow-up), LLM prompt design per type, personalization using contact + company data, outreach history tracking in SQLite, follow-up reminder scheduling, and message export.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 34,
+      "name": "impl-plan-networking-referral-management",
+      "spec": "specs/networking-referral-management.md",
+      "output": "specs/networking-referral-management-implementation-plan.md",
+      "description": "Analyze the referral management spec. Produce a plan covering: referral request lifecycle, contact-to-job linking, referral status tracking (asked/pending/submitted/declined), thank-you workflow, referral impact analytics, and TUI referral pipeline view.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 35,
+      "name": "impl-plan-networking-referrals-agentic",
+      "spec": "specs/networking-referrals-agentic.md",
+      "output": "specs/networking-referrals-agentic-implementation-plan.md",
+      "description": "Analyze the agentic referrals spec. Produce a plan covering: autonomous contact discovery (LinkedIn scraping, alumni networks), warm path scoring algorithm, batch outreach scheduling, response monitoring loop, and integration with the referral management system.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 36,
+      "name": "impl-plan-05-gaps-cover-letter-interview",
+      "spec": "specs/05-gaps-cover-letter-interview.md",
+      "output": "specs/05-gaps-cover-letter-interview-implementation-plan.md",
+      "description": "Analyze the cover letter and interview gap analysis spec. Identify all gaps and produce an implementation plan that addresses each gap with concrete Rust code design, SQLite schema changes, and TUI integration points.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 37,
+      "name": "impl-plan-07-gaps-networking-outreach",
+      "spec": "specs/07-gaps-networking-outreach.md",
+      "output": "specs/07-gaps-networking-outreach-implementation-plan.md",
+      "description": "Analyze the networking and outreach gap analysis spec. Identify all gaps and produce an implementation plan with concrete Rust trait/struct design, SQLite schema, and TUI integration for each gap.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 38,
+      "name": "impl-plan-08-gaps-salary-tui",
+      "spec": "specs/08-gaps-salary-tui.md",
+      "output": "specs/08-gaps-salary-tui-implementation-plan.md",
+      "description": "Analyze the salary and TUI gap analysis spec. Identify all gaps and produce an implementation plan with detailed Rust component design, data flow, and verification criteria for each gap.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 39,
+      "name": "impl-plan-09-gaps-platform-privacy",
+      "spec": "specs/09-gaps-platform-privacy.md",
+      "output": "specs/09-gaps-platform-privacy-implementation-plan.md",
+      "description": "Analyze the platform and privacy gap analysis spec. Identify all gaps and produce an implementation plan covering platform API integration gaps and privacy/security gaps with concrete Rust implementation details.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 40,
+      "name": "impl-plan-10-gaps-saas-mvp",
+      "spec": "specs/10-gaps-saas-mvp.md",
+      "output": "specs/10-gaps-saas-mvp-implementation-plan.md",
+      "description": "Analyze the SaaS and MVP gap analysis spec. Identify all gaps and produce an implementation plan that bridges the local-first MVP to SaaS readiness, with migration steps, API design, and feature-flag architecture.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 41,
+      "name": "impl-plan-XX-master-password-app-unlock",
+      "spec": "specs/XX-master-password-app-unlock.md",
+      "output": "specs/XX-master-password-app-unlock-implementation-plan.md",
+      "description": "Analyze the master password and app unlock spec. Produce a plan covering: password-based key derivation (Argon2id), session token management, lock timeout configuration, TUI lock screen, and integration with SQLCipher/AES-GCM encryption layer.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 42,
+      "name": "impl-plan-XX-encrypted-backup-export",
+      "spec": "specs/XX-encrypted-backup-export.md",
+      "output": "specs/XX-encrypted-backup-export-implementation-plan.md",
+      "description": "Analyze the encrypted backup and export spec. Produce a plan covering: backup file format (encrypted SQLite snapshot vs. structured JSON), symmetric encryption with user-provided passphrase, incremental backup strategy, cloud storage integration (optional), and restore verification.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 43,
+      "name": "impl-plan-XX-application-cross-source-deduplication",
+      "spec": "specs/XX-application-cross-source-deduplication.md",
+      "output": "specs/XX-application-cross-source-deduplication-implementation-plan.md",
+      "description": "Analyze the cross-source application deduplication spec. Produce a plan covering: deduplication key design (title+company+location hash + fuzzy matching), merge strategy for conflicting data, SQLite unique constraint design, user review flow for uncertain duplicates, and deduplication metrics.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 44,
+      "name": "impl-plan-XX-cover-letter-version-management",
+      "spec": "specs/XX-cover-letter-version-management.md",
+      "output": "specs/XX-cover-letter-version-management-implementation-plan.md",
+      "description": "Analyze the cover letter version management spec. Produce a plan covering: version storage schema in SQLite, diff between versions, restore/promote workflow, per-job-application version linking, and TUI version history browser.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 45,
+      "name": "impl-plan-XX-tui-vim-mode",
+      "spec": "specs/XX-tui-vim-mode.md",
+      "output": "specs/XX-tui-vim-mode-implementation-plan.md",
+      "description": "Analyze the TUI vim mode spec. Produce a plan covering: modal state machine (Normal/Insert/Visual/Command), motion commands, text object support in edit widgets, ex-command parser, visual selection highlighting, and keymap configuration.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 46,
+      "name": "impl-plan-XX-ralph-process-orphan-cleanup",
+      "spec": "specs/XX-ralph-process-orphan-cleanup.md",
+      "output": "specs/XX-ralph-process-orphan-cleanup-implementation-plan.md",
+      "description": "Analyze the Ralph process orphan cleanup spec. Produce a plan covering: PID tracking in SQLite, startup scan for orphaned processes, SIGTERM/SIGKILL escalation strategy, cleanup timeout, and TUI notification of recovered orphans.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 47,
+      "name": "impl-plan-XX-job-alert-webhooks",
+      "spec": "specs/XX-job-alert-webhooks.md",
+      "output": "specs/XX-job-alert-webhooks-implementation-plan.md",
+      "description": "Analyze the job alert webhooks spec. Produce a plan covering: webhook endpoint configuration, payload signing (HMAC-SHA256), alert rule engine, delivery retry logic, SQLite webhook log, and integration with the job discovery pipeline.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 48,
+      "name": "impl-plan-XX-llm-cost-budget-management",
+      "spec": "specs/XX-llm-cost-budget-management.md",
+      "output": "specs/XX-llm-cost-budget-management-implementation-plan.md",
+      "description": "Analyze the LLM cost and budget management spec. Produce a plan covering: token counting per provider, cost calculation by model pricing, daily/monthly budget limits, alert thresholds, usage dashboard in TUI, and cost attribution by Ralph loop type.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 49,
+      "name": "impl-plan-XX-llm-prompt-versioning",
+      "spec": "specs/XX-llm-prompt-versioning.md",
+      "output": "specs/XX-llm-prompt-versioning-implementation-plan.md",
+      "description": "Analyze the LLM prompt versioning spec. Produce a plan covering: prompt version schema, A/B testing framework, quality metrics collection, rollback mechanism, per-user prompt customization storage, and CLI tooling for prompt development.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 50,
+      "name": "impl-plan-XX-multi-offer-comparison",
+      "spec": "specs/XX-multi-offer-comparison.md",
+      "output": "specs/XX-multi-offer-comparison-implementation-plan.md",
+      "description": "Analyze the multi-offer comparison spec. Produce a plan covering: offer normalization (TC calculation, equity modeling), side-by-side comparison table in TUI, weighting system for personal priorities, scenario modeling (negotiate X, accept Y), and export to spreadsheet.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 51,
+      "name": "impl-plan-XX-resume-version-management",
+      "spec": "specs/XX-resume-version-management.md",
+      "output": "specs/XX-resume-version-management-implementation-plan.md",
+      "description": "Analyze the resume version management spec. Produce a plan covering: version storage in SQLite, base vs. tailored variant tracking, diff viewer, restore workflow, per-application resume pinning, and export to PDF/DOCX.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 52,
+      "name": "impl-plan-XX-ralph-ipc-protocol",
+      "spec": "specs/XX-ralph-ipc-protocol.md",
+      "output": "specs/XX-ralph-ipc-protocol-implementation-plan.md",
+      "description": "Analyze the Ralph IPC protocol spec. Produce a plan covering: Unix domain socket vs. named pipe transport, message framing (length-prefixed binary or NDJSON), bidirectional streaming, multiplexing multiple loop instances, and Rust codec implementation using tokio-util framed.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 53,
+      "name": "impl-plan-XX-tui-accessibility",
+      "spec": "specs/XX-tui-accessibility.md",
+      "output": "specs/XX-tui-accessibility-implementation-plan.md",
+      "description": "Analyze the TUI accessibility spec. Produce a plan covering: screen reader compatibility (accessible terminal output), high-contrast color mode, keyboard-only navigation guarantee, configurable font/layout, and WCAG guideline mapping for terminal UIs.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 54,
+      "name": "impl-plan-XX-authenticated-job-sources",
+      "spec": "specs/XX-authenticated-job-sources.md",
+      "output": "specs/XX-authenticated-job-sources-implementation-plan.md",
+      "description": "Analyze the authenticated job sources spec. Produce a plan covering: credential storage per source (keyring), session cookie management, OAuth flow integration, browser automation for login-gated boards, session refresh and expiry handling, and secure credential rotation.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 55,
+      "name": "impl-plan-XX-interview-session-resumability",
+      "spec": "specs/XX-interview-session-resumability.md",
+      "output": "specs/XX-interview-session-resumability-implementation-plan.md",
+      "description": "Analyze the interview session resumability spec. Produce a plan covering: session state serialization to SQLite, checkpoint frequency, resume-from-checkpoint logic, session index browser in TUI, and expiry/cleanup policy.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 56,
+      "name": "impl-plan-XX-contact-multi-source-import",
+      "spec": "specs/XX-contact-multi-source-import.md",
+      "output": "specs/XX-contact-multi-source-import-implementation-plan.md",
+      "description": "Analyze the contact multi-source import spec. Produce a plan covering: import format parsers (LinkedIn CSV, vCard, Google Contacts), field normalization, deduplication on import, merge conflict resolution UI, and ongoing sync strategy.",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 57,
+      "name": "update-readme-index",
+      "spec": "specs/README.md",
+      "output": "specs/README.md",
+      "description": "Final task: Update specs/README.md to add entries for all newly created implementation plans in the Implementation Plans table. Ensure the table is accurate, sorted logically, and all statuses are set to Draft.",
+      "phase": "index",
+      "done": true
+    }
+  ]
+}

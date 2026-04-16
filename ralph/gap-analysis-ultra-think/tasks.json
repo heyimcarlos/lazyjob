@@ -1,0 +1,96 @@
+{
+  "objective": "Ultra-analyze all LazyJob specs in specs/ to find gaps, missing topics, and things that need deeper research before implementation. Create new specs for every gap found.",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "analyze-core-architecture-gaps",
+      "description": "Read 01-architecture.md, 02-llm-provider-abstraction.md, 03-life-sheet-data-model.md, 04-sqlite-persistence.md. Ultra-think: what topics are mentioned but not deeply specced? What implementation details are glossed over? What could go wrong? Create specs for each gap found. Output to output/01-gaps-core-architecture.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "analyze-job-discovery-gaps",
+      "description": "Read 05-job-discovery-layer.md, job-search-discovery-engine.md, job-search-semantic-matching.md, job-search-ghost-job-detection.md, job-search-company-research.md. Ultra-think: what about job sources beyond Greenhouse/Lever? What about real-time job alert webhooks? What about job similarity scoring? Create specs for each gap found. Output to output/02-gaps-job-discovery.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "analyze-ralph-ai-gaps",
+      "description": "Read 06-ralph-loop-integration.md, 17-ralph-prompt-templates.md, agentic-llm-provider-abstraction.md, agentic-prompt-templates.md, agentic-ralph-orchestration.md, agentic-ralph-subprocess-protocol.md. Ultra-think: what about Ralph loop error handling and recovery? What about loop state persistence across restarts? What about concurrent Ralph loops? What about loop introspection/debugging UI? Create specs for each gap found. Output to output/03-gaps-ralph-ai.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "analyze-resume-profile-gaps",
+      "description": "Read 07-resume-tailoring-pipeline.md, 03-life-sheet-data-model.md, profile-life-sheet-data-model.md, profile-resume-tailoring.md, profile-skills-gap-analysis.md, resume-optimization.md. Ultra-think: what about ATS-specific resume optimization (not just keyword matching)? What about resume version history? What about multiple resume targets per job? What about automated achievement extraction from work history? Create specs for each gap found. Output to output/04-gaps-resume-profile.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "analyze-cover-letter-interview-gaps",
+      "description": "Read 08-cover-letter-generation.md, cover-letters-applications.md, profile-cover-letter-generation.md, interview-prep-agentic.md, interview-prep-question-generation.md, interview-prep-mock-loop.md, 12-15-interview-salary-networking-notifications.md. Ultra-think: what about interview question banks by company? What about async video interview prep? What about whiteboard system design prep? What about interview fatigue management? Create specs for each gap found. Output to output/05-gaps-cover-letter-interview.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "analyze-application-workflow-gaps",
+      "description": "Read 10-application-workflow.md, application-state-machine.md, application-workflow-actions.md, application-pipeline-metrics.md. Ultra-think: what about application deduplication (same job on multiple boards)? What about time-to-response tracking? What about rejection email automation? What about offer comparison UI? Create specs for each gap found. Output to output/06-gaps-application-workflow.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "analyze-networking-outreach-gaps",
+      "description": "Read networking-referrals-agentic.md, networking-connection-mapping.md, networking-outreach-drafting.md, networking-referral-management.md, messaging-inmail.md. Ultra-think: what about warm outreach personalization at scale? What about contact_import (from email, phone)? What about relationship decay tracking? What about LinkedIn connection automation within ToS? Create specs for each gap found. Output to output/07-gaps-networking-outreach.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "analyze-salary-tui-gaps",
+      "description": "Read salary-market-intelligence.md, salary-negotiation-offers.md, salary-counter-offer-drafting.md, 09-tui-design-keybindings.md. Ultra-think: what about total compensation calculator (equity, bonus, benefits)? What about negotiation email templates? What about TUI accessibility (screen readers, color blind mode)? What about vim mode improvements? Create specs for each gap found. Output to output/08-gaps-salary-tui.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "analyze-platform-privacy-gaps",
+      "description": "Read 11-platform-api-integrations.md, agent-interfaces-job-platforms.md, 16-privacy-security.md, job-platforms-comparison.md. Ultra-think: what about LinkedIn scraping vs API? What about browser automation for platforms without APIs? What about encrypted backup export? What about keyring integration for API keys? Create specs for each gap found. Output to output/09-gaps-platform-privacy.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 10,
+      "name": "analyze-saas-mvp-gaps",
+      "description": "Read 18-saas-migration-path.md, 19-competitor-analysis.md, 20-openapi-mvp.md, premium-monetization.md, AUDIENCE_JTBD.md, spec-inventory.md. Ultra-think: what about freemium model specifics? What about data portability (export everything)? What about team/shared workspaces? What about mobile companion app? What about collaborative features? Create specs for each gap found. Output to output/10-gaps-saas-mvp.md",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 11,
+      "name": "synthesize-gap-specs",
+      "description": "Read all gap analysis files in output/. For each gap that needs a full spec (not just a note), create a proper spec file in specs/. Review gap-analysis-and-critique.md to see what was already identified. Merge with new findings. Create specs/XX-[gap-name].md for each major gap. Update this task when all gap specs are written. Output list to output/11-final-gap-specs.md",
+      "phase": "spec",
+      "done": true
+    },
+    {
+      "id": 12,
+      "name": "research-gap-specs-deeply",
+      "description": "For each new spec created in task 11, do deep research. WebSearch the topic, fetch relevant articles, study how other tools solve this. Write comprehensive research into each spec file. Focus on: how should LazyJob solve this specific problem? What's the simplest approach? What are the tradeoffs? Mark this done only when all new specs are thoroughly researched.",
+      "phase": "research",
+      "done": true
+    },
+    {
+      "id": 13,
+      "name": "final-gap-report",
+      "description": "Read all newly created specs in specs/. Produce output/13-final-gap-report.md: a summary of all gaps found, all new specs created, prioritization recommendation (which gaps are most critical to address before implementation can begin), and any gaps that need further research before a proper spec can be written. This ends the loop.",
+      "phase": "research",
+      "done": true
+    }
+  ]
+}

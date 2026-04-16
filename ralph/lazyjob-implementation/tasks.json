@@ -1,0 +1,325 @@
+{
+  "objective": "Build LazyJob incrementally: workspace, core, TUI, CLI, LLM, Ralph loops, job discovery, resume tailoring, cover letter generation",
+  "tasks": [
+    {
+      "id": 1,
+      "name": "workspace-setup",
+      "description": "Convert the single-crate Cargo.toml into a 5-crate workspace: lazyjob-core, lazyjob-llm, lazyjob-ralph, lazyjob-tui, lazyjob-cli. Scaffold each crate with a src/lib.rs (or main.rs for cli). Move existing src/main.rs into lazyjob-cli/src/main.rs. Add all required dependencies to each crate's Cargo.toml per specs/01-architecture-implementation-plan.md. Verify `cargo build` passes. Write a learning test that proves workspace resolution works (each crate can reference lazyjob-core types).",
+      "phase": "build",
+      "spec": "specs/01-architecture-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 2,
+      "name": "core-domain-types",
+      "description": "In lazyjob-core/src/domain/, define all domain model types: Job, JobId (newtype), Application, ApplicationId, ApplicationStage (enum with all 8 variants), Company, CompanyId, Contact, ContactId, Interview, InterviewId, Offer, OfferId. Use serde Serialize/Deserialize on all. Define a Result<T> = std::result::Result<T, CoreError> type alias. Define CoreError with thiserror. Write unit tests for type construction and serde round-trips.",
+      "phase": "build",
+      "spec": "specs/01-architecture-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 3,
+      "name": "postgres-migrations",
+      "description": "In lazyjob-core/src/db/, create a Database struct wrapping sqlx::PgPool. Implement Database::connect(database_url) that runs sqlx::migrate!(). Create lazyjob-core/migrations/001_initial_schema.sql with PostgreSQL DDL: jobs (SERIAL PK, TEXT, TIMESTAMPTZ, JSONB), applications, application_transitions, companies, contacts, interviews, offers, life_sheet_items, token_usage_log, ralph_loop_runs tables. Use PostgreSQL-native types: SERIAL, TIMESTAMPTZ, TEXT[], JSONB, BOOLEAN. Connection via DATABASE_URL env var. Write integration tests using a test database (create/drop per test run) verifying migration runs clean and all tables exist.",
+      "phase": "build",
+      "spec": "specs/04-sqlite-persistence-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 4,
+      "name": "repositories",
+      "description": "In lazyjob-core/src/repositories/, implement JobRepository, ApplicationRepository, CompanyRepository, ContactRepository. Each has: insert(), find_by_id(), list() (with pagination via LIMIT/OFFSET), update(), delete(). Use sqlx query_as! macros with PgPool. Write integration tests against a PostgreSQL test database verifying CRUD operations and that foreign key constraints are enforced.",
+      "phase": "build",
+      "spec": "specs/04-sqlite-persistence-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 5,
+      "name": "application-state-machine",
+      "description": "Implement ApplicationStage::can_transition_to(&self, next: &ApplicationStage) -> bool encoding all valid transitions per spec: Interested→Applied, Applied→PhoneScreen, PhoneScreen→Technical, Technical→Onsite, Onsite→Offer, Offer→Accepted/Rejected/Withdrawn, any→Withdrawn, any→Rejected. In ApplicationRepository, implement transition_stage(id, next_stage) as an atomic transaction that validates the transition and inserts into application_transitions. Write exhaustive unit tests for all valid and invalid transitions.",
+      "phase": "build",
+      "spec": "specs/10-application-workflow-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 6,
+      "name": "life-sheet-yaml",
+      "description": "In lazyjob-core/src/life_sheet/, define LifeSheetYaml serde types: LifeSheet, Basics, WorkExperience, Achievement, Education, Skill, Certification, Project, Preferences, Goals. Implement LifeSheetService::import_from_yaml(path, pool: &PgPool) that reads ~/.lazyjob/life-sheet.yaml and upserts into life_sheet_items PostgreSQL table (INSERT ... ON CONFLICT DO UPDATE). Implement export_json_resume() producing JSON Resume format. Create a sample ~/.lazyjob/life-sheet.yaml fixture for testing. Write tests for YAML parse, import, and JSON Resume export.",
+      "phase": "build",
+      "spec": "specs/03-life-sheet-data-model-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 7,
+      "name": "cli-skeleton",
+      "description": "In lazyjob-cli/src/main.rs, implement a clap 4 (derive) CLI with subcommands: `jobs list` (prints jobs from DB), `jobs add --title --company --url` (inserts job), `profile import --file` (calls life_sheet import), `profile export` (prints JSON Resume to stdout), `tui` (placeholder for TUI launch). Wire up Database::connect() using DATABASE_URL env var (default: postgresql://localhost/lazyjob). Write integration tests that invoke the CLI binary via std::process::Command and check output.",
+      "phase": "build",
+      "spec": "specs/01-architecture-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 8,
+      "name": "config-management",
+      "description": "In lazyjob-core/src/config.rs, implement Config struct (toml-serializable): database_url (default postgresql://localhost/lazyjob), life_sheet_path, default_llm_provider, theme, keybindings overrides. Implement Config::load() that reads ~/.lazyjob/lazyjob.toml or creates it with defaults via Config::ensure_exists(). DATABASE_URL env var overrides config file. Implement Config::save(). Write tests for load-from-file and create-defaults.",
+      "phase": "build",
+      "spec": "specs/01-architecture-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 9,
+      "name": "credential-manager",
+      "description": "In lazyjob-core/src/credentials.rs, implement CredentialManager wrapping keyring crate. Methods: set_api_key(provider: &str, key: SecretString), get_api_key(provider: &str) -> Result<SecretString>, delete_api_key(provider: &str). Use secrecy::SecretString and zeroize. Add CLI subcommands `config set-key --provider --key` and `config get-key --provider`. Write unit tests using a mock keyring (feature-flag the real keyring in tests).",
+      "phase": "build",
+      "spec": "specs/16-privacy-security-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 10,
+      "name": "tui-app-loop",
+      "description": "In lazyjob-tui/src/app.rs, implement App struct holding: current_view (ViewId enum), database handle, config, ralph event broadcast receiver. Implement App::new() and App::run() with a tokio::select! event loop over: crossterm EventStream, tick interval (250ms), ralph broadcast channel. Handle Terminal::enter_alternate_screen() and Terminal::leave_alternate_screen() cleanly. Write a learning test demonstrating ratatui Frame rendering works. The `tui` CLI subcommand should launch App::run().",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 11,
+      "name": "tui-views-stubs",
+      "description": "In lazyjob-tui/src/views/, create stub structs implementing a View trait (render(&mut self, frame, area, app_state) + handle_key(key) -> Action) for: DashboardView, JobsListView, JobDetailView, ApplicationsView (kanban), ContactsView, RalphPanelView, SettingsView, HelpOverlay. ViewId enum maps to each. App::run() renders the active view and routes key events. Write a test that instantiates each view and calls render with a TestBackend.",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 12,
+      "name": "tui-keybindings",
+      "description": "Implement the keybinding dispatch layer in lazyjob-tui/src/keybindings.rs. Global bindings: q=Quit, ?=ToggleHelp, 1-6=SwitchView(tab). Per-view bindings in each view: j/k=Down/Up, Enter=Select, Esc=Back. Define a Keybinding config struct allowing overrides from Config. HelpOverlay renders the full keymap table. Write tests that fire key events and verify the correct Action is emitted.",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 13,
+      "name": "tui-widgets",
+      "description": "In lazyjob-tui/src/widgets/, implement custom ratatui widgets: JobCard (renders job title, company, match score, ghost badge), ModalDialog (centered overlay with title+body+actions), ConfirmDialog (yes/no modal), StatBlock (dashboard metric tile), ProgressBar (for Ralph loops). Implement theme.rs with Color constants for dark/light themes. Write render tests using TestBackend that assert the correct characters appear in the buffer.",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": true
+    },
+    {
+      "id": 14,
+      "name": "llm-provider-traits",
+      "description": "In lazyjob-llm/src/provider.rs, define: LlmProvider trait (async complete(messages: Vec<ChatMessage>, opts: CompletionOptions) -> Result<LlmResponse>), EmbeddingProvider trait (async embed(text: &str) -> Result<Vec<f32>>), ChatMessage struct, CompletionOptions struct (model, temperature, max_tokens, stream), LlmResponse struct (content, usage: TokenUsage). Implement MockLlmProvider that returns canned responses for testing. Write trait object tests confirming dyn LlmProvider works.",
+      "phase": "build",
+      "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 15,
+      "name": "llm-anthropic",
+      "description": "In lazyjob-llm/src/providers/anthropic.rs, implement AnthropicProvider using reqwest (rustls-tls). Support both streaming (SSE) and non-streaming. Implement 3-attempt exponential backoff (1s, 2s, 4s) on 429/500/503. Map Anthropic API response to LlmResponse. Read API key from CredentialManager. Write a learning test (gated behind #[cfg(feature=\"integration\")]) that makes a real call to claude-haiku-4-5 to verify the implementation works.",
+      "phase": "build",
+      "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 16,
+      "name": "llm-openai",
+      "description": "In lazyjob-llm/src/providers/openai.rs, implement OpenAiProvider using async-openai crate. Support chat completions and embeddings (text-embedding-3-small, 1536 dims). Read API key from CredentialManager. Implement OllamaProvider in providers/ollama.rs using ollama-rs with nomic-embed-text (768 dims). Write unit tests for both providers using MockServer or by testing message formatting logic.",
+      "phase": "build",
+      "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 17,
+      "name": "llm-registry",
+      "description": "In lazyjob-llm/src/registry.rs, implement ProviderRegistry holding boxed providers by name. Implement LlmBuilder::from_config(config: &Config, creds: &CredentialManager) -> Box<dyn LlmProvider> with fallback chain: configured provider → Anthropic (if key set) → Ollama (always available). Add token_usage_log insert after each completion. Implement cost.rs with per-model microdollar pricing table and estimate_cost(model, tokens) -> u64. Write tests for builder fallback logic.",
+      "phase": "build",
+      "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 18,
+      "name": "ralph-protocol",
+      "description": "In lazyjob-ralph/src/protocol.rs, define with #[serde(tag=\"type\", rename_all=\"snake_case\")]: WorkerCommand enum (Start{loop_type, params}, Cancel), WorkerEvent enum (Status{phase, progress: f32, message}, Results{data: serde_json::Value}, Error{code, message}, Done{success}). Implement NdjsonCodec: encode(cmd) -> String (serde_json::to_string + newline), decode(line: &str) -> Result<WorkerEvent>. Write round-trip serde tests for all variants.",
+      "phase": "build",
+      "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 19,
+      "name": "ralph-process-manager",
+      "description": "In lazyjob-ralph/src/process_manager.rs, implement RalphProcessManager. spawn(loop_type, params) uses std::env::current_exe() to get binary path, spawns tokio::process::Command with piped stdin/stdout, starts a background tokio task reading stdout lines and broadcasting WorkerEvent via tokio::sync::broadcast. cancel(run_id) sends Cancel WorkerCommand then waits 3s before SIGKILL. Track active runs in a HashMap<RunId, ProcessHandle>. Write tests using a mock subprocess that echoes NDJSON.",
+      "phase": "build",
+      "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 20,
+      "name": "ralph-loop-types",
+      "description": "In lazyjob-ralph/src/loop_types.rs, implement LoopType enum: JobDiscovery, CompanyResearch, ResumeTailor, CoverLetter, InterviewPrep. Methods: concurrency_limit() -> usize, priority() -> u8, is_interactive() -> bool, cli_subcommand() -> &str. Implement LoopDispatch with a BinaryHeap priority queue (cap 20): enqueue(loop_type, params), drain_next() -> Option<QueuedLoop>. Implement basic LoopScheduler that checks a cron expression string against current time. Write tests for priority ordering and concurrency limits.",
+      "phase": "build",
+      "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 21,
+      "name": "ralph-crash-recovery",
+      "description": "Create lazyjob-core/migrations/002_ralph_loop_runs.sql with PostgreSQL table: ralph_loop_runs (id SERIAL PRIMARY KEY, loop_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','done','failed','cancelled')), params_json JSONB, started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ). Implement RalphLoopRunRepository with PgPool: insert_run(), update_status(), list_pending(). On TUI startup, call recover_pending() which finds runs in 'running' status older than 30s and marks them 'failed' (they crashed). Wire this into App::new(). Write tests for the recovery logic.",
+      "phase": "build",
+      "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 22,
+      "name": "ralph-tui-panel",
+      "description": "Implement RalphPanelView in lazyjob-tui/src/views/ralph_panel.rs. It subscribes to the broadcast channel from RalphProcessManager. Display: list of active loops with loop_type, phase, progress bar (using the ProgressBar widget), elapsed time. Keybindings: c=Cancel selected loop, Enter=Show loop output detail. On Done event, show a ✓ with the result summary for 5 seconds then remove from list. Write a test that simulates WorkerEvent broadcasts and verifies the panel renders correctly.",
+      "phase": "build",
+      "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 23,
+      "name": "job-sources",
+      "description": "In lazyjob-core/src/discovery/sources/, implement GreenhouseClient and LeverClient. Each fetches job listings via public API endpoints (no auth required). Use reqwest. Strip HTML from descriptions using ammonia::clean(). Map API responses to the Job domain type, store in PostgreSQL. Implement per-source RateLimiter (token bucket, 1 req/s for Greenhouse, 2/s for Lever). Write learning tests that document the API response shapes, and unit tests with mock HTTP responses using wiremock or similar.",
+      "phase": "build",
+      "spec": "specs/05-job-discovery-layer-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 24,
+      "name": "discovery-service",
+      "description": "In lazyjob-core/src/discovery/service.rs, implement DiscoveryService::run_discovery(pool: &PgPool, sources: Vec<SourceConfig>) -> Result<DiscoveryStats>. Fan out to all sources in parallel using tokio::join_all. Each source result goes through PostgreSQL upsert deduplication (INSERT ... ON CONFLICT(source, source_id) DO NOTHING). Emit progress events via a mpsc channel. Return stats: jobs_found, jobs_new, jobs_updated, errors. Wire this as the lazyjob ralph job-discovery CLI subcommand. Write tests with mock sources.",
+      "phase": "build",
+      "spec": "specs/05-job-discovery-layer-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 25,
+      "name": "semantic-matching",
+      "description": "In lazyjob-core/src/discovery/matching.rs, implement MatchScorer. It embeds the user's skills/title from LifeSheet using EmbeddingProvider. For each Job, embeds the description. Computes cosine similarity -> match_score (0.0-1.0). Stores embeddings in a job_embeddings PostgreSQL table (migration 003, use BYTEA or REAL[] for vectors, or pgvector if available). Implement GhostDetector::score(job: &Job) -> GhostScore with 7-signal heuristic: posting age > 60d (+3), generic title (+2), no company name (+2), salary missing (+1), duplicate description (+1), high application count (+1), URL pattern match (+1). Score >= 5 = likely ghost. Write tests with fixture jobs.",
+      "phase": "build",
+      "spec": "specs/05-job-discovery-layer-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 26,
+      "name": "company-research",
+      "description": "In lazyjob-core/src/discovery/company.rs, implement CompanyResearcher::enrich(company_id). It fetches the company's website, uses LlmProvider to extract: industry, size, tech_stack, culture_keywords, recent_news. Upserts into companies table. Wrap in the CompanyResearch LoopType subprocess. Implement JobsListView to show company enrichment status badge. Write tests with mock HTTP and mock LLM.",
+      "phase": "build",
+      "spec": "specs/05-job-discovery-layer-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 27,
+      "name": "jobs-list-tui",
+      "description": "Implement the full JobsListView in lazyjob-tui/src/views/jobs_list.rs. Render a scrollable table with columns: Title, Company, Match%, Ghost?, Stage, Posted. Support filtering: / to type filter text (searches title+company), f to cycle filter presets (all, new, matched > 70%, applied). Support sorting: s to cycle sort (date, match, company). j/k scroll, Enter to open JobDetailView. Show match score as a colored percentage bar. Write render tests verifying the table layout.",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 28,
+      "name": "job-detail-tui",
+      "description": "Implement JobDetailView in lazyjob-tui/src/views/job_detail.rs. Layout: left panel (job metadata: title, company, location, salary, posted date, match score, ghost score), right panel (scrollable job description). Action bar at bottom: a=Apply (transition to Applied), r=Run ResumeTailor, c=Run CoverLetter, o=Open URL in browser. Show application history timeline if already applied. Write render tests.",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 29,
+      "name": "applications-kanban-tui",
+      "description": "Implement ApplicationsView in lazyjob-tui/src/views/applications.rs as a horizontal kanban board. 9 columns one per ApplicationStage. Each card shows: job title, company, days in stage (color: green<7d, yellow<14d, red>14d). Navigation: h/l to move between columns, j/k within column, m to move selected application to next stage (calls transition_stage), M to move to previous. Show confirmation dialog on stage transition. Write render tests with fixture applications.",
+      "phase": "build",
+      "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 30,
+      "name": "dashboard-stats",
+      "description": "Implement DashboardView in lazyjob-tui/src/views/dashboard.rs. Top row: StatBlocks for (Total Jobs, Applied This Week, In Pipeline, Interviews Scheduled). Middle: mini kanban column counts. Bottom: Actions Required list (applications stale > 14d, reminders due). Implement compute_stats(db) SQL queries. Implement ReminderService::check_due() that queries reminders table. Wire ReminderPoller as a background tokio task that broadcasts ReminderDue events. Write tests for the SQL queries.",
+      "phase": "build",
+      "spec": "specs/10-application-workflow-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 31,
+      "name": "prompt-templates",
+      "description": "In lazyjob-llm/src/prompts/, create one module per Ralph loop type: job_discovery.rs, company_research.rs, resume_tailor.rs, cover_letter.rs, interview_prep.rs. Each module has: system_prompt() -> &str, user_prompt(context: &XContext) -> String, validate_output(raw: &str) -> Result<XOutput>. Define context structs (JobDiscoveryContext, ResumeTailorContext with job_description + life_sheet, CoverLetterContext, etc.). Validate with serde_json or regex. Write tests with fixture contexts.",
+      "phase": "build",
+      "spec": "specs/17-ralph-prompt-templates-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 32,
+      "name": "anti-fabrication",
+      "description": "In lazyjob-llm/src/anti_fabrication.rs, implement: FabricationLevel enum (Grounded, Embellished, Fabricated), is_grounded_claim(claim: &str, life_sheet: &LifeSheet) -> FabricationLevel that checks if the claim can be traced to actual LifeSheet data. Implement prohibited_phrase_detector(text: &str) -> Vec<ProhibitedPhrase> with a list of over-used cover letter clichés (passionate, dynamic, synergy, etc.). Implement prompt_injection_guard(user_input: &str) -> bool. Add fabrication check as a mandatory step in ResumeTailor and CoverLetter pipelines. Write unit tests for all checks.",
+      "phase": "build",
+      "spec": "specs/17-ralph-prompt-templates-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 33,
+      "name": "resume-tailoring",
+      "description": "In lazyjob-core/src/resume/, implement ResumeTailor::tailor(job_id, life_sheet) as a 6-stage pipeline: (1) parse JD to extract required/preferred skills using LLM, (2) run GapMatrix::compute() mapping LifeSheet skills to JD requirements, (3) fabrication pre-check on LifeSheet bullets, (4) LLM bullet rewriting for matched skills (grounding each bullet to LifeSheet evidence), (5) generate 3-sentence summary, (6) assemble final resume struct. Store result in resumes table. Emit progress events. Write tests for each stage in isolation using MockLlmProvider.",
+      "phase": "build",
+      "spec": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 34,
+      "name": "docx-generator",
+      "description": "In lazyjob-core/src/resume/docx.rs, implement DocxGenerator::generate(resume: &TailoredResume) -> Result<Vec<u8>> using docx-rs. Layout: name + contact header, summary section, experience section (each job: title/company/dates, bullet points), skills section, education section. Apply consistent formatting: Calibri 11pt body, 14pt name, bold section headers, consistent margins. Implement DocxGenerator::save_to_file(resume, path). Write a test that generates a DOCX and verifies the file can be opened (non-zero bytes, valid zip structure).",
+      "phase": "build",
+      "spec": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 35,
+      "name": "cover-letter-generation",
+      "description": "In lazyjob-core/src/cover_letter/, implement CoverLetterService::generate(job_id, life_sheet, template: CoverLetterTemplate). Templates: StandardProfessional (intro + 2 body paras + closing), ProblemSolution (open with company challenge + how I solved it + call to action), CareerChanger (acknowledge pivot + transferable skills + enthusiasm). Run prohibited_phrase_detector and anti-fabrication check on output. Store in cover_letters table. Add CLI command `cover-letter generate --job-id --template`. Write tests with MockLlmProvider fixture responses.",
+      "phase": "build",
+      "spec": "specs/08-cover-letter-generation-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 36,
+      "name": "resume-tailor-ralph-loop",
+      "description": "Wire ResumeTailor and CoverLetterService into the Ralph subprocess system. Implement the `ralph resume-tailor` and `ralph cover-letter` CLI subcommands that read job_id + life_sheet_path from stdin WorkerCommand, run the pipeline, emit WorkerEvent::Status progress updates at each stage, and emit WorkerEvent::Results with the output path on completion. Trigger these from JobDetailView (r=ResumeTailor, c=CoverLetter keys). Show the Ralph Panel automatically when triggered. Write integration tests.",
+      "phase": "build",
+      "spec": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 37,
+      "name": "networking-contacts",
+      "description": "In lazyjob-core/src/networking/, implement LinkedIn CSV contact import: parse LinkedIn Connections export CSV, map to Contact domain type, upsert into contacts table. Implement ContactsView in TUI (table with name, company, title, warmth indicator, last contact date). Implement ConnectionMapper::warm_paths_for_job(job_id) -> Vec<WarmPath> that queries contacts at the same company as the job. Show warm path indicator in JobDetailView. Write tests for CSV parsing and connection mapping.",
+      "phase": "build",
+      "spec": "specs/12-15-interview-salary-networking-notifications-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 38,
+      "name": "outreach-drafting",
+      "description": "In lazyjob-core/src/networking/outreach.rs, implement LlmOutreachDraftingService::draft(contact, job, tone: OutreachTone) where OutreachTone is: Warm, Professional, Casual, Referral-Ask. Use CoverLetterContext pattern with anti-fabrication check. Store drafts in outreach_drafts table. Add CLI command `outreach draft --contact-id --job-id --tone`. Add keyboard shortcut in ContactsView to trigger outreach drafting. Write tests with MockLlmProvider.",
+      "phase": "build",
+      "spec": "specs/12-15-interview-salary-networking-notifications-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 39,
+      "name": "interview-prep",
+      "description": "In lazyjob-core/src/interview/, implement InterviewPrepService::generate_prep_session(job_id, life_sheet) using a structured JSON schema prompt. Output: Vec<InterviewQuestion> each with question_text, question_type (behavioral/technical/situational), suggested_answer_framework (STAR, technical explanation), evidence_from_life_sheet. Store in interview_prep_sessions table. Implement MockInterviewLoop: emit question via WorkerEvent, receive user answer via WorkerCommand, emit feedback. Add interview-prep CLI subcommand and TUI view stub. Write tests.",
+      "phase": "build",
+      "spec": "specs/12-15-interview-salary-networking-notifications-implementation-plan.md",
+      "done": false
+    },
+    {
+      "id": 40,
+      "name": "platform-integrations",
+      "description": "In lazyjob-core/src/discovery/sources/, implement full PlatformClient trait with apply_to_job(job_id, resume_path, cover_letter_path) -> Result<ApplicationReceipt> for GreenhouseClient and LeverClient. Implement AdzunaClient for aggregated job search (requires API key). Implement WorkdayIntegration as a stub that calls Apify Actor API (requires Apify key). Update DiscoveryService to use all configured sources. Write tests with mock HTTP for each client.",
+      "phase": "build",
+      "spec": "specs/11-platform-api-integrations-implementation-plan.md",
+      "done": false
+    }
+  ]
+}

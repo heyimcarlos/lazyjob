@@ -62,28 +62,28 @@
       "name": "specs-platform-integrations",
       "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Platform Integrations domain. JTBD: 'Access all major job platforms from one tool without maintaining separate accounts or workflows'. Relevant existing specs: 11-platform-api-integrations.md, agent-interfaces-job-platforms.md, job-platforms-comparison.md, job-search-marketplace.md. Output to output/specs/.",
       "phase": "spec",
-      "done": false
+      "done": true
     },
     {
       "id": 10,
       "name": "specs-architecture-infrastructure",
       "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the Architecture & Infrastructure domain. JTBDs: 'A fast reliable tool that works offline', 'Keep my data private and portable'. Relevant existing specs: 01-architecture.md, 02-llm-provider-abstraction.md, 04-sqlite-persistence.md, 03-life-sheet-data-model.md, 16-privacy-security.md, 20-openapi-mvp.md. Use loom's crate organization pattern as reference. Output to output/specs/.",
       "phase": "spec",
-      "done": false
+      "done": true
     },
     {
       "id": 11,
       "name": "specs-saas-monetization",
       "description": "Using AUDIENCE_JTBD.md and spec-inventory.md from output/, write JTBD-scoped specs for the SaaS & Monetization domain. JTBDs: 'Access premium AI features without complex setup', 'Understand the product's business model'. Relevant existing specs: 18-saas-migration-path.md, premium-monetization.md, x-professional-features.md, 19-competitor-analysis.md. Output to output/specs/.",
       "phase": "spec",
-      "done": false
+      "done": true
     },
     {
       "id": 12,
       "name": "generate-implementation-plan",
       "description": "Read all spec files from output/specs/ and AUDIENCE_JTBD.md. Generate IMPLEMENTATION_PLAN.md at the project root (/home/ren/repos/lazyjob/IMPLEMENTATION_PLAN.md). The plan is a prioritized bullet list of concrete implementation tasks derived from every spec. Each task: one sentence, action verb, references the spec it comes from, ordered by: (1) foundational infrastructure first, (2) core user-facing features second, (3) agentic/AI features third, (4) premium/SaaS last. This is the direct input for future ralph build loops.",
       "phase": "spec",
-      "done": false
+      "done": true
     }
   ]
 }

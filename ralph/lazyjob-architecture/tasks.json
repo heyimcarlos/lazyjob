@@ -139,7 +139,14 @@
       "name": "openapi-mvp",
       "description": "Synthesize all research into OpenAPI MVP. Write specs/20-openapi-mvp.md.",
       "phase": "research",
-      "done": false
+      "done": true
+    },
+    {
+      "id": 21,
+      "name": "gaps-core-architecture-impl-plan",
+      "description": "Create implementation plan for specs/01-gaps-core-architecture.md (gap analysis of 01-04 specs, recommends 15 new specs)",
+      "phase": "impl-plan",
+      "done": true
     }
   ]
 }

@@ -354,3 +354,101 @@ pub trait LLMProvider: Send + Sync {
 ### Notes for Future Iterations
 
 ---
+
+## Task 20: OpenAPI MVP - COMPLETED
+
+**Spec written**: `specs/20-openapi-mvp.md`
+
+### Key Findings
+
+**Synthesized from all 19 prior specs:**
+- 01-architecture.md: Three-tier crate architecture (lazyjob-core, lazyjob-llm, lazyjob-tui, lazyjob-cli, lazyjob-ralph)
+- 02-llm-provider-abstraction.md: Trait-based LLM abstraction with OpenAI, Ollama, Anthropic providers
+- 03-life-sheet-data-model.md: Rich YAML schema + SQLite for programmatic access
+- 04-sqlite-persistence.md: rusqlite with WAL mode, repository pattern, migrations
+- 05-job-discovery-layer.md: Greenhouse/Lever API clients, in-memory cosine similarity matching
+- 06-ralph-loop-integration.md: Stdio JSON protocol, tokio subprocess management, broadcast events
+- 07-resume-tailoring-pipeline.md: JD parsing, gap analysis, fabrication guardrails, docx-rs generation
+- 08-cover-letter-generation.md: Deferred to post-MVP
+- 09-tui-design-keybindings.md: Full lazygit-style TUI layout, 9 views, vim keybindings
+- 10-application-workflow.md: 9-stage application state machine, kanban pipeline
+- 11-platform-api-integrations.md: Public Greenhouse/Lever APIs, Playwright for Workday
+- 12-15: Deferred to post-MVP (interview prep, salary negotiation, networking, notifications)
+- 16-privacy-security.md: keyring-rs for API keys, age encryption, no telemetry
+- 17-ralph-prompt-templates.md: 7 loop types with full prompt templates
+- 18-saas-migration-path.md: Repository trait for future PostgreSQL migration
+- 19-competitor-analysis.md: Differentiation = local-first + AI agents + TUI
+- AUDIENCE_JTBD.md: 4 audiences, 13 JTBDs, cross-cutting concerns (privacy, offline-first, human-in-loop, anti-fabrication)
+- rust-patterns.md: lib.rs+thin main, newtype wrappers, secrecy, thiserror+anyhow, feature-gated deps
+
+### MVP Scope Decision
+
+**P0 (Essential)**: TUI with 7 views, SQLite persistence, Greenhouse/Lever integration, LLM provider trait, Ralph JobDiscovery + CompanyResearch loops
+
+**P1 (High Value)**: Resume tailoring with fabrication guardrails, Ralph ResumeTailor loop
+
+**P2 (Deferred)**: Cover letters, interview prep AI, salary negotiation, networking automation, morning brief, cloud sync
+
+### 12-Week Build Plan
+
+1. **Phase 1 (Weeks 1-3)**: Foundation — workspace bootstrap, TUI shell, CRUD, Greenhouse/Lever
+2. **Phase 2 (Weeks 4-5)**: Application Tracking — kanban pipeline, contacts, dashboard
+3. **Phase 3 (Weeks 6-7)**: LLM Integration — provider trait, Ralph process manager, job matching
+4. **Phase 4 (Weeks 8-9)**: Resume Tailoring — JD parsing, gap analysis, DOCX generation
+5. **Phase 5 (Weeks 10-12)**: Polish — edge cases, Ralph discovery loop, testing, release
+
+### Key Tradeoffs Made
+
+1. **rusqlite vs sqlx**: Chose rusqlite (synchronous) for simplicity — single-user local app doesn't need async DB
+2. **Ralph as binary, not crate**: Separate process via stdio JSON — language-agnostic, survives TUI restart via SQLite
+3. **No vector DB**: In-memory cosine similarity is sufficient for 100s-1000s of jobs at single-user scale
+4. **Cover letters deferred**: Requires solid company research loop first; lower immediate impact than resume tailoring
+5. **No cloud sync in MVP**: Local-first is the point; SaaS sync is a post-MVP migration decision
+
+### Dependencies Finalized
+
+All workspace dependencies pinned with rationale — ratatui 0.29, async-openai 0.34, rusqlite 0.32, keyring 3, docx-rs 0.4, etc.
+
+### Open Questions Resolved (Final)
+
+1. SQLite vs sqlx → rusqlite
+2. Ralph crate vs binary → binary (separate process)
+3. Embeddings provider → OpenAI ada-002 primary, Ollama fallback
+4. Vector DB → none needed
+5. Cover letters → deferred to post-MVP
+6. Resume templates → single template for MVP
+7. Cloud sync → deferred
+8. Ralph persistence → SQLite `ralph_loops` table with status
+
+### Notes for Future Iterations
+
+- This completes all 20 tasks in the ralph research loop
+- The MVP plan is conservative: 12 weeks for a single engineer
+- If time is constrained, prioritize in order: Phase 1 (foundation) > Phase 2 (tracking) > Phase 4 (resume tailoring)
+- Resume tailoring is the highest JTBD-value feature per AUDIENCE_JTBD.md (JTBD A-2)
+- Ralph integration is the differentiator — it's what makes LazyJob "lazy" vs just organized
+
+---
+
+## Implementation Planning Loop — Iteration 1
+
+**Date**: 2026-04-15
+
+### Spec Processed
+- `specs/01-gaps-core-architecture.md` — Gap analysis of core architecture specs (01-04)
+
+### Implementation Plan Created
+- `specs/01-gaps-core-architecture-implementation-plan.md`
+  - Phase 1: Create 15 new spec documents (Critical → Important → Moderate)
+  - Phase 2: Implement critical infrastructure (Ralph IPC, Prompt Versioning, Cost Budget)
+  - Phase 3: Implement important infrastructure (State Machine, Lifecycle, Error Handling)
+
+### Key Decisions Made
+1. IPC: Stdio JSON over pipes (not Unix sockets)
+2. Prompt versioning: Git-style with tags
+3. Cost tracking: Per-call attribution
+4. SQLite concurrency: WAL mode + busy_timeout
+5. Logging: Structured JSON to file
+
+### Next Iteration
+Pick up with `02-gaps-job-discovery.md` — next alphabetical spec needing implementation plan
