@@ -3,6 +3,9 @@ name = "lazyjob-core"
 version.workspace = true
 edition.workspace = true
 
+[features]
+integration = []
+
 [dependencies]
 uuid = { workspace = true }
 chrono = { workspace = true }
