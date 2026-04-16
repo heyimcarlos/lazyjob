@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task 19 — ralph-process-manager</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 230px;
+      min-width: 230px;
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    #sidebar h2 {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: #8b949e;
+      padding: 18px 16px 10px;
+      border-bottom: 1px solid #21262d;
+    }
+
+    #sidebar nav a {
+      display: block;
+      padding: 9px 16px;
+      font-size: 13px;
+      color: #8b949e;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+    }
+
+    #sidebar nav a:hover { color: #e6edf3; background: #1c2128; }
+    #sidebar nav a.active { color: #58a6ff; border-left-color: #58a6ff; background: #1c2128; }
+
+    /* ── Main area ── */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px 52px;
+    }
+
+    /* ── Slides ── */
+    .slide { display: none; max-width: 900px; margin: 0 auto; animation: fadeIn .2s ease; }
+    .slide.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    /* slide header */
+    .slide-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: #3fb950;
+      margin-bottom: 10px;
+    }
+
+    h1 { font-size: 32px; font-weight: 700; line-height: 1.2; margin-bottom: 8px; }
+    h2 { font-size: 20px; font-weight: 600; margin: 28px 0 12px; color: #58a6ff; }
+    h3 { font-size: 15px; font-weight: 600; margin: 20px 0 8px; color: #e6edf3; }
+
+    p { font-size: 15px; line-height: 1.7; color: #c9d1d9; margin-bottom: 14px; }
+
+    /* cards */
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin: 16px 0;
+    }
+
+    /* two-col grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+
+    /* code blocks */
+    pre {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 18px 20px;
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 14px 0;
+    }
+
+    code { font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 13px; color: #e6edf3; }
+
+    /* syntax highlighting stubs */
+    .kw  { color: #ff7b72; }
+    .ty  { color: #79c0ff; }
+    .fn  { color: #d2a8ff; }
+    .st  { color: #a5d6ff; }
+    .cm  { color: #8b949e; font-style: italic; }
+    .nu  { color: #79c0ff; }
+    .at  { color: #ffa657; }
+
+    /* pill badges */
+    .pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin: 2px;
+    }
+    .pill-green  { background: #1a4721; color: #3fb950; border: 1px solid #3fb950; }
+    .pill-blue   { background: #1c3a5e; color: #58a6ff; border: 1px solid #58a6ff; }
+    .pill-purple { background: #2d1f52; color: #bc8cff; border: 1px solid #bc8cff; }
+    .pill-orange { background: #4a2a00; color: #ffa657; border: 1px solid #ffa657; }
+    .pill-red    { background: #4a1515; color: #ff7b72; border: 1px solid #ff7b72; }
+
+    /* check list */
+    ul.checks { list-style: none; padding: 0; }
+    ul.checks li { padding: 5px 0; font-size: 14px; color: #c9d1d9; }
+    ul.checks li::before { content: '✓ '; color: #3fb950; font-weight: 700; }
+
+    /* stat boxes */
+    .stat-row { display: flex; gap: 16px; margin: 20px 0; flex-wrap: wrap; }
+    .stat {
+      flex: 1; min-width: 130px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 18px 20px;
+      text-align: center;
+    }
+    .stat .num { font-size: 36px; font-weight: 700; color: #58a6ff; }
+    .stat .label { font-size: 12px; color: #8b949e; margin-top: 4px; }
+
+    /* test output box */
+    .test-out {
+      background: #010409;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 16px 20px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 14px 0;
+    }
+    .test-ok   { color: #3fb950; }
+    .test-fail { color: #ff7b72; }
+    .test-info { color: #8b949e; }
+
+    /* flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+    .flow-box {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e6edf3;
+      white-space: nowrap;
+    }
+    .flow-box.highlight { border-color: #58a6ff; color: #58a6ff; }
+    .flow-arr {
+      padding: 0 8px;
+      color: #8b949e;
+      font-size: 18px;
+    }
+
+    /* nav buttons */
+    .nav { display: flex; gap: 10px; margin-top: 40px; justify-content: flex-end; }
+    .btn {
+      padding: 8px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #30363d;
+      background: #21262d;
+      color: #e6edf3;
+    }
+    .btn:hover { background: #2d333b; }
+    .btn.primary { background: #1f6feb; border-color: #1f6feb; }
+    .btn.primary:hover { background: #388bfd; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <h2>Task 19 — Slides</h2>
+  <nav id="nav">
+    <a href="#" class="active" data-slide="0">Overview</a>
+    <a href="#" data-slide="1">Architecture</a>
+    <a href="#" data-slide="2">RunId &amp; ProcessHandle</a>
+    <a href="#" data-slide="3">spawn() — Subprocess Launch</a>
+    <a href="#" data-slide="4">cancel() — Graceful Shutdown</a>
+    <a href="#" data-slide="5">Test Strategy</a>
+    <a href="#" data-slide="6">Test Results</a>
+    <a href="#" data-slide="7">Key Decisions</a>
+    <a href="#" data-slide="8">Summary &amp; Next</a>
+  </nav>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- ── Slide 0: Overview ── -->
+  <section class="slide active">
+    <div class="slide-tag">Task 19 · ralph-process-manager</div>
+    <h1>RalphProcessManager</h1>
+    <p>Subprocess lifecycle management for Ralph AI loops — spawn, monitor, and cancel worker processes over NDJSON stdio.</p>
+
+    <div class="stat-row">
+      <div class="stat"><div class="num">3</div><div class="label">New Files</div></div>
+      <div class="stat"><div class="num">7</div><div class="label">New Tests</div></div>
+      <div class="stat"><div class="num">307</div><div class="label">Total Passing</div></div>
+      <div class="stat"><div class="num">0</div><div class="label">Failures</div></div>
+    </div>
+
+    <div class="card">
+      <h3>What was built</h3>
+      <ul class="checks">
+        <li><strong>RunId</strong> — Uuid newtype for tracking subprocess runs</li>
+        <li><strong>ProcessHandle</strong> — owns Child + ChildStdin for a live subprocess</li>
+        <li><strong>RalphProcessManager::spawn()</strong> — launches subprocess, sends Start command, streams events</li>
+        <li><strong>RalphProcessManager::cancel()</strong> — graceful cancel with 3s timeout then SIGKILL</li>
+        <li><strong>broadcast channel</strong> — <code>(RunId, WorkerEvent)</code> tuples to all subscribers</li>
+        <li><strong>with_binary_and_args()</strong> — testable constructor using <code>sh -c</code> pattern</li>
+      </ul>
+    </div>
+
+    <div class="pill pill-green">lazyjob-ralph</div>
+    <div class="pill pill-blue">tokio::process</div>
+    <div class="pill pill-blue">broadcast::channel</div>
+    <div class="pill pill-purple">stdio NDJSON</div>
+  </section>
+
+  <!-- ── Slide 1: Architecture ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · Architecture</div>
+    <h1>IPC Architecture</h1>
+    <p>The TUI spawns Ralph subprocesses and communicates via newline-delimited JSON over stdin/stdout pipes.</p>
+
+    <div class="flow">
+      <div class="flow-box">TUI / CLI</div>
+      <div class="flow-arr">→</div>
+      <div class="flow-box highlight">RalphProcessManager</div>
+      <div class="flow-arr">→</div>
+      <div class="flow-box">tokio::process::Command</div>
+      <div class="flow-arr">→</div>
+      <div class="flow-box">Worker subprocess</div>
+    </div>
+
+    <div class="flow" style="margin-top:0;">
+      <div class="flow-box">broadcast rx (all views)</div>
+      <div class="flow-arr">←</div>
+      <div class="flow-box highlight">background reader task</div>
+      <div class="flow-arr">←</div>
+      <div class="flow-box">stdout lines (NDJSON)</div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>stdin → subprocess</h3>
+        <p><span class="pill pill-blue">WorkerCommand::Start</span> sent on spawn<br/>
+        <span class="pill pill-orange">WorkerCommand::Cancel</span> sent on cancel</p>
+        <pre><code><span class="cm">// NDJSON line to stdin</span>
+<span class="st">{"type":"start","loop_type":"job_discovery","params":{}}</span></code></pre>
+      </div>
+      <div class="card">
+        <h3>stdout → broadcast</h3>
+        <p>Background task reads lines, decodes, and broadcasts to all subscribers tagged with <code>RunId</code>.</p>
+        <pre><code><span class="cm">// (RunId, WorkerEvent)</span>
+<span class="st">{"type":"status","phase":"init","progress":0.1}</span>
+<span class="st">{"type":"done","success":true}</span></code></pre>
+      </div>
+    </div>
+
+    <h2>Crate additions</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>error.rs — new variants</h3>
+        <pre><code><span class="kw">pub enum</span> <span class="ty">RalphError</span> {
+    <span class="ty">Decode</span>(<span class="ty">String</span>),       <span class="cm">// existing</span>
+    <span class="ty">Io</span>(#[from] io::<span class="ty">Error</span>),<span class="cm">// NEW</span>
+    <span class="ty">NotFound</span>(<span class="ty">String</span>),    <span class="cm">// NEW</span>
+}</code></pre>
+      </div>
+      <div class="card">
+        <h3>lib.rs — new exports</h3>
+        <pre><code><span class="kw">pub mod</span> process_manager; <span class="cm">// NEW</span>
+
+<span class="kw">pub use</span> process_manager::{
+    <span class="ty">RalphProcessManager</span>,
+    <span class="ty">RunId</span>,
+};</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 2: Types ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · Types</div>
+    <h1>RunId &amp; ProcessHandle</h1>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>RunId</h3>
+        <pre><code><span class="at">#[derive(Debug, Clone, Copy,</span>
+<span class="at">         PartialEq, Eq, Hash)]</span>
+<span class="kw">pub struct</span> <span class="ty">RunId</span>(<span class="ty">Uuid</span>);
+
+<span class="kw">impl</span> <span class="ty">RunId</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>() -> <span class="ty">Self</span> {
+        <span class="ty">Self</span>(<span class="ty">Uuid</span>::<span class="fn">new_v4</span>())
+    }
+    <span class="kw">pub fn</span> <span class="fn">as_uuid</span>(&<span class="kw">self</span>) -> &<span class="ty">Uuid</span> {
+        &<span class="kw">self</span>.<span class="nu">0</span>
+    }
+}</code></pre>
+        <ul class="checks" style="margin-top:8px;">
+          <li>Copy + Hash for HashMap keys</li>
+          <li>Display: 36-char UUID string</li>
+          <li>Default generates new random ID</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>ProcessHandle (private)</h3>
+        <pre><code><span class="kw">struct</span> <span class="ty">ProcessHandle</span> {
+    child: <span class="ty">Child</span>,
+    stdin: <span class="ty">ChildStdin</span>,
+}</code></pre>
+        <p style="margin-top:12px;font-size:13px;color:#8b949e;">
+          <code>ChildStdin</code> is moved out of <code>Child</code> via <code>.take()</code> immediately on spawn — required because <code>Child</code> doesn't allow concurrent mutable access to its stdin handle.
+        </p>
+        <h3 style="margin-top:16px;">RalphProcessManager</h3>
+        <pre><code><span class="kw">pub struct</span> <span class="ty">RalphProcessManager</span> {
+    binary_path: <span class="ty">PathBuf</span>,
+    binary_args: <span class="ty">Vec</span>&lt;<span class="ty">OsString</span>&gt;,
+    running: <span class="ty">HashMap</span>&lt;<span class="ty">RunId</span>,
+                       <span class="ty">ProcessHandle</span>&gt;,
+    event_tx: broadcast::<span class="ty">Sender</span>&lt;
+        (<span class="ty">RunId</span>, <span class="ty">WorkerEvent</span>)&gt;,
+}</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 3: spawn() ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · spawn()</div>
+    <h1>spawn() — Subprocess Launch</h1>
+
+    <pre><code><span class="kw">pub async fn</span> <span class="fn">spawn</span>(
+    &<span class="kw">mut self</span>,
+    loop_type: &<span class="ty">str</span>,
+    params: serde_json::<span class="ty">Value</span>,
+) -> <span class="ty">Result</span>&lt;<span class="ty">RunId</span>&gt; {
+    <span class="kw">let</span> run_id = <span class="ty">RunId</span>::<span class="fn">new</span>();
+
+    <span class="cm">// 1. Build command: binary [extra_args...] worker</span>
+    <span class="kw">let mut</span> cmd = <span class="ty">Command</span>::<span class="fn">new</span>(&<span class="kw">self</span>.binary_path);
+    <span class="kw">for</span> arg <span class="kw">in</span> &<span class="kw">self</span>.binary_args { cmd.<span class="fn">arg</span>(arg); }
+    <span class="kw">let mut</span> child = cmd
+        .<span class="fn">arg</span>(<span class="st">"worker"</span>)
+        .<span class="fn">stdin</span>(<span class="ty">Stdio</span>::<span class="fn">piped</span>())
+        .<span class="fn">stdout</span>(<span class="ty">Stdio</span>::<span class="fn">piped</span>())
+        .<span class="fn">stderr</span>(<span class="ty">Stdio</span>::<span class="fn">null</span>())
+        .<span class="fn">spawn</span>()?;
+
+    <span class="cm">// 2. Take handles before moving child</span>
+    <span class="kw">let mut</span> stdin = child.stdin.<span class="fn">take</span>().<span class="fn">expect</span>(<span class="st">"stdin piped"</span>);
+    <span class="kw">let</span> stdout = child.stdout.<span class="fn">take</span>().<span class="fn">expect</span>(<span class="st">"stdout piped"</span>);
+
+    <span class="cm">// 3. Send Start command</span>
+    <span class="kw">let</span> encoded = <span class="ty">NdjsonCodec</span>::<span class="fn">encode</span>(&<span class="ty">WorkerCommand</span>::<span class="ty">Start</span> {
+        loop_type: loop_type.<span class="fn">to_string</span>(), params
+    });
+    stdin.<span class="fn">write_all</span>(encoded.<span class="fn">as_bytes</span>()).<span class="fn">await</span>?;
+    stdin.<span class="fn">flush</span>().<span class="fn">await</span>?;
+
+    <span class="cm">// 4. Background reader task → broadcast</span>
+    <span class="kw">let</span> event_tx = <span class="kw">self</span>.event_tx.<span class="fn">clone</span>();
+    tokio::<span class="fn">spawn</span>(<span class="kw">async move</span> {
+        <span class="kw">let</span> reader = <span class="ty">BufReader</span>::<span class="fn">new</span>(stdout);
+        <span class="kw">let mut</span> lines = reader.<span class="fn">lines</span>();
+        <span class="kw">while let</span> <span class="ty">Ok</span>(<span class="ty">Some</span>(line)) = lines.<span class="fn">next_line</span>().<span class="fn">await</span> {
+            <span class="kw">if let</span> <span class="ty">Ok</span>(event) = <span class="ty">NdjsonCodec</span>::<span class="fn">decode</span>(&line) {
+                <span class="kw">let</span> _ = event_tx.<span class="fn">send</span>((run_id, event));
+            }
+        }
+    });
+
+    <span class="kw">self</span>.running.<span class="fn">insert</span>(run_id, <span class="ty">ProcessHandle</span> { child, stdin });
+    <span class="ty">Ok</span>(run_id)
+}</code></pre>
+  </section>
+
+  <!-- ── Slide 4: cancel() ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · cancel()</div>
+    <h1>cancel() — Graceful Shutdown</h1>
+
+    <pre><code><span class="kw">pub async fn</span> <span class="fn">cancel</span>(&<span class="kw">mut self</span>, run_id: &<span class="ty">RunId</span>) -> <span class="ty">Result</span>&lt;()&gt; {
+    <span class="kw">let</span> handle = <span class="kw">self</span>.running
+        .<span class="fn">get_mut</span>(run_id)
+        .<span class="fn">ok_or_else</span>(|| <span class="ty">RalphError</span>::<span class="ty">NotFound</span>(run_id.<span class="fn">to_string</span>()))?;
+
+    <span class="cm">// Step 1: graceful — send Cancel to stdin</span>
+    <span class="kw">let</span> cancel_line = <span class="ty">NdjsonCodec</span>::<span class="fn">encode</span>(&<span class="ty">WorkerCommand</span>::<span class="ty">Cancel</span>);
+    <span class="kw">let</span> _ = handle.stdin.<span class="fn">write_all</span>(cancel_line.<span class="fn">as_bytes</span>()).<span class="fn">await</span>;
+    <span class="kw">let</span> _ = handle.stdin.<span class="fn">flush</span>().<span class="fn">await</span>;
+
+    <span class="cm">// Step 2: wait up to 3s for graceful exit</span>
+    <span class="kw">let</span> wait = tokio::time::<span class="fn">timeout</span>(
+        <span class="ty">Duration</span>::<span class="fn">from_secs</span>(<span class="nu">3</span>),
+        handle.child.<span class="fn">wait</span>(),
+    ).<span class="fn">await</span>;
+
+    <span class="cm">// Step 3: SIGKILL if timeout</span>
+    <span class="kw">if</span> wait.<span class="fn">is_err</span>() {
+        <span class="kw">let</span> _ = handle.child.<span class="fn">kill</span>().<span class="fn">await</span>;
+    }
+
+    <span class="kw">self</span>.running.<span class="fn">remove</span>(run_id);
+    <span class="ty">Ok</span>(())
+}</code></pre>
+
+    <div class="grid-2" style="margin-top:20px;">
+      <div class="card">
+        <h3>Cancel flow</h3>
+        <div class="flow" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <div class="flow-box">1. Send WorkerCommand::Cancel to stdin</div>
+          <div class="flow-arr">↓</div>
+          <div class="flow-box">2. tokio::time::timeout(3s, child.wait())</div>
+          <div class="flow-arr">↓</div>
+          <div class="flow-box">3a. OK → process exited gracefully</div>
+          <div class="flow-arr">or</div>
+          <div class="flow-box highlight">3b. Timeout → child.kill() (SIGKILL)</div>
+          <div class="flow-arr">↓</div>
+          <div class="flow-box">4. running.remove(run_id)</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Error handling</h3>
+        <p>Write errors to stdin are silently ignored — the subprocess may have already exited before cancel is called.</p>
+        <p>Cancelling an unknown <code>RunId</code> returns <code>RalphError::NotFound</code> immediately.</p>
+        <pre><code><span class="cm">// Only hard error: unknown run</span>
+<span class="ty">Err</span>(<span class="ty">RalphError</span>::<span class="ty">NotFound</span>(id))</code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 5: Test Strategy ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · Testing</div>
+    <h1>Test Strategy</h1>
+    <p>The key challenge: testing subprocess spawning without a real ralph binary. Solution: <code>with_binary_and_args()</code> + <code>sh -c</code>.</p>
+
+    <div class="card">
+      <h3>Why not temp executable files?</h3>
+      <p>Initial approach used <code>tempfile::NamedTempFile</code> + <code>chmod 755</code>. Under parallel async test execution, Linux raises <strong>ETXTBSY</strong> ("Text file busy") — a file being written and executed concurrently.</p>
+      <p>Fix: use <code>sh -c '...'</code> as the "binary" with the script inlined as an arg. No temp files, no OS-level conflicts.</p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>echo_manager() — for spawn test</h3>
+        <pre><code><span class="fn">with_binary_and_args</span>(
+    <span class="ty">PathBuf</span>::<span class="fn">from</span>(<span class="st">"sh"</span>),
+    <span class="kw">vec!</span>[
+        <span class="ty">OsString</span>::<span class="fn">from</span>(<span class="st">"-c"</span>),
+        <span class="ty">OsString</span>::<span class="fn">from</span>(
+<span class="st">r#"read line;
+printf '{"type":"status",...}\n';
+printf '{"type":"done","success":true}\n'"#</span>
+        ),
+    ],
+)</code></pre>
+        <p style="font-size:12px;color:#8b949e;margin-top:8px;">The trailing <code>"worker"</code> arg becomes <code>$0</code> in the shell script — harmless.</p>
+      </div>
+      <div class="card">
+        <h3>sleep_manager() — for cancel test</h3>
+        <pre><code><span class="fn">with_binary_and_args</span>(
+    <span class="ty">PathBuf</span>::<span class="fn">from</span>(<span class="st">"sh"</span>),
+    <span class="kw">vec!</span>[
+        <span class="ty">OsString</span>::<span class="fn">from</span>(<span class="st">"-c"</span>),
+        <span class="ty">OsString</span>::<span class="fn">from</span>(
+            <span class="st">"read line; sleep 60"</span>
+        ),
+    ],
+)</code></pre>
+        <p style="font-size:12px;color:#8b949e;margin-top:8px;">Reads the Start command, then sleeps indefinitely — ideal for testing cancel + SIGKILL path.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 6: Test Results ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · Test Results</div>
+    <h1>Test Results</h1>
+
+    <div class="test-out">
+<span class="test-info">running 24 tests</span>
+<span class="test-ok">test process_manager::tests::run_id_is_unique ... ok</span>
+<span class="test-ok">test process_manager::tests::run_id_display_is_uuid_format ... ok</span>
+<span class="test-ok">test process_manager::tests::cancel_unknown_run_returns_not_found ... ok</span>
+<span class="test-ok">test process_manager::tests::tokio_process_piped_stdout ... ok</span>
+<span class="test-ok">test process_manager::tests::tokio_process_stdin_write ... ok</span>
+<span class="test-ok">test process_manager::tests::spawn_emits_worker_events ... ok</span>
+<span class="test-ok">test process_manager::tests::cancel_terminates_running_process ... ok</span>
+<span class="test-info">... (17 protocol tests) ...</span>
+<span class="test-ok">
+test result: ok. 24 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.00s</span>
+    </div>
+
+    <h2>Full workspace</h2>
+    <div class="test-out">
+<span class="test-ok">lazyjob-cli:    15 passed</span>
+<span class="test-ok">lazyjob-core:   88 passed</span>
+<span class="test-ok">lazyjob-llm:    62 passed</span>
+<span class="test-ok">lazyjob-ralph:  24 passed  ← +7 new this task</span>
+<span class="test-ok">lazyjob-tui:   118 passed</span>
+<span class="test-info">─────────────────────────────────────</span>
+<span class="test-ok">TOTAL:         307 passed; 0 failed</span>
+    </div>
+
+    <h2>Tests breakdown</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Learning tests (2)</h3>
+        <ul class="checks">
+          <li><code>tokio_process_piped_stdout</code> — proves <code>Command</code> + <code>BufReader::lines()</code> pipeline</li>
+          <li><code>tokio_process_stdin_write</code> — proves bidirectional pipe via <code>cat</code> subprocess</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Unit tests (5)</h3>
+        <ul class="checks">
+          <li><code>run_id_is_unique</code></li>
+          <li><code>run_id_display_is_uuid_format</code></li>
+          <li><code>spawn_emits_worker_events</code></li>
+          <li><code>cancel_terminates_running_process</code></li>
+          <li><code>cancel_unknown_run_returns_not_found</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Slide 7: Key Decisions ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · Key Decisions</div>
+    <h1>Key Design Decisions</h1>
+
+    <div class="card">
+      <h3>broadcast channel type: <code>(RunId, WorkerEvent)</code></h3>
+      <p>Rather than wrapping events in a separate <code>RalphEvent</code> enum (as the spec sketches), we broadcast tuples. This keeps the broadcast channel agnostic of the wrapper enum while still letting every subscriber know which subprocess produced each event.</p>
+    </div>
+
+    <div class="card">
+      <h3>with_binary_and_args() — testability by composition</h3>
+      <p><code>binary_args: Vec&lt;OsString&gt;</code> injected before the hardcoded <code>"worker"</code> arg. Production: <code>binary_args=[]</code>, <code>binary_path=current_exe()</code>. Tests: <code>binary_args=["-c", "..."]</code>, <code>binary_path="sh"</code>. Zero test-specific conditionals in production code.</p>
+    </div>
+
+    <div class="card">
+      <h3>Background reader task: best-effort decode</h3>
+      <p>Decode errors from subprocess stdout are silently dropped. A misbehaving subprocess should not crash the TUI — the background task continues reading until EOF. This is intentional.</p>
+    </div>
+
+    <div class="card">
+      <h3>ChildStdin taken immediately on spawn</h3>
+      <p><code>child.stdin.take()</code> is called before sending the Start command. If this were deferred, <code>child</code> would need to be mutably borrowed while also being moved into <code>ProcessHandle</code>. Taking early avoids the borrow conflict.</p>
+    </div>
+  </section>
+
+  <!-- ── Slide 8: Summary ── -->
+  <section class="slide">
+    <div class="slide-tag">Task 19 · Summary</div>
+    <h1>Summary &amp; Next</h1>
+
+    <div class="card">
+      <h3>Public API surface</h3>
+      <pre><code><span class="cm">// Production</span>
+<span class="kw">let mut</span> manager = <span class="ty">RalphProcessManager</span>::<span class="fn">new</span>();
+<span class="kw">let mut</span> rx = manager.<span class="fn">subscribe</span>();
+<span class="kw">let</span> run_id = manager.<span class="fn">spawn</span>(<span class="st">"job_discovery"</span>, params).<span class="fn">await</span>?;
+
+<span class="cm">// Listen for events</span>
+<span class="kw">while let</span> <span class="ty">Ok</span>((id, event)) = rx.<span class="fn">recv</span>().<span class="fn">await</span> {
+    <span class="kw">if</span> id == run_id { <span class="cm">/* handle event */</span> }
+}
+
+<span class="cm">// Cancel</span>
+manager.<span class="fn">cancel</span>(&run_id).<span class="fn">await</span>?;
+manager.<span class="fn">active_runs</span>();  <span class="cm">// → Vec&lt;RunId&gt;</span></code></pre>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Files changed</h3>
+        <ul class="checks">
+          <li><code>src/error.rs</code> — +Io, +NotFound</li>
+          <li><code>src/process_manager.rs</code> — NEW</li>
+          <li><code>src/lib.rs</code> — +pub mod + re-exports</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Task 20 — ralph-loop-types</h3>
+        <p>Next task: <code>LoopType</code> enum with concurrency limits and priority, <code>LoopDispatch</code> priority queue, and <code>LoopScheduler</code> with cron expressions.</p>
+        <div class="pill pill-orange">LoopType::JobDiscovery</div>
+        <div class="pill pill-orange">LoopType::ResumeTailor</div>
+        <div class="pill pill-orange">BinaryHeap priority queue</div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /main -->
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const navLinks = document.querySelectorAll('#nav a');
+  let current = 0;
+
+  function show(idx) {
+    slides[current].classList.remove('active');
+    navLinks[current].classList.remove('active');
+    current = Math.max(0, Math.min(idx, slides.length - 1));
+    slides[current].classList.add('active');
+    navLinks[current].classList.add('active');
+    document.getElementById('main').scrollTop = 0;
+  }
+
+  navLinks.forEach((a, i) => {
+    a.addEventListener('click', e => { e.preventDefault(); show(i); });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') show(current + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   show(current - 1);
+  });
+</script>
+</body>
+</html>
