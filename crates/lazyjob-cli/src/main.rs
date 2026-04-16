@@ -1,6 +1,8 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use async_trait::async_trait;
 use clap::{Parser, Subcommand};
 
 use secrecy::SecretString;
@@ -8,9 +10,11 @@ use secrecy::SecretString;
 use lazyjob_core::config::Config;
 use lazyjob_core::credentials::CredentialManager;
 use lazyjob_core::db::{DEFAULT_DATABASE_URL, Database};
-use lazyjob_core::discovery::{DiscoveryService, SourceConfig};
-use lazyjob_core::domain::Job;
+use lazyjob_core::discovery::{CompanyResearcher, Completer, DiscoveryService, SourceConfig};
+use lazyjob_core::domain::{CompanyId, Job};
+use lazyjob_core::error::CoreError;
 use lazyjob_core::repositories::{JobRepository, Pagination};
+use lazyjob_llm::{ChatMessage, CompletionOptions, LlmBuilder, LlmProvider};
 
 #[derive(Parser)]
 #[command(name = "lazyjob", version, about = "AI-powered job search TUI")]
@@ -82,6 +86,10 @@ enum RalphCommand {
     JobDiscovery {
         #[arg(long)]
         source: String,
+        #[arg(long)]
+        company_id: String,
+    },
+    CompanyResearch {
         #[arg(long)]
         company_id: String,
     },
@@ -228,6 +236,26 @@ async fn handle_profile_export(db: &Database) -> Result<()> {
     Ok(())
 }
 
+struct LlmProviderCompleter {
+    provider: Box<dyn LlmProvider>,
+}
+
+#[async_trait]
+impl Completer for LlmProviderCompleter {
+    async fn complete(&self, system: &str, user: &str) -> lazyjob_core::error::Result<String> {
+        let messages = vec![
+            ChatMessage::System(system.into()),
+            ChatMessage::User(user.into()),
+        ];
+        let opts = CompletionOptions::default();
+        self.provider
+            .complete(messages, opts)
+            .await
+            .map(|r| r.content)
+            .map_err(|e| CoreError::Parse(e.to_string()))
+    }
+}
+
 async fn handle_ralph(args: RalphArgs, db: &Database) -> Result<()> {
     match args.command {
         RalphCommand::JobDiscovery { source, company_id } => {
@@ -256,6 +284,49 @@ async fn handle_ralph(args: RalphArgs, db: &Database) -> Result<()> {
                 "\nDiscovery complete: {} found, {} new, {} updated, {} errors",
                 stats.jobs_found, stats.jobs_new, stats.jobs_updated, stats.errors
             );
+            Ok(())
+        }
+        RalphCommand::CompanyResearch { company_id } => {
+            let company_uuid = company_id
+                .parse::<uuid::Uuid>()
+                .context("invalid company UUID")?;
+            let company_id = CompanyId::from_uuid(company_uuid);
+
+            println!("Researching company: {}", company_id);
+
+            let config = Config::load().unwrap_or_default();
+            let creds = CredentialManager::new();
+            let provider =
+                LlmBuilder::from_config(&config, &creds).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+            let completer = Arc::new(LlmProviderCompleter { provider });
+            let client = reqwest::Client::new();
+            let researcher = CompanyResearcher::new(completer, client);
+
+            let data = researcher
+                .enrich(&company_id, db.pool())
+                .await
+                .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+            println!("Enrichment complete:");
+            if let Some(industry) = &data.industry {
+                println!("  Industry: {industry}");
+            }
+            if let Some(size) = &data.size {
+                println!("  Size: {size}");
+            }
+            if !data.tech_stack.is_empty() {
+                println!("  Tech stack: {}", data.tech_stack.join(", "));
+            }
+            if !data.culture_keywords.is_empty() {
+                println!("  Culture: {}", data.culture_keywords.join(", "));
+            }
+            if !data.recent_news.is_empty() {
+                println!("  Recent news:");
+                for news in &data.recent_news {
+                    println!("    - {news}");
+                }
+            }
             Ok(())
         }
     }
@@ -498,6 +569,7 @@ mod tests {
                     assert_eq!(source, "greenhouse");
                     assert_eq!(company_id, "stripe");
                 }
+                _ => panic!("expected JobDiscovery"),
             },
             _ => panic!("expected Ralph"),
         }
@@ -515,6 +587,27 @@ mod tests {
                 _ => panic!("expected DeleteKey"),
             },
             _ => panic!("expected Config"),
+        }
+    }
+
+    #[test]
+    fn parse_ralph_company_research() {
+        let cli = Cli::try_parse_from([
+            "lazyjob",
+            "ralph",
+            "company-research",
+            "--company-id",
+            "550e8400-e29b-41d4-a716-446655440000",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Ralph(args) => match args.command {
+                RalphCommand::CompanyResearch { company_id } => {
+                    assert_eq!(company_id, "550e8400-e29b-41d4-a716-446655440000");
+                }
+                _ => panic!("expected CompanyResearch"),
+            },
+            _ => panic!("expected Ralph"),
         }
     }
 }

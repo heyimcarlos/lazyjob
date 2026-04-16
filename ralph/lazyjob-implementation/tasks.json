@@ -207,7 +207,7 @@
       "description": "In lazyjob-core/src/discovery/company.rs, implement CompanyResearcher::enrich(company_id). It fetches the company's website, uses LlmProvider to extract: industry, size, tech_stack, culture_keywords, recent_news. Upserts into companies table. Wrap in the CompanyResearch LoopType subprocess. Implement JobsListView to show company enrichment status badge. Write tests with mock HTTP and mock LLM.",
       "phase": "build",
       "spec": "specs/05-job-discovery-layer-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 27,

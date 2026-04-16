@@ -751,3 +751,31 @@ Next iteration should know:
 - job_embeddings table: job_id UUID PK FK→jobs(id) CASCADE, embedding BYTEA, embedded_at TIMESTAMPTZ
 - MatchScorer::store_embedding / load_embedding are the DB I/O methods
 - Task 26 (company-research) is next — CompanyResearcher::enrich(company_id) using LLM + HTTP
+
+## Task 26: company-research — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-core/src/discovery/company.rs (new: Completer trait, EnrichmentData, CompanyResearcher, enrichment_badge, extract_json_from_response)
+- crates/lazyjob-core/src/discovery/mod.rs (added pub mod company + re-exports)
+- crates/lazyjob-tui/src/views/jobs_list.rs (added enrichment_badge import, format_company_badge method, legend in render, 5 new tests)
+- crates/lazyjob-cli/Cargo.toml (added lazyjob-llm, async-trait, reqwest, uuid deps)
+- crates/lazyjob-cli/src/main.rs (added CompanyResearch RalphCommand, LlmProviderCompleter wrapper, handle_company_research handler, parse_ralph_company_research test)
+Key decisions:
+- Defined local `Completer` trait in lazyjob-core (not importing lazyjob-llm::LlmProvider) to avoid circular dependency — lazyjob-llm already depends on lazyjob-core
+- LlmProviderCompleter wrapper in lazyjob-cli bridges LlmProvider → Completer for production use
+- `extract_json_from_response` uses `find('{')` + `rfind('}')` to extract JSON even when LLM adds preamble text
+- `enrichment_badge(industry: Option<&str>) -> &'static str` returns "[E]" for enriched, "[ ]" for not enriched
+- Company fields updated in-place: industry, size, tech_stack, culture_keywords; recent_news stored as notes (joined with "; ")
+- Website content truncated to 3000 chars before sending to LLM to avoid token overflow
+- Integration test gated behind `#[cfg(all(test, feature = "integration"))]` with wiremock MockServer
+Learning tests written:
+- reqwest_client_builds — proves reqwest::Client::builder().timeout().build() constructs successfully with rustls-tls feature
+Tests passing: 412 (15 new: 9 in lazyjob-core company tests, 5 in lazyjob-tui jobs_list tests, 1 in lazyjob-cli tests)
+Next iteration should know:
+- Completer trait is in lazyjob-core::discovery::company, re-exported as lazyjob-core::discovery::Completer
+- CompanyResearcher::new(completer: Arc<dyn Completer>, client: reqwest::Client) — same Arc<dyn Trait> pattern as MatchScorer
+- enrichment_badge(industry: Option<&str>) is now importable in any TUI view via lazyjob_core::discovery::enrichment_badge
+- JobsListView now has format_company_badge(company_name, industry) static method for task 27 to use
+- LlmProviderCompleter is defined in lazyjob-cli — any other binary layer can define the same bridge
+- CLI command: `lazyjob ralph company-research --company-id <uuid>`
+- Task 27 (jobs-list-tui) is next — full JobsListView with scrollable table, filtering, sorting, enrichment badges

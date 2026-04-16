@@ -1691,14 +1691,18 @@ name = "lazyjob-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "clap",
  "lazyjob-core",
+ "lazyjob-llm",
  "lazyjob-tui",
+ "reqwest",
  "secrecy 0.8.0",
  "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "uuid",
 ]
 
 [[package]]
