@@ -103,6 +103,7 @@ Next iteration should know:
 3. If you discovered the task needs to be split, or a dependency is missing, update `tasks.json` (add new tasks, reorder) and explain why in progress.md.
 
 4. If ALL tasks in tasks.json are done, output: `<promise>COMPLETE</promise>`
+5. **IMPORTANT** use the `/rpi:ci_commit` command to commit the changes ready to delegate to the next session.
 
 ### Step 7 - Task delivery
 **IMPORTANT:** You cannot move on to the next task unless the steps mentioned below are fully completed.

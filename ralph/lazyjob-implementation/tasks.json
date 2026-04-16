@@ -111,7 +111,7 @@
       "description": "In lazyjob-llm/src/provider.rs, define: LlmProvider trait (async complete(messages: Vec<ChatMessage>, opts: CompletionOptions) -> Result<LlmResponse>), EmbeddingProvider trait (async embed(text: &str) -> Result<Vec<f32>>), ChatMessage struct, CompletionOptions struct (model, temperature, max_tokens, stream), LlmResponse struct (content, usage: TokenUsage). Implement MockLlmProvider that returns canned responses for testing. Write trait object tests confirming dyn LlmProvider works.",
       "phase": "build",
       "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 15,
@@ -119,7 +119,7 @@
       "description": "In lazyjob-llm/src/providers/anthropic.rs, implement AnthropicProvider using reqwest (rustls-tls). Support both streaming (SSE) and non-streaming. Implement 3-attempt exponential backoff (1s, 2s, 4s) on 429/500/503. Map Anthropic API response to LlmResponse. Read API key from CredentialManager. Write a learning test (gated behind #[cfg(feature=\"integration\")]) that makes a real call to claude-haiku-4-5 to verify the implementation works.",
       "phase": "build",
       "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 16,

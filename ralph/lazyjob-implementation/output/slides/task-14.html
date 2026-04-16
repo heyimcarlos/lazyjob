@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Task 14: llm-provider-traits — LazyJob</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --primary: #58a6ff;
+    --success: #3fb950;
+    --warning: #d29922;
+    --error: #f85149;
+    --purple: #bc8cff;
+    --nav-width: 240px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* LEFT NAV */
+  nav {
+    width: var(--nav-width);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  nav .nav-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  nav .nav-header .task-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--primary);
+    background: rgba(88,166,255,0.1);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 4px;
+    padding: 2px 7px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  nav .nav-header h2 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  nav ul {
+    list-style: none;
+    padding: 8px 0;
+    flex: 1;
+  }
+
+  nav ul li a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 12.5px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  nav ul li a:hover {
+    background: var(--bg3);
+    color: var(--text);
+  }
+  nav ul li a.active {
+    background: rgba(88,166,255,0.08);
+    color: var(--primary);
+    border-left-color: var(--primary);
+    font-weight: 600;
+  }
+  nav ul li a .icon { font-size: 14px; width: 18px; text-align: center; }
+
+  nav .stats-footer {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  nav .stats-footer .stat { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  nav .stats-footer .stat .val { color: var(--success); font-weight: 700; }
+
+  /* MAIN CONTENT */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px;
+    scroll-behavior: smooth;
+  }
+
+  section {
+    max-width: 900px;
+    margin-bottom: 60px;
+    scroll-margin-top: 24px;
+  }
+
+  .slide-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .slide-header .slide-num {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .slide-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* HERO */
+  .hero {
+    background: linear-gradient(135deg, rgba(88,166,255,0.12) 0%, rgba(188,140,255,0.08) 100%);
+    border: 1px solid rgba(88,166,255,0.2);
+    border-radius: 10px;
+    padding: 32px;
+    text-align: center;
+  }
+  .hero .task-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .hero .task-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .hero .pill-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .pill {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .pill.green { border-color: rgba(63,185,80,0.4); color: var(--success); background: rgba(63,185,80,0.08); }
+  .pill.blue { border-color: rgba(88,166,255,0.4); color: var(--primary); background: rgba(88,166,255,0.08); }
+  .pill.purple { border-color: rgba(188,140,255,0.4); color: var(--purple); background: rgba(188,140,255,0.08); }
+
+  /* CARDS */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .card .card-icon { font-size: 22px; margin-bottom: 8px; }
+  .card .card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .card .card-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .card.done { border-color: rgba(63,185,80,0.3); }
+  .card.new { border-color: rgba(88,166,255,0.4); background: rgba(88,166,255,0.04); }
+  .card .badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border-radius: 3px;
+    padding: 1px 5px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  .card .badge.done-badge { background: rgba(63,185,80,0.15); color: var(--success); }
+  .card .badge.new-badge { background: rgba(88,166,255,0.15); color: var(--primary); }
+
+  /* CODE BLOCKS */
+  pre {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .kw { color: #ff7b72; }
+  .ty { color: #ffa657; }
+  .fn { color: #79c0ff; }
+  .st { color: #a5d6ff; }
+  .cm { color: #8b949e; }
+  .nm { color: #d2a8ff; }
+  .pp { color: #bc8cff; }
+  .attr { color: #e3b341; }
+
+  /* TERMINAL OUTPUT */
+  .terminal {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 12px;
+  }
+  .terminal .term-header {
+    background: var(--bg3);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal .term-header .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .terminal .term-header .dot.red { background: #f85149; }
+  .terminal .term-header .dot.yellow { background: #d29922; }
+  .terminal .term-header .dot.green { background: #3fb950; }
+  .terminal .term-header .title { margin-left: 8px; font-size: 11px; color: var(--muted); }
+  .terminal .term-body { padding: 14px 16px; line-height: 1.7; }
+  .term-prompt { color: #58a6ff; }
+  .term-cmd { color: #e6edf3; }
+  .term-ok { color: #3fb950; }
+  .term-muted { color: #8b949e; }
+  .term-warn { color: #d29922; }
+
+  /* TABLES */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-bottom: 16px;
+  }
+  th {
+    background: var(--bg3);
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  .td-mono { font-family: 'JetBrains Mono', Consolas, monospace; font-size: 11.5px; color: var(--primary); }
+  .td-muted { color: var(--muted); font-size: 11.5px; }
+
+  /* TRAIT DIAGRAM */
+  .trait-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .trait-box .trait-name {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--purple);
+    margin-bottom: 12px;
+  }
+  .trait-box .trait-methods {
+    list-style: none;
+    padding: 0;
+  }
+  .trait-box .trait-methods li {
+    font-family: 'JetBrains Mono', Consolas, monospace;
+    font-size: 12px;
+    color: var(--text);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.6);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .trait-box .trait-methods li:last-child { border-bottom: none; }
+  .trait-box .trait-methods li .method-icon { color: var(--primary); width: 14px; flex-shrink: 0; margin-top: 1px; }
+  .method-kw { color: #ff7b72; }
+  .method-fn { color: #79c0ff; }
+  .method-ty { color: #ffa657; }
+
+  /* IMPL CHAIN DIAGRAM */
+  .impl-chain {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .impl-node {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 12px;
+    text-align: center;
+  }
+  .impl-node.trait-node { border-color: rgba(188,140,255,0.5); background: rgba(188,140,255,0.08); color: var(--purple); font-weight: 700; }
+  .impl-node.mock-node { border-color: rgba(88,166,255,0.5); background: rgba(88,166,255,0.08); color: var(--primary); }
+  .impl-node.future-node { border-color: var(--border); color: var(--muted); font-style: italic; }
+  .impl-arrow {
+    font-size: 18px;
+    color: var(--muted);
+    padding: 0 8px;
+  }
+
+  /* PROGRESS BAR */
+  .progress-bar {
+    background: var(--bg3);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary), var(--purple));
+    border-radius: 4px;
+  }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  p { font-size: 13.5px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+  h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 12px; }
+  h4 { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .text-success { color: var(--success); }
+  .text-primary { color: var(--primary); }
+  .text-muted { color: var(--muted); }
+
+  .callout {
+    background: rgba(88,166,255,0.05);
+    border: 1px solid rgba(88,166,255,0.2);
+    border-left: 3px solid var(--primary);
+    border-radius: 4px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .callout strong { color: var(--primary); }
+</style>
+</head>
+<body>
+
+<!-- LEFT NAV -->
+<nav>
+  <div class="nav-header">
+    <div class="task-badge">Task 14</div>
+    <h2>llm-provider-traits</h2>
+  </div>
+  <ul>
+    <li><a href="#overview" class="active"><span class="icon">🎯</span>Overview</a></li>
+    <li><a href="#architecture"><span class="icon">🏗️</span>Architecture</a></li>
+    <li><a href="#types"><span class="icon">📦</span>Types</a></li>
+    <li><a href="#traits"><span class="icon">🔌</span>Traits</a></li>
+    <li><a href="#mock"><span class="icon">🧪</span>Mock Providers</a></li>
+    <li><a href="#tests"><span class="icon">✅</span>Tests</a></li>
+    <li><a href="#decisions"><span class="icon">🧠</span>Decisions</a></li>
+    <li><a href="#verification"><span class="icon">🚀</span>Verification</a></li>
+  </ul>
+  <div class="stats-footer">
+    <div class="stat"><span>Tests added</span><span class="val">+14</span></div>
+    <div class="stat"><span>Total tests</span><span class="val">235</span></div>
+    <div class="stat"><span>Files created</span><span class="val">5</span></div>
+    <div class="stat"><span>Crate</span><span class="val">lazyjob-llm</span></div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<main>
+
+  <!-- SLIDE 1: OVERVIEW -->
+  <section id="overview">
+    <div class="slide-header">
+      <span class="slide-num">01</span>
+      <h2>Overview</h2>
+    </div>
+    <div class="hero">
+      <div class="task-title">LLM Provider Traits</div>
+      <div class="task-sub">Core abstraction layer for multi-provider LLM support in <code>lazyjob-llm</code></div>
+      <div class="pill-row">
+        <span class="pill green">✓ cargo build</span>
+        <span class="pill green">✓ cargo clippy</span>
+        <span class="pill green">✓ 14/14 tests pass</span>
+        <span class="pill green">✓ cargo fmt</span>
+        <span class="pill blue">async-trait</span>
+        <span class="pill blue">dyn dispatch</span>
+        <span class="pill purple">lazyjob-llm</span>
+      </div>
+    </div>
+
+    <br/>
+
+    <div class="card-grid">
+      <div class="card new">
+        <div class="badge new-badge">New</div>
+        <div class="card-icon">🔌</div>
+        <div class="card-title">LlmProvider</div>
+        <div class="card-desc">Async trait for chat completions. Enables dyn dispatch across providers.</div>
+      </div>
+      <div class="card new">
+        <div class="badge new-badge">New</div>
+        <div class="card-icon">🧲</div>
+        <div class="card-title">EmbeddingProvider</div>
+        <div class="card-desc">Async trait for vector embeddings. Returns Vec&lt;f32&gt; for similarity scoring.</div>
+      </div>
+      <div class="card new">
+        <div class="badge new-badge">New</div>
+        <div class="card-icon">💬</div>
+        <div class="card-title">ChatMessage</div>
+        <div class="card-desc">Enum with System / User / Assistant variants. Type-safe role + content.</div>
+      </div>
+      <div class="card new">
+        <div class="badge new-badge">New</div>
+        <div class="card-icon">⚙️</div>
+        <div class="card-title">CompletionOptions</div>
+        <div class="card-desc">model, temperature, max_tokens, stream — all optional with sensible defaults.</div>
+      </div>
+      <div class="card new">
+        <div class="badge new-badge">New</div>
+        <div class="card-icon">📊</div>
+        <div class="card-title">LlmResponse + TokenUsage</div>
+        <div class="card-desc">Response with content, model, stop_reason and prompt/completion token counts.</div>
+      </div>
+      <div class="card new">
+        <div class="badge new-badge">New</div>
+        <div class="card-icon">🧪</div>
+        <div class="card-title">MockLlmProvider</div>
+        <div class="card-desc">Canned-response mock. with_content("text") for zero-boilerplate tests.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SLIDE 2: ARCHITECTURE -->
+  <section id="architecture">
+    <div class="slide-header">
+      <span class="slide-num">02</span>
+      <h2>Architecture</h2>
+    </div>
+
+    <h3>Module Layout</h3>
+    <div class="terminal">
+      <div class="term-header">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="title">crates/lazyjob-llm/src/</span>
+      </div>
+      <div class="term-body">
+        <div><span class="term-ok">✓</span> <span class="term-cmd">lib.rs</span>           <span class="term-muted">— public re-exports of all types and traits</span></div>
+        <div><span class="term-ok">✓</span> <span class="term-cmd">error.rs</span>         <span class="term-muted">— LlmError enum (8 variants) + Result&lt;T&gt; alias</span></div>
+        <div><span class="term-ok">✓</span> <span class="term-cmd">message.rs</span>       <span class="term-muted">— ChatMessage, CompletionOptions, LlmResponse, TokenUsage</span></div>
+        <div><span class="term-ok">✓</span> <span class="term-cmd">provider.rs</span>      <span class="term-muted">— LlmProvider trait + EmbeddingProvider trait</span></div>
+        <div><span class="term-ok">✓</span> <span class="term-cmd">mock.rs</span>          <span class="term-muted">— MockLlmProvider + MockEmbeddingProvider</span></div>
+      </div>
+    </div>
+
+    <h3>Provider Hierarchy</h3>
+    <div class="impl-chain">
+      <div class="impl-node trait-node">trait LlmProvider</div>
+      <div class="impl-arrow">→</div>
+      <div class="impl-node mock-node">MockLlmProvider<br/><small>(this task)</small></div>
+      <div class="impl-arrow">→</div>
+      <div class="impl-node future-node">AnthropicProvider<br/><small>(task 15)</small></div>
+      <div class="impl-arrow">→</div>
+      <div class="impl-node future-node">OpenAiProvider<br/><small>(task 16)</small></div>
+      <div class="impl-arrow">→</div>
+      <div class="impl-node future-node">OllamaProvider<br/><small>(task 16)</small></div>
+    </div>
+
+    <div class="callout">
+      <strong>Key insight:</strong> By defining the trait now, all future tasks (resume tailoring, cover letters, interview prep) can accept <code>Box&lt;dyn LlmProvider&gt;</code> — making them testable with MockLlmProvider before any real API is implemented.
+    </div>
+
+    <h3>Public API Surface (lazyjob-llm root)</h3>
+    <pre><span class="kw">pub use</span> error::{<span class="ty">LlmError</span>, <span class="ty">Result</span>};
+<span class="kw">pub use</span> message::{<span class="ty">ChatMessage</span>, <span class="ty">CompletionOptions</span>, <span class="ty">LlmResponse</span>, <span class="ty">TokenUsage</span>};
+<span class="kw">pub use</span> mock::{<span class="ty">MockEmbeddingProvider</span>, <span class="ty">MockLlmProvider</span>};
+<span class="kw">pub use</span> provider::{<span class="ty">EmbeddingProvider</span>, <span class="ty">LlmProvider</span>};</pre>
+  </section>
+
+  <!-- SLIDE 3: TYPES -->
+  <section id="types">
+    <div class="slide-header">
+      <span class="slide-num">03</span>
+      <h2>Types</h2>
+    </div>
+
+    <h3>ChatMessage — Enum Approach</h3>
+    <p>Using an enum (not a struct with <code>role: String</code>) gives type-safe pattern matching and prevents constructing invalid messages.</p>
+    <pre><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<span class="attr">#[serde(tag = "role", content = "content", rename_all = "lowercase")]</span>
+<span class="kw">pub enum</span> <span class="ty">ChatMessage</span> {
+    <span class="ty">System</span>(<span class="ty">String</span>),
+    <span class="ty">User</span>(<span class="ty">String</span>),
+    <span class="ty">Assistant</span>(<span class="ty">String</span>),
+}
+
+<span class="kw">impl</span> <span class="ty">ChatMessage</span> {
+    <span class="kw">pub fn</span> <span class="fn">role</span>(&amp;<span class="kw">self</span>) -&gt; &amp;<span class="kw">str</span> { <span class="cm">/* "system" | "user" | "assistant" */</span> }
+    <span class="kw">pub fn</span> <span class="fn">content</span>(&amp;<span class="kw">self</span>) -&gt; &amp;<span class="kw">str</span> { <span class="cm">/* inner string */</span> }
+}</pre>
+
+    <h3>CompletionOptions with Defaults</h3>
+    <pre><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]</span>
+<span class="kw">pub struct</span> <span class="ty">CompletionOptions</span> {
+    <span class="kw">pub</span> model: <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,         <span class="cm">// provider default if None</span>
+    <span class="kw">pub</span> temperature: <span class="ty">Option</span>&lt;<span class="kw">f32</span>&gt;,    <span class="cm">// Default: Some(0.7)</span>
+    <span class="kw">pub</span> max_tokens: <span class="ty">Option</span>&lt;<span class="kw">u32</span>&gt;,      <span class="cm">// Default: Some(4096)</span>
+    <span class="kw">pub</span> stream: <span class="kw">bool</span>,                 <span class="cm">// Default: false</span>
+}</pre>
+
+    <h3>TokenUsage — Auto-computes Total</h3>
+    <pre><span class="kw">pub struct</span> <span class="ty">TokenUsage</span> {
+    <span class="kw">pub</span> prompt_tokens: <span class="kw">u32</span>,
+    <span class="kw">pub</span> completion_tokens: <span class="kw">u32</span>,
+    <span class="kw">pub</span> total_tokens: <span class="kw">u32</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">TokenUsage</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(prompt: <span class="kw">u32</span>, completion: <span class="kw">u32</span>) -&gt; <span class="ty">Self</span> {
+        <span class="ty">Self</span> { prompt_tokens: prompt, completion_tokens: completion,
+               total_tokens: prompt + completion }
+    }
+}</pre>
+
+    <h3>LlmError — 8 Variants</h3>
+    <table>
+      <thead>
+        <tr><th>Variant</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="td-mono">Api(String)</td><td class="td-muted">HTTP 4xx/5xx from provider API</td></tr>
+        <tr><td class="td-mono">Auth(String)</td><td class="td-muted">Invalid or missing API key</td></tr>
+        <tr><td class="td-mono">RateLimit</td><td class="td-muted">429 Too Many Requests</td></tr>
+        <tr><td class="td-mono">Network(String)</td><td class="td-muted">Connection failures, timeouts</td></tr>
+        <tr><td class="td-mono">ModelNotFound(String)</td><td class="td-muted">Unknown model identifier</td></tr>
+        <tr><td class="td-mono">ContextLengthExceeded {max, actual}</td><td class="td-muted">Input exceeds model context window</td></tr>
+        <tr><td class="td-mono">Stream(String)</td><td class="td-muted">SSE / streaming parse errors</td></tr>
+        <tr><td class="td-mono">NotSupported(String)</td><td class="td-muted">e.g., embed() on Anthropic</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SLIDE 4: TRAITS -->
+  <section id="traits">
+    <div class="slide-header">
+      <span class="slide-num">04</span>
+      <h2>Traits</h2>
+    </div>
+
+    <h3>LlmProvider</h3>
+    <div class="trait-box">
+      <div class="trait-name">trait LlmProvider : Send + Sync</div>
+      <ul class="trait-methods">
+        <li>
+          <span class="method-icon">→</span>
+          <code><span class="method-kw">fn</span> <span class="method-fn">provider_name</span>(&amp;self) -&gt; &amp;str</code>
+        </li>
+        <li>
+          <span class="method-icon">→</span>
+          <code><span class="method-kw">fn</span> <span class="method-fn">model_name</span>(&amp;self) -&gt; &amp;str</code>
+        </li>
+        <li>
+          <span class="method-icon">⚡</span>
+          <code><span class="method-kw">async fn</span> <span class="method-fn">complete</span>(&amp;self, messages: <span class="method-ty">Vec&lt;ChatMessage&gt;</span>, opts: <span class="method-ty">CompletionOptions</span>) -&gt; <span class="method-ty">Result&lt;LlmResponse&gt;</span></code>
+        </li>
+      </ul>
+    </div>
+
+    <h3>EmbeddingProvider</h3>
+    <div class="trait-box">
+      <div class="trait-name">trait EmbeddingProvider : Send + Sync</div>
+      <ul class="trait-methods">
+        <li>
+          <span class="method-icon">→</span>
+          <code><span class="method-kw">fn</span> <span class="method-fn">provider_name</span>(&amp;self) -&gt; &amp;str</code>
+        </li>
+        <li>
+          <span class="method-icon">⚡</span>
+          <code><span class="method-kw">async fn</span> <span class="method-fn">embed</span>(&amp;self, text: &amp;str) -&gt; <span class="method-ty">Result&lt;Vec&lt;f32&gt;&gt;</span></code>
+        </li>
+      </ul>
+    </div>
+
+    <h3>Full provider.rs Source</h3>
+    <pre><span class="kw">use</span> async_trait::async_trait;
+
+<span class="kw">use crate</span>::error::<span class="ty">Result</span>;
+<span class="kw">use crate</span>::message::{<span class="ty">ChatMessage</span>, <span class="ty">CompletionOptions</span>, <span class="ty">LlmResponse</span>};
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">pub trait</span> <span class="ty">LlmProvider</span>: <span class="ty">Send</span> + <span class="ty">Sync</span> {
+    <span class="kw">fn</span> <span class="fn">provider_name</span>(&amp;<span class="kw">self</span>) -&gt; &amp;<span class="kw">str</span>;
+    <span class="kw">fn</span> <span class="fn">model_name</span>(&amp;<span class="kw">self</span>) -&gt; &amp;<span class="kw">str</span>;
+
+    <span class="kw">async fn</span> <span class="fn">complete</span>(
+        &amp;<span class="kw">self</span>,
+        messages: <span class="ty">Vec</span>&lt;<span class="ty">ChatMessage</span>&gt;,
+        opts: <span class="ty">CompletionOptions</span>,
+    ) -&gt; <span class="ty">Result</span>&lt;<span class="ty">LlmResponse</span>&gt;;
+}
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">pub trait</span> <span class="ty">EmbeddingProvider</span>: <span class="ty">Send</span> + <span class="ty">Sync</span> {
+    <span class="kw">fn</span> <span class="fn">provider_name</span>(&amp;<span class="kw">self</span>) -&gt; &amp;<span class="kw">str</span>;
+
+    <span class="kw">async fn</span> <span class="fn">embed</span>(&amp;<span class="kw">self</span>, text: &amp;<span class="kw">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">Vec</span>&lt;<span class="kw">f32</span>&gt;&gt;;
+}</pre>
+
+    <div class="callout">
+      <strong>Why async_trait?</strong> Rust 2024 stabilized <code>async fn</code> in traits for static dispatch, but <code>dyn Trait</code> still requires boxed futures. The <code>#[async_trait]</code> macro rewrites methods to return <code>Pin&lt;Box&lt;dyn Future + Send&gt;&gt;</code>, enabling dynamic dispatch. This is the proven solution with no runtime overhead beyond the existing Box.
+    </div>
+  </section>
+
+  <!-- SLIDE 5: MOCK PROVIDERS -->
+  <section id="mock">
+    <div class="slide-header">
+      <span class="slide-num">05</span>
+      <h2>Mock Providers</h2>
+    </div>
+
+    <h3>MockLlmProvider</h3>
+    <pre><span class="kw">pub struct</span> <span class="ty">MockLlmProvider</span> {
+    response: <span class="ty">LlmResponse</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">MockLlmProvider</span> {
+    <span class="cm">// Full control: provide any LlmResponse</span>
+    <span class="kw">pub fn</span> <span class="fn">new</span>(response: <span class="ty">LlmResponse</span>) -&gt; <span class="ty">Self</span>;
+
+    <span class="cm">// Zero-boilerplate: just set the content string</span>
+    <span class="kw">pub fn</span> <span class="fn">with_content</span>(content: &amp;<span class="kw">str</span>) -&gt; <span class="ty">Self</span>;
+}
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">LlmProvider</span> <span class="kw">for</span> <span class="ty">MockLlmProvider</span> {
+    <span class="kw">async fn</span> <span class="fn">complete</span>(&amp;<span class="kw">self</span>, _messages: <span class="ty">Vec</span>&lt;<span class="ty">ChatMessage</span>&gt;, _opts: <span class="ty">CompletionOptions</span>)
+        -&gt; <span class="ty">Result</span>&lt;<span class="ty">LlmResponse</span>&gt; {
+        <span class="ty">Ok</span>(<span class="kw">self</span>.response.<span class="fn">clone</span>())
+    }
+}</pre>
+
+    <h3>Usage in Future Tasks</h3>
+    <pre><span class="cm">// In resume_tailor tests, interview_prep tests, cover_letter tests:</span>
+<span class="kw">let</span> provider: <span class="ty">Box</span>&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt; =
+    <span class="ty">Box</span>::<span class="fn">new</span>(<span class="ty">MockLlmProvider</span>::<span class="fn">with_content</span>(<span class="st">"Tailored resume content..."</span>));
+
+<span class="cm">// ResumeTailor accepts Box&lt;dyn LlmProvider&gt; — testable without API keys</span>
+<span class="kw">let</span> tailor = <span class="ty">ResumeTailor</span>::<span class="fn">new</span>(provider);
+<span class="kw">let</span> result = tailor.<span class="fn">tailor</span>(job_id, &amp;life_sheet).<span class="kw">await</span>?;</pre>
+
+    <h3>MockEmbeddingProvider</h3>
+    <pre><span class="kw">pub struct</span> <span class="ty">MockEmbeddingProvider</span> { embedding: <span class="ty">Vec</span>&lt;<span class="kw">f32</span>&gt; }
+
+<span class="kw">impl</span> <span class="ty">MockEmbeddingProvider</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(embedding: <span class="ty">Vec</span>&lt;<span class="kw">f32</span>&gt;) -&gt; <span class="ty">Self</span>;
+}
+
+<span class="cm">// Usage: control similarity scores in MatchScorer tests (task 25)</span>
+<span class="kw">let</span> emb: <span class="ty">Box</span>&lt;<span class="kw">dyn</span> <span class="ty">EmbeddingProvider</span>&gt; =
+    <span class="ty">Box</span>::<span class="fn">new</span>(<span class="ty">MockEmbeddingProvider</span>::<span class="fn">new</span>(<span class="kw">vec!</span>[<span class="nm">1.0</span>, <span class="nm">0.0</span>, <span class="nm">0.5</span>]));</pre>
+  </section>
+
+  <!-- SLIDE 6: TESTS -->
+  <section id="tests">
+    <div class="slide-header">
+      <span class="slide-num">06</span>
+      <h2>Tests — 14 Passing</h2>
+    </div>
+
+    <div class="terminal">
+      <div class="term-header">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="title">$ cargo test -p lazyjob-llm</span>
+      </div>
+      <div class="term-body">
+        <div class="term-muted">   Compiling lazyjob-llm v0.1.0</div>
+        <div class="term-muted">    Finished `test` profile [unoptimized + debuginfo]</div>
+        <div class="term-muted">     Running unittests src/lib.rs</div>
+        <div>&nbsp;</div>
+        <div>running <span class="term-cmd">14</span> tests</div>
+        <div><span class="term-ok">test error::tests::llm_error_auth_variant</span> ... ok</div>
+        <div><span class="term-ok">test error::tests::llm_error_display</span> ... ok</div>
+        <div><span class="term-ok">test message::tests::chat_message_role_and_content</span> ... ok</div>
+        <div><span class="term-ok">test message::tests::completion_options_default</span> ... ok</div>
+        <div><span class="term-ok">test message::tests::chat_message_serde_round_trip</span> ... ok</div>
+        <div><span class="term-ok">test message::tests::llm_response_construction</span> ... ok</div>
+        <div><span class="term-ok">test message::tests::token_usage_total_is_sum</span> ... ok</div>
+        <div><span class="term-ok">test mock::tests::mock_provider_with_content_helper</span> ... ok</div>
+        <div><span class="term-ok">test mock::tests::mock_embedding_returns_canned_vec</span> ... ok</div>
+        <div><span class="term-ok">test mock::tests::async_trait_dyn_dispatch_embedding</span> <span class="term-warn">← learning test</span></div>
+        <div><span class="term-ok">test mock::tests::mock_provider_called_multiple_times_returns_same_response</span> ... ok</div>
+        <div><span class="term-ok">test mock::tests::mock_provider_returns_canned_response</span> ... ok</div>
+        <div><span class="term-ok">test mock::tests::async_trait_dyn_dispatch</span> <span class="term-warn">← learning test</span></div>
+        <div><span class="term-ok">test mock::tests::mock_provider_new_with_custom_response</span> ... ok</div>
+        <div>&nbsp;</div>
+        <div><span class="term-ok">test result: ok. 14 passed</span>; 0 failed; 0 ignored</div>
+      </div>
+    </div>
+
+    <h3>Learning Tests</h3>
+    <table>
+      <thead>
+        <tr><th>Test</th><th>What it proves</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-mono">async_trait_dyn_dispatch</td>
+          <td class="td-muted">Creates <code>Box&lt;dyn LlmProvider&gt;</code> from MockLlmProvider, calls <code>.complete()</code> via vtable, verifies correct response returned. Proves async_trait macro enables dynamic dispatch for async trait methods.</td>
+        </tr>
+        <tr>
+          <td class="td-mono">async_trait_dyn_dispatch_embedding</td>
+          <td class="td-muted">Same proof for <code>Box&lt;dyn EmbeddingProvider&gt;</code> — confirms both traits work with dyn dispatch.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Unit Tests Coverage</h3>
+    <table>
+      <thead>
+        <tr><th>Module</th><th>Tests</th><th>Coverage</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="td-mono">error.rs</td><td>2</td><td class="td-muted">Display for Api, RateLimit, ContextLengthExceeded; Auth variant check</td></tr>
+        <tr><td class="td-mono">message.rs</td><td>5</td><td class="td-muted">ChatMessage role/content, CompletionOptions defaults, TokenUsage sum, LlmResponse construction, serde round-trip</td></tr>
+        <tr><td class="td-mono">mock.rs</td><td>7</td><td class="td-muted">dyn dispatch (×2 learning), canned responses, with_content helper, multiple calls stable, custom response, embedding vec</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- SLIDE 7: KEY DECISIONS -->
+  <section id="decisions">
+    <div class="slide-header">
+      <span class="slide-num">07</span>
+      <h2>Key Decisions</h2>
+    </div>
+
+    <h3>1. async_trait vs explicit Pin&lt;Box&lt;dyn Future&gt;&gt;</h3>
+    <p>Rust 2024 stabilized async fn in traits for static dispatch, but <code>dyn Trait</code> still needs boxed futures. The <code>async_trait</code> macro is the proven, zero-friction solution — it rewrites methods to return <code>Pin&lt;Box&lt;dyn Future + Send&gt;&gt;</code>. This is what the spec recommends and what the ecosystem uses.</p>
+
+    <h3>2. ChatMessage as Enum (not Struct)</h3>
+    <p>A <code>struct ChatMessage { role: String, content: String }</code> would allow invalid states (e.g., role = "foo"). The enum variant approach makes invalid messages a compile error and enables exhaustive pattern matching in provider implementations when building API payloads.</p>
+
+    <h3>3. CompletionOptions uses Option&lt;T&gt; for all configurable fields</h3>
+    <p>Callers override only what they need. The Default impl provides sensible values (temperature=0.7, max_tokens=4096). Providers check <code>opts.model.unwrap_or(self.default_model)</code> — a clean override pattern.</p>
+
+    <h3>4. MockLlmProvider::with_content() convenience constructor</h3>
+    <p>The common test pattern is "make the LLM return this specific text." The <code>with_content("...")</code> helper eliminates 5 lines of boilerplate per test: creating TokenUsage, LlmResponse, then MockLlmProvider::new(). All 14 future pipeline tests will use this.</p>
+
+    <h3>5. Send + Sync bounds on both traits</h3>
+    <p>LLM calls happen in async contexts that may be multi-threaded (tokio work-stealing). Without <code>Send + Sync</code>, <code>Box&lt;dyn LlmProvider&gt;</code> cannot be held across <code>.await</code> points or moved between tasks. These bounds are required for practical use.</p>
+
+    <h3>Rejected Alternative: Trait-per-capability (Complete, Embed, Stream as separate traits)</h3>
+    <p>Would require callers to deal with multiple trait objects. The two-trait design (LlmProvider for chat, EmbeddingProvider for vectors) matches the actual distinction: some providers don't support embeddings (Anthropic). This is the right split.</p>
+  </section>
+
+  <!-- SLIDE 8: VERIFICATION -->
+  <section id="verification">
+    <div class="slide-header">
+      <span class="slide-num">08</span>
+      <h2>Verification</h2>
+    </div>
+
+    <div class="terminal">
+      <div class="term-header">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="title">Full verification pipeline</span>
+      </div>
+      <div class="term-body">
+        <div><span class="term-prompt">$</span> <span class="term-cmd">cargo build</span></div>
+        <div class="term-muted">   Compiling async-trait v0.1.89</div>
+        <div class="term-muted">   Compiling lazyjob-llm v0.1.0</div>
+        <div><span class="term-ok">    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.10s</span></div>
+        <div>&nbsp;</div>
+        <div><span class="term-prompt">$</span> <span class="term-cmd">cargo clippy -- -D warnings</span></div>
+        <div class="term-muted">    Checking lazyjob-llm v0.1.0</div>
+        <div><span class="term-ok">    Finished `dev` profile — 0 warnings</span></div>
+        <div>&nbsp;</div>
+        <div><span class="term-prompt">$</span> <span class="term-cmd">cargo test</span></div>
+        <div class="term-muted">     Running lazyjob-cli  ... 15 passed</div>
+        <div class="term-muted">     Running lazyjob-core ... 88 passed</div>
+        <div><span class="term-ok">     Running lazyjob-llm  ... 14 passed  ← NEW</span></div>
+        <div class="term-muted">     Running lazyjob-ralph... 0 passed</div>
+        <div class="term-muted">     Running lazyjob-tui  ... 118 passed</div>
+        <div><span class="term-ok">     Total: 235 tests, 0 failed</span></div>
+        <div>&nbsp;</div>
+        <div><span class="term-prompt">$</span> <span class="term-cmd">cargo fmt --all</span></div>
+        <div><span class="term-ok">    ✓ All files formatted</span></div>
+      </div>
+    </div>
+
+    <h3>Test Count Progress</h3>
+    <div style="margin-bottom: 8px">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 4px;">
+        <span>Total workspace tests</span>
+        <span class="text-success">235 / ~400 projected</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width: 58%"></div></div>
+    </div>
+
+    <h3>Workspace Dependency Added</h3>
+    <table>
+      <thead>
+        <tr><th>Crate</th><th>Version</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="td-mono">async-trait</td>
+          <td class="td-muted">0.1.89</td>
+          <td class="td-muted">Enables <code>#[async_trait]</code> for dyn-compatible async fn in traits. Now available to all workspace crates that need it.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>What's Next — Task 15: llm-anthropic</h3>
+    <p>Implement <code>AnthropicProvider</code> using reqwest (rustls-tls). SSE streaming, 3-attempt exponential backoff on 429/500/503, API key from CredentialManager. Learning test gated behind <code>#[cfg(feature="integration")]</code> that makes a real call to claude-haiku-4-5.</p>
+
+    <div style="margin-top: 24px; padding: 16px; background: rgba(63,185,80,0.05); border: 1px solid rgba(63,185,80,0.2); border-radius: 8px;">
+      <div style="font-size: 14px; font-weight: 700; color: var(--success); margin-bottom: 6px;">✓ Task 14 Complete</div>
+      <div style="font-size: 12.5px; color: var(--muted);">
+        LLM provider abstraction layer is fully defined. All downstream tasks (resume tailoring, cover letters, interview prep, company research) can now be built against <code>Box&lt;dyn LlmProvider&gt;</code> and tested with <code>MockLlmProvider</code> — no API keys required.
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+  // Highlight active nav item on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav ul li a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        const activeLink = document.querySelector(`nav ul li a[href="#${entry.target.id}"]`);
+        if (activeLink) activeLink.classList.add('active');
+      }
+    });
+  }, { threshold: 0.3 });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -415,3 +415,60 @@ Next iteration should know:
 - centered_rect is a pub fn in widgets::modal_dialog — use it from any widget needing centered overlays
 - The small-area panic in modal_dialog was a pre-existing bug (tests existed but weren't running) — now fixed
 - Task 14 (llm-provider-traits) is next — LlmProvider trait, EmbeddingProvider, MockLlmProvider, ChatMessage, CompletionOptions in lazyjob-llm
+
+## Task 14: llm-provider-traits — DONE
+Date: 2026-04-16
+Files created/modified:
+- Cargo.toml (added async-trait = "0.1" to workspace deps)
+- crates/lazyjob-llm/Cargo.toml (added async-trait dep)
+- crates/lazyjob-llm/src/lib.rs (full rewrite: module declarations + pub re-exports)
+- crates/lazyjob-llm/src/error.rs (new: LlmError enum + Result<T> alias)
+- crates/lazyjob-llm/src/message.rs (new: ChatMessage, CompletionOptions, LlmResponse, TokenUsage)
+- crates/lazyjob-llm/src/provider.rs (new: LlmProvider trait, EmbeddingProvider trait)
+- crates/lazyjob-llm/src/mock.rs (new: MockLlmProvider, MockEmbeddingProvider)
+Key decisions:
+- Used async_trait macro for async fn in traits — Rust 2024 stabilized async fn in traits for static dispatch but dyn Trait still needs boxed futures; async_trait is the proven solution
+- ChatMessage is an enum (System/User/Assistant) with role()/content() accessors — provides type safety vs a struct with role: String
+- CompletionOptions uses Option<T> for model/temperature/max_tokens — callers only override what they need; Default provides sensible values (temp=0.7, max_tokens=4096, stream=false)
+- TokenUsage::new(prompt, completion) auto-computes total — no manual arithmetic at call sites
+- MockLlmProvider::with_content(str) convenience constructor — common case in tests
+- Both mock providers implement Send + Sync (required by trait bounds) — all fields are Clone + Send
+Learning tests written:
+- async_trait_dyn_dispatch — creates Box<dyn LlmProvider> from MockLlmProvider, calls .complete() via dyn dispatch, verifies result. Proves async_trait macro correctly enables dynamic dispatch for async trait methods.
+- async_trait_dyn_dispatch_embedding — same proof for Box<dyn EmbeddingProvider>
+Tests passing: 235 (14 new in lazyjob-llm; 221 prior tests unchanged)
+Next iteration should know:
+- LlmProvider and EmbeddingProvider are in lazyjob_llm::provider, re-exported from lazyjob_llm root
+- MockLlmProvider::with_content("text") is the zero-boilerplate test provider
+- async_trait crate is now in workspace deps — available for all crates needing async fn in dyn traits
+- LlmError, Result<T>, ChatMessage, CompletionOptions, LlmResponse, TokenUsage all re-exported from lazyjob_llm root
+- Task 15 (llm-anthropic) is next — AnthropicProvider using reqwest with SSE streaming and exponential backoff
+
+## Task 15: llm-anthropic — DONE
+Date: 2026-04-16
+Files created/modified:
+- Cargo.toml (added reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"], default-features = false } to workspace deps)
+- crates/lazyjob-llm/Cargo.toml (added reqwest, secrecy deps; added [features] integration = [])
+- crates/lazyjob-llm/src/lib.rs (added pub mod providers + pub use providers::AnthropicProvider)
+- crates/lazyjob-llm/src/providers/mod.rs (new: re-exports AnthropicProvider)
+- crates/lazyjob-llm/src/providers/anthropic.rs (new: full AnthropicProvider implementation)
+Key decisions:
+- API key passed directly to AnthropicProvider::new(api_key) for simplicity; from_credentials() alternative reads from CredentialManager keyring
+- Default model is claude-haiku-4-5-20251001; overridden per-call via CompletionOptions::model
+- System messages extracted from messages Vec and sent as top-level Anthropic "system" field (Anthropic API requirement)
+- Backoff: BACKOFF_DELAYS_SECS [1s, 2s, 4s] via iterator — retries until delays exhausted on RateLimit/Api errors
+- SSE streaming: response bytes collected via .bytes().await then parsed line-by-line; content_block_delta events accumulate text; message_start captures model+input_tokens; message_delta captures stop_reason+output_tokens
+- Non-streaming and streaming both route through call_with_backoff; CompletionOptions::stream selects path
+- Integration test gated behind cargo feature "integration"; reads ANTHROPIC_API_KEY env var
+- Removed MAX_RETRIES const (unused after refactor to iterator-based backoff)
+Learning tests written:
+- reqwest_client_builds_with_rustls — proves reqwest::Client::builder().use_rustls_tls().build() compiles and succeeds with rustls-tls feature enabled
+- reqwest_json_serializes_request_body — proves AnthropicRequest serializes to correct JSON shape before sending to API
+Tests passing: 249 (14 new in lazyjob-llm: 2 learning + 12 unit; 235 prior tests unchanged)
+Next iteration should know:
+- AnthropicProvider is in lazyjob_llm::providers::anthropic, re-exported as lazyjob_llm::AnthropicProvider
+- reqwest 0.12 with rustls-tls is now in workspace deps — available for any future crate needing HTTP
+- secrecy is now in lazyjob-llm deps (for from_credentials ExposeSecret usage)
+- Integration test: cargo test -p lazyjob-llm --features integration (requires ANTHROPIC_API_KEY env var)
+- SSE parsing is in the module-private parse_sse_response(&[u8]) function — testable independently of network
+- Task 16 (llm-openai) is next — OpenAiProvider using async-openai, OllamaProvider using ollama-rs
