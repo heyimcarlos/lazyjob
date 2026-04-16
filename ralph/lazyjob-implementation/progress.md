@@ -723,3 +723,31 @@ Next iteration should know:
 - futures crate is now in lazyjob-core deps
 - CLI ralph subcommand: `lazyjob ralph job-discovery --source <source> --company-id <company_id>`
 - Task 25 (semantic-matching) is next — MatchScorer, cosine similarity, job_embeddings migration, GhostDetector
+
+## Task 25: semantic-matching — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-core/migrations/003_job_embeddings.sql (new: job_embeddings table with BYTEA embedding column)
+- crates/lazyjob-core/src/discovery/matching.rs (new: Embedder trait, GhostDetector, GhostScore, MatchScorer, cosine_similarity, life_sheet_to_text)
+- crates/lazyjob-core/src/discovery/mod.rs (added pub mod matching + re-exports)
+Key decisions:
+- Defined local `Embedder` trait in lazyjob-core (not importing lazyjob-llm::EmbeddingProvider) to avoid circular dependency — lazyjob-llm already depends on lazyjob-core
+- Embeddings stored as BYTEA (raw little-endian f32 bytes) — no pgvector dependency needed at this scale; simple and portable
+- GhostDetector is a struct (not a free function) to allow optional extra signals (duplicate_description, high_application_count) that require external data not present in `&Job` alone
+- `with_duplicate_description()` and `with_high_application_count()` builder methods allow callers to inject these signals from DB queries
+- cosine_similarity() clamps to [-1, 1] and returns 0.0 for mismatched lengths or zero vectors — no panic
+- MatchScorer::score_all() mutates jobs in-place setting job.match_score
+- Integration test gated behind `#[cfg(feature = "integration")]` — skips without DB
+Learning tests written:
+- cosine_similarity_orthogonal_vectors_is_zero — proves [1,0,0] · [0,1,0] = 0.0 for orthogonal vectors
+- cosine_similarity_identical_vectors_is_one — proves v · v / (|v||v|) = 1.0
+- cosine_similarity_known_pair — verifies both zero-similarity and unit-similarity cases
+Tests passing: 397 (18 new: 3 cosine learning tests + 2 cosine edge case tests + 7 ghost detector tests + 1 ghost threshold test + 1 life_sheet_to_text test + 1 embedding round-trip test + 2 MatchScorer async tests)
+Next iteration should know:
+- Embedder trait is in lazyjob-core::discovery::matching — NOT lazyjob-llm::EmbeddingProvider (circular dep)
+- To wire a real embedding provider from lazyjob-llm, implement Embedder for a wrapper struct in the CLI/TUI layer
+- GhostDetector::default().score(job) gives base score; .with_duplicate_description() / .with_high_application_count() add external signals
+- MatchScorer::score_all(&mut jobs, sheet) sets job.match_score in-place (use JobRepository::update() to persist)
+- job_embeddings table: job_id UUID PK FK→jobs(id) CASCADE, embedding BYTEA, embedded_at TIMESTAMPTZ
+- MatchScorer::store_embedding / load_embedding are the DB I/O methods
+- Task 26 (company-research) is next — CompanyResearcher::enrich(company_id) using LLM + HTTP

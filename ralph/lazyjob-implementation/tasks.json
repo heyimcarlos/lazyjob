@@ -199,7 +199,7 @@
       "description": "In lazyjob-core/src/discovery/matching.rs, implement MatchScorer. It embeds the user's skills/title from LifeSheet using EmbeddingProvider. For each Job, embeds the description. Computes cosine similarity -> match_score (0.0-1.0). Stores embeddings in a job_embeddings PostgreSQL table (migration 003, use BYTEA or REAL[] for vectors, or pgvector if available). Implement GhostDetector::score(job: &Job) -> GhostScore with 7-signal heuristic: posting age > 60d (+3), generic title (+2), no company name (+2), salary missing (+1), duplicate description (+1), high application count (+1), URL pattern match (+1). Score >= 5 = likely ghost. Write tests with fixture jobs.",
       "phase": "build",
       "spec": "specs/05-job-discovery-layer-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 26,

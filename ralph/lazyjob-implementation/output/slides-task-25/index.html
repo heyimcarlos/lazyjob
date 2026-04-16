@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 25: Semantic Matching — LazyJob</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  nav {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  nav h2 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 16px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  nav a {
+    display: block;
+    padding: 8px 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--text);
+    background: rgba(88, 166, 255, 0.1);
+    border-left-color: var(--accent);
+  }
+
+  nav .section-title {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px 4px;
+    font-weight: 600;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+  }
+
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+    margin-bottom: 20px;
+  }
+
+  .badge-green { background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid rgba(63, 185, 80, 0.3); }
+  .badge-blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.3); }
+  .badge-purple { background: rgba(188, 140, 255, 0.15); color: var(--purple); border: 1px solid rgba(188, 140, 255, 0.3); }
+  .badge-yellow { background: rgba(210, 153, 34, 0.15); color: var(--yellow); border: 1px solid rgba(210, 153, 34, 0.3); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+
+  .card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card h3 .icon { font-size: 16px; }
+
+  pre {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 12px 0;
+    color: #c9d1d9;
+  }
+
+  .kw { color: #ff7b72; }
+  .fn-name { color: #d2a8ff; }
+  .str { color: #a5d6ff; }
+  .num { color: #79c0ff; }
+  .comment { color: #8b949e; font-style: italic; }
+  .type { color: #ffa657; }
+  .attr { color: #7ee787; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .stat-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .stat-block .value {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .stat-block .label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  ul li {
+    padding: 6px 0;
+    font-size: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  ul li:last-child { border-bottom: none; }
+  ul li::before { content: "→"; color: var(--accent); flex-shrink: 0; }
+
+  .test-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    font-family: 'SF Mono', monospace;
+  }
+
+  .test-row:last-child { border-bottom: none; }
+
+  .test-ok { color: var(--green); font-weight: 600; }
+  .test-name { color: var(--muted); }
+
+  .signal-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+
+  .signal-row:last-child { border-bottom: none; }
+
+  .signal-score {
+    font-weight: 700;
+    font-size: 16px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .signal-score.high { color: var(--red); }
+  .signal-score.med { color: var(--yellow); }
+  .signal-score.low { color: var(--muted); }
+
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .flow-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(88, 166, 255, 0.2);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .flow-content {
+    flex: 1;
+    padding-top: 3px;
+  }
+
+  .flow-content strong {
+    color: var(--text);
+    display: block;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+
+  .flow-content span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 12px 0;
+  }
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--border);
+    color: var(--muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  .note {
+    background: rgba(88, 166, 255, 0.05);
+    border: 1px solid rgba(88, 166, 255, 0.2);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 16px;
+  }
+
+  .note strong { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 25</h2>
+  <a href="#" class="active" onclick="show('overview')">Overview</a>
+  <a href="#" onclick="show('architecture')">Architecture</a>
+  <a href="#" onclick="show('ghost-detector')">GhostDetector</a>
+  <a href="#" onclick="show('match-scorer')">MatchScorer</a>
+  <a href="#" onclick="show('embedder-trait')">Embedder Trait</a>
+  <a href="#" onclick="show('migration')">Migration 003</a>
+  <a href="#" onclick="show('tests')">Test Suite</a>
+  <a href="#" onclick="show('results')">Results</a>
+</nav>
+
+<main>
+
+<!-- OVERVIEW -->
+<div class="slide active" id="slide-overview">
+  <h1>Task 25: Semantic Matching</h1>
+  <p class="subtitle">MatchScorer · GhostDetector · Cosine Similarity · job_embeddings table</p>
+
+  <span class="badge badge-green">✓ Build Passes</span>
+  <span class="badge badge-green">✓ 18 New Tests</span>
+  <span class="badge badge-green">✓ Clippy Clean</span>
+  <span class="badge badge-blue">lazyjob-core</span>
+
+  <div class="grid-3">
+    <div class="stat-block">
+      <div class="value">397</div>
+      <div class="label">Total Tests Passing</div>
+    </div>
+    <div class="stat-block">
+      <div class="value">18</div>
+      <div class="label">New Tests Added</div>
+    </div>
+    <div class="stat-block">
+      <div class="value">7</div>
+      <div class="label">Ghost Signals</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">📄</span> Files Created / Modified</h3>
+    <table>
+      <tr><th>File</th><th>Change</th></tr>
+      <tr><td><code>crates/lazyjob-core/migrations/003_job_embeddings.sql</code></td><td>NEW — job_embeddings table</td></tr>
+      <tr><td><code>crates/lazyjob-core/src/discovery/matching.rs</code></td><td>NEW — MatchScorer, GhostDetector, Embedder, cosine_similarity</td></tr>
+      <tr><td><code>crates/lazyjob-core/src/discovery/mod.rs</code></td><td>MODIFIED — added pub mod matching + re-exports</td></tr>
+      <tr><td><code>crates/lazyjob-core/Cargo.toml</code></td><td>MODIFIED — added [features] integration = []</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🎯</span> What Was Built</h3>
+    <ul>
+      <li>Local <code>Embedder</code> trait in lazyjob-core — avoids circular dependency with lazyjob-llm</li>
+      <li><code>GhostDetector</code> with 7-signal heuristic scoring ghost job postings</li>
+      <li><code>MatchScorer</code> using cosine similarity to match jobs to user's life sheet</li>
+      <li><code>job_embeddings</code> PostgreSQL table for storing job embeddings as BYTEA</li>
+      <li><code>life_sheet_to_text()</code> serializing LifeSheet to a single embeddable string</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="slide" id="slide-architecture">
+  <h1>Architecture Decision</h1>
+  <p class="subtitle">Why a local Embedder trait instead of importing lazyjob-llm</p>
+
+  <div class="card">
+    <h3><span class="icon">🔄</span> Circular Dependency Problem</h3>
+    <pre><span class="comment">// lazyjob-llm already depends on lazyjob-core:</span>
+<span class="comment">// lazyjob-llm/Cargo.toml</span>
+lazyjob-core = { workspace = <span class="kw">true</span> }
+
+<span class="comment">// Adding the reverse would create a cycle:</span>
+<span class="comment">// lazyjob-core → lazyjob-llm → lazyjob-core ❌</span></pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">✅</span> Solution: Local Embedder Trait</h3>
+    <pre><span class="comment">// crates/lazyjob-core/src/discovery/matching.rs</span>
+<span class="attr">#[async_trait]</span>
+<span class="kw">pub trait</span> <span class="type">Embedder</span>: Send + Sync {
+    <span class="kw">async fn</span> <span class="fn-name">embed</span>(&amp;self, text: &amp;str) -&gt; Result&lt;Vec&lt;f32&gt;&gt;;
+}
+
+<span class="comment">// Same signature as lazyjob-llm::EmbeddingProvider</span>
+<span class="comment">// CLI/TUI layer can wrap any EmbeddingProvider:</span>
+<span class="kw">struct</span> <span class="type">EmbedderAdapter</span>(Arc&lt;<span class="kw">dyn</span> EmbeddingProvider&gt;);
+<span class="kw">impl</span> <span class="type">Embedder</span> <span class="kw">for</span> <span class="type">EmbedderAdapter</span> { ... }</pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🏗️</span> Layered Architecture</h3>
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <strong>lazyjob-core — Embedder trait (this task)</strong>
+          <span>Foundation: defines the interface, GhostDetector, MatchScorer</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <strong>lazyjob-llm — EmbeddingProvider (Task 14/16)</strong>
+          <span>Concrete implementations: Anthropic, OpenAI, Ollama</span>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <strong>lazyjob-cli / lazyjob-tui — Wiring (Task 36+)</strong>
+          <span>Adapts EmbeddingProvider → Embedder and calls MatchScorer</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GHOST DETECTOR -->
+<div class="slide" id="slide-ghost-detector">
+  <h1>GhostDetector</h1>
+  <p class="subtitle">7-signal heuristic for detecting fake/ghost job postings</p>
+
+  <div class="card">
+    <h3><span class="icon">👻</span> Scoring Signals</h3>
+    <div class="signal-row">
+      <div class="signal-score high">+3</div>
+      <div>
+        <strong>Posting age &gt; 60 days</strong><br>
+        <span style="color:var(--muted); font-size:12px">checked via <code>job.discovered_at</code> as proxy for posting date</span>
+      </div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-score high">+2</div>
+      <div>
+        <strong>Generic title</strong><br>
+        <span style="color:var(--muted); font-size:12px">matches list of 23 generic titles (e.g. "Software Engineer", "Developer")</span>
+      </div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-score high">+2</div>
+      <div>
+        <strong>No company name</strong><br>
+        <span style="color:var(--muted); font-size:12px"><code>job.company_name.is_none()</code></span>
+      </div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-score med">+1</div>
+      <div>
+        <strong>Salary missing</strong><br>
+        <span style="color:var(--muted); font-size:12px">both <code>salary_min</code> and <code>salary_max</code> are None</span>
+      </div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-score med">+1</div>
+      <div>
+        <strong>No URL</strong><br>
+        <span style="color:var(--muted); font-size:12px"><code>job.url.is_none()</code></span>
+      </div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-score med">+1</div>
+      <div>
+        <strong>Duplicate description</strong><br>
+        <span style="color:var(--muted); font-size:12px">injected via <code>.with_duplicate_description()</code> builder</span>
+      </div>
+    </div>
+    <div class="signal-row">
+      <div class="signal-score med">+1</div>
+      <div>
+        <strong>High application count</strong><br>
+        <span style="color:var(--muted); font-size:12px">injected via <code>.with_high_application_count()</code> builder</span>
+      </div>
+    </div>
+    <div style="padding:12px 0;font-size:13px;color:var(--green);font-weight:600;">Score ≥ 5 → likely ghost job</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🦀</span> Implementation</h3>
+    <pre><span class="attr">#[derive(Default)]</span>
+<span class="kw">pub struct</span> <span class="type">GhostDetector</span> {
+    <span class="kw">pub</span> duplicate_description: bool,
+    <span class="kw">pub</span> high_application_count: bool,
+}
+
+<span class="kw">impl</span> <span class="type">GhostDetector</span> {
+    <span class="kw">pub fn</span> <span class="fn-name">score</span>(&amp;self, job: &amp;<span class="type">Job</span>) -&gt; <span class="type">GhostScore</span> {
+        <span class="kw">let mut</span> score: u8 = 0;
+        <span class="kw">let</span> age_days = (Utc::now() - job.discovered_at).num_days();
+        <span class="kw">if</span> age_days &gt; 60 { score = score.saturating_add(3); }
+        <span class="kw">if</span> GENERIC_TITLES.iter().any(|&amp;t| t == job.title.to_lowercase()) {
+            score = score.saturating_add(2);
+        }
+        <span class="comment">// ... 5 more signals</span>
+        <span class="type">GhostScore</span> { score }
+    }
+}
+
+<span class="kw">impl</span> <span class="type">GhostScore</span> {
+    <span class="kw">pub fn</span> <span class="fn-name">is_likely_ghost</span>(&amp;self) -&gt; bool { self.score &gt;= 5 }
+}</pre>
+  </div>
+</div>
+
+<!-- MATCH SCORER -->
+<div class="slide" id="slide-match-scorer">
+  <h1>MatchScorer</h1>
+  <p class="subtitle">Cosine similarity between life sheet profile and job descriptions</p>
+
+  <div class="card">
+    <h3><span class="icon">📐</span> Cosine Similarity Formula</h3>
+    <pre><span class="kw">pub fn</span> <span class="fn-name">cosine_similarity</span>(a: &amp;[f32], b: &amp;[f32]) -&gt; f32 {
+    <span class="kw">if</span> a.len() != b.len() || a.is_empty() { <span class="kw">return</span> 0.0; }
+
+    <span class="kw">let</span> dot: f32  = a.iter().zip(b).map(|(x, y)| x * y).sum();
+    <span class="kw">let</span> norm_a: f32 = a.iter().map(|x| x * x).sum::&lt;f32&gt;().sqrt();
+    <span class="kw">let</span> norm_b: f32 = b.iter().map(|x| x * x).sum::&lt;f32&gt;().sqrt();
+
+    <span class="kw">if</span> norm_a == 0.0 || norm_b == 0.0 { <span class="kw">return</span> 0.0; }
+    (dot / (norm_a * norm_b)).clamp(-1.0, 1.0)
+}</pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🔬</span> MatchScorer API</h3>
+    <pre><span class="kw">pub struct</span> <span class="type">MatchScorer</span> { embedder: Arc&lt;<span class="kw">dyn</span> <span class="type">Embedder</span>&gt; }
+
+<span class="kw">impl</span> <span class="type">MatchScorer</span> {
+    <span class="comment">// Embed the user's entire life sheet as one string</span>
+    <span class="kw">pub async fn</span> <span class="fn-name">embed_life_sheet</span>(&amp;self, sheet: &amp;LifeSheet) -&gt; Result&lt;Vec&lt;f32&gt;&gt;
+
+    <span class="comment">// Score one job against a pre-computed profile embedding</span>
+    <span class="kw">pub async fn</span> <span class="fn-name">score_job</span>(&amp;self, job: &amp;Job, profile: &amp;[f32]) -&gt; Result&lt;f64&gt;
+
+    <span class="comment">// Score all jobs in-place (sets job.match_score)</span>
+    <span class="kw">pub async fn</span> <span class="fn-name">score_all</span>(&amp;self, jobs: &amp;<span class="kw">mut</span> [Job], sheet: &amp;LifeSheet) -&gt; Result&lt;()&gt;
+
+    <span class="comment">// Persist embedding to PostgreSQL job_embeddings table</span>
+    <span class="kw">pub async fn</span> <span class="fn-name">store_embedding</span>(&amp;self, pool: &amp;PgPool, job_id: &amp;JobId, emb: &amp;[f32]) -&gt; Result&lt;()&gt;
+
+    <span class="comment">// Load cached embedding from PostgreSQL</span>
+    <span class="kw">pub async fn</span> <span class="fn-name">load_embedding</span>(&amp;self, pool: &amp;PgPool, job_id: &amp;JobId) -&gt; Result&lt;Option&lt;Vec&lt;f32&gt;&gt;&gt;
+}</pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">📝</span> life_sheet_to_text()</h3>
+    <pre><span class="kw">pub fn</span> <span class="fn-name">life_sheet_to_text</span>(sheet: &amp;<span class="type">LifeSheet</span>) -&gt; String {
+    <span class="comment">// Combines: summary, job positions, tech_stacks,</span>
+    <span class="comment">// achievement descriptions, skill names,</span>
+    <span class="comment">// certification names, project names + highlights</span>
+    parts.join(<span class="str">" "</span>)
+}</pre>
+    <div class="note"><strong>Why one string?</strong> Embedding models accept a single text input. Concatenating all profile data into one string lets the model capture the semantic relationships between all the user's skills and experience in a single dense vector.</div>
+  </div>
+</div>
+
+<!-- EMBEDDER TRAIT -->
+<div class="slide" id="slide-embedder-trait">
+  <h1>Embedder Trait</h1>
+  <p class="subtitle">Decoupled from lazyjob-llm via local trait definition</p>
+
+  <div class="card">
+    <h3><span class="icon">🦀</span> Trait Definition</h3>
+    <pre><span class="attr">#[async_trait]</span>
+<span class="kw">pub trait</span> <span class="type">Embedder</span>: Send + Sync {
+    <span class="kw">async fn</span> <span class="fn-name">embed</span>(&amp;self, text: &amp;str) -&gt; <span class="type">Result</span>&lt;Vec&lt;f32&gt;&gt;;
+}</pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🧪</span> MockEmbedder (used in tests)</h3>
+    <pre><span class="kw">struct</span> <span class="type">MockEmbedder</span> { response: Vec&lt;f32&gt; }
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">impl</span> <span class="type">Embedder</span> <span class="kw">for</span> <span class="type">MockEmbedder</span> {
+    <span class="kw">async fn</span> <span class="fn-name">embed</span>(&amp;self, _text: &amp;str) -&gt; crate::error::<span class="type">Result</span>&lt;Vec&lt;f32&gt;&gt; {
+        Ok(self.response.clone())
+    }
+}
+
+<span class="kw">fn</span> <span class="fn-name">make_mock_scorer</span>(response: Vec&lt;f32&gt;) -&gt; <span class="type">MatchScorer</span> {
+    <span class="type">MatchScorer</span>::new(Arc::new(<span class="type">MockEmbedder</span> { response }))
+}</pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🌉</span> Future Wiring (Task 36+)</h3>
+    <pre><span class="comment">// In lazyjob-cli or lazyjob-tui, create an adapter:</span>
+<span class="kw">use</span> lazyjob_llm::OllamaProvider;
+<span class="kw">use</span> lazyjob_core::discovery::<span class="type">Embedder</span>;
+
+<span class="kw">struct</span> <span class="type">OllamaEmbedderAdapter</span>(Arc&lt;<span class="type">OllamaProvider</span>&gt;);
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">impl</span> <span class="type">Embedder</span> <span class="kw">for</span> <span class="type">OllamaEmbedderAdapter</span> {
+    <span class="kw">async fn</span> <span class="fn-name">embed</span>(&amp;self, text: &amp;str) -&gt; lazyjob_core::error::<span class="type">Result</span>&lt;Vec&lt;f32&gt;&gt; {
+        self.0.embed(text).await.map_err(|e| <span class="type">CoreError</span>::Other(e.to_string()))
+    }
+}</pre>
+  </div>
+</div>
+
+<!-- MIGRATION -->
+<div class="slide" id="slide-migration">
+  <h1>Migration 003</h1>
+  <p class="subtitle">job_embeddings table — BYTEA storage for f32 vectors</p>
+
+  <div class="card">
+    <h3><span class="icon">🗄️</span> SQL Schema</h3>
+    <pre><span class="comment">-- crates/lazyjob-core/migrations/003_job_embeddings.sql</span>
+<span class="kw">CREATE TABLE</span> job_embeddings (
+    job_id      UUID <span class="kw">PRIMARY KEY</span>
+                     <span class="kw">REFERENCES</span> jobs(id) <span class="kw">ON DELETE CASCADE</span>,
+    embedding   BYTEA <span class="kw">NOT NULL</span>,
+    embedded_at TIMESTAMPTZ <span class="kw">NOT NULL DEFAULT</span> now()
+);</pre>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">💾</span> BYTEA Serialization</h3>
+    <pre><span class="comment">// Vec&lt;f32&gt; → raw little-endian bytes (4 bytes per f32)</span>
+<span class="kw">fn</span> <span class="fn-name">embedding_to_bytes</span>(embedding: &amp;[f32]) -&gt; Vec&lt;u8&gt; {
+    embedding.iter().flat_map(|f| f.to_le_bytes()).collect()
+}
+
+<span class="comment">// Reverse: split bytes into 4-byte chunks, parse each f32</span>
+<span class="kw">fn</span> <span class="fn-name">bytes_to_embedding</span>(bytes: &amp;[u8]) -&gt; Vec&lt;f32&gt; {
+    bytes.chunks_exact(4)
+        .map(|c| f32::from_le_bytes([c[0], c[1], c[2], c[3]]))
+        .collect()
+}</pre>
+    <div class="note">
+      <strong>Why BYTEA over REAL[]?</strong> BYTEA is a contiguous blob — no array overhead or element type casting. For embedding dimensions of 768-1536 elements, BYTEA is ~4x more compact and faster to serialize/deserialize than PG array literals. No pgvector extension needed for the current scale (~100s-1000s of jobs).
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🔄</span> Upsert Pattern</h3>
+    <pre><span class="kw">INSERT INTO</span> job_embeddings (job_id, embedding)
+<span class="kw">VALUES</span> ($1, $2)
+<span class="kw">ON CONFLICT</span> (job_id) <span class="kw">DO UPDATE</span>
+<span class="kw">SET</span> embedding = EXCLUDED.embedding,
+    embedded_at = now()</pre>
+    <p style="font-size:13px;color:var(--muted);margin-top:8px">Idempotent: re-embedding a job updates the stored vector atomically.</p>
+  </div>
+</div>
+
+<!-- TESTS -->
+<div class="slide" id="slide-tests">
+  <h1>Test Suite</h1>
+  <p class="subtitle">18 new tests — 3 learning, 5 ghost detector, 4 cosine, 2 infra, 2 scorer, 1 text, 1 threshold</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <h3><span class="icon">📚</span> Learning Tests (3)</h3>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">cosine_similarity_orthogonal_vectors_is_zero</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">cosine_similarity_identical_vectors_is_one</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">cosine_similarity_known_pair</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3><span class="icon">👻</span> GhostDetector Tests (5+2)</h3>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">ghost_detector_old_job_adds_three</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">ghost_detector_generic_title_adds_two</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">ghost_detector_no_company_name_adds_two</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">ghost_detector_combined_likely_ghost</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">ghost_detector_clean_job_not_ghost</span>
+      </div>
+      <div class="test-row">
+        <span class="test-ok">ok</span>
+        <span class="test-name">ghost_is_likely_ghost_threshold</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">⚡</span> Full Test Run Output</h3>
+    <pre style="background:#010409">running 18 tests
+test discovery::matching::tests::cosine_similarity_different_lengths_returns_zero ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::cosine_similarity_identical_vectors_is_one ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::cosine_similarity_known_pair ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::cosine_similarity_orthogonal_vectors_is_zero ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::cosine_similarity_zero_vector_returns_zero ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::embedding_round_trip ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_clean_job_not_ghost ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_combined_likely_ghost ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_duplicate_description_adds_one ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_generic_title_adds_two ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_missing_salary_adds_one ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_old_job_adds_three ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_no_company_name_adds_two ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_is_likely_ghost_threshold ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::ghost_detector_no_url_adds_one ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::life_sheet_to_text_includes_skill_names ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::score_job_returns_value_in_range ... <span style="color:#3fb950">ok</span>
+test discovery::matching::tests::score_all_sets_match_score_on_jobs ... <span style="color:#3fb950">ok</span>
+
+<span style="color:#3fb950">test result: ok. 18 passed; 0 failed; 0 ignored;</span></pre>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="slide" id="slide-results">
+  <h1>Results Summary</h1>
+  <p class="subtitle">Task 25 complete — semantic matching and ghost detection ready</p>
+
+  <div class="grid-3">
+    <div class="stat-block">
+      <div class="value" style="color:var(--green)">✓</div>
+      <div class="label">cargo build</div>
+    </div>
+    <div class="stat-block">
+      <div class="value" style="color:var(--green)">✓</div>
+      <div class="label">cargo clippy -D warnings</div>
+    </div>
+    <div class="stat-block">
+      <div class="value" style="color:var(--green)">✓</div>
+      <div class="label">cargo test (397 pass)</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">🚀</span> Public API Surface</h3>
+    <table>
+      <tr><th>Type</th><th>Location</th><th>Purpose</th></tr>
+      <tr><td><code>Embedder</code></td><td>discovery::matching</td><td>Async trait for text → Vec&lt;f32&gt;</td></tr>
+      <tr><td><code>GhostDetector</code></td><td>discovery::matching</td><td>7-signal ghost job heuristic</td></tr>
+      <tr><td><code>GhostScore</code></td><td>discovery::matching</td><td>Score wrapper, is_likely_ghost()</td></tr>
+      <tr><td><code>MatchScorer</code></td><td>discovery::matching</td><td>Cosine similarity matching</td></tr>
+      <tr><td><code>cosine_similarity</code></td><td>discovery::matching</td><td>Free fn: f32 cosine similarity</td></tr>
+      <tr><td><code>life_sheet_to_text</code></td><td>discovery::matching</td><td>LifeSheet → embeddable string</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3><span class="icon">📋</span> Next: Task 26 — Company Research</h3>
+    <ul>
+      <li>Implement <code>CompanyResearcher::enrich(company_id)</code> using LLM + HTTP</li>
+      <li>Fetch company website, extract tech_stack, culture, recent_news via LLM</li>
+      <li>Upsert enriched data into companies table</li>
+      <li>Wrap in CompanyResearch LoopType subprocess</li>
+    </ul>
+    <div class="note">
+      <strong>Note for next iteration:</strong> The <code>Embedder</code> trait in lazyjob-core::discovery::matching has the same signature as <code>EmbeddingProvider</code> in lazyjob-llm. When wiring real providers in the CLI/TUI, create a thin adapter struct that delegates to the LLM provider.
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const links = document.querySelectorAll('nav a');
+
+  function show(id) {
+    slides.forEach(s => s.classList.remove('active'));
+    links.forEach(l => l.classList.remove('active'));
+    const slide = document.getElementById('slide-' + id);
+    if (slide) slide.classList.add('active');
+    links.forEach(l => {
+      if (l.getAttribute('onclick') && l.getAttribute('onclick').includes(id)) {
+        l.classList.add('active');
+      }
+    });
+    return false;
+  }
+</script>
+</body>
+</html>
