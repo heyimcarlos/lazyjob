@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task 18: Ralph Protocol — LazyJob</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    nav {
+      width: 220px;
+      min-width: 220px;
+      background: #161b22;
+      border-right: 1px solid #30363d;
+      display: flex;
+      flex-direction: column;
+      padding: 20px 0;
+      overflow-y: auto;
+    }
+    nav h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #8b949e;
+      padding: 0 16px 12px;
+      border-bottom: 1px solid #30363d;
+      margin-bottom: 8px;
+    }
+    nav a {
+      display: block;
+      padding: 8px 16px;
+      color: #8b949e;
+      text-decoration: none;
+      font-size: 13px;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    nav a:hover { color: #c9d1d9; background: #1c2128; }
+    nav a.active { color: #58a6ff; border-left-color: #58a6ff; background: #1c2128; }
+    nav .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: #484f58;
+      padding: 12px 16px 4px;
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Main content ── */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 40px 48px;
+    }
+
+    .slide { display: none; }
+    .slide.active { display: block; }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #f0f6fc;
+      margin-bottom: 8px;
+    }
+    h2 { font-size: 20px; font-weight: 600; color: #f0f6fc; margin: 32px 0 12px; }
+    h3 { font-size: 15px; font-weight: 600; color: #e6edf3; margin: 20px 0 8px; }
+
+    .subtitle {
+      color: #58a6ff;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 24px;
+    }
+    .task-badge {
+      display: inline-block;
+      background: #1f6feb33;
+      border: 1px solid #1f6feb66;
+      color: #58a6ff;
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+    }
+
+    p { color: #8b949e; line-height: 1.6; margin-bottom: 12px; }
+    ul { padding-left: 20px; margin-bottom: 12px; }
+    li { color: #8b949e; line-height: 1.8; font-size: 14px; }
+    li strong { color: #c9d1d9; }
+
+    pre {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 12px 0 20px;
+      font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    }
+    code { font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+    .inline-code {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 13px;
+      color: #e6edf3;
+    }
+
+    .kw { color: #ff7b72; }
+    .ty { color: #ffa657; }
+    .st { color: #a5d6ff; }
+    .cm { color: #8b949e; font-style: italic; }
+    .at { color: #d2a8ff; }
+    .fn { color: #d2a8ff; }
+    .nb { color: #79c0ff; }
+    .op { color: #ff7b72; }
+
+    /* cards */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin: 16px 0;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card .label { font-size: 11px; text-transform: uppercase; color: #8b949e; letter-spacing: 0.06em; }
+    .card .value { font-size: 22px; font-weight: 700; color: #58a6ff; margin: 4px 0; }
+    .card .desc { font-size: 12px; color: #484f58; }
+
+    /* pill tags */
+    .pill {
+      display: inline-block;
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      margin: 2px;
+    }
+    .pill-green { background: #1a4731; color: #3fb950; border: 1px solid #3fb95033; }
+    .pill-blue  { background: #1f3c6e; color: #58a6ff; border: 1px solid #58a6ff33; }
+    .pill-purple{ background: #2d1f69; color: #d2a8ff; border: 1px solid #d2a8ff33; }
+    .pill-orange{ background: #4a2d00; color: #ffa657; border: 1px solid #ffa65733; }
+
+    /* test output */
+    .test-output {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 16px 20px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      overflow-x: auto;
+    }
+    .test-ok   { color: #3fb950; }
+    .test-name { color: #c9d1d9; }
+    .test-head { color: #8b949e; }
+    .test-pass { color: #3fb950; font-weight: 700; }
+    .test-sect { color: #58a6ff; }
+
+    .divider { border: none; border-top: 1px solid #30363d; margin: 28px 0; }
+
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+    .flow-box {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-family: monospace;
+      color: #e6edf3;
+    }
+    .flow-arrow { color: #58a6ff; font-size: 18px; }
+
+    .decision-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 12px 0;
+    }
+    .decision-table th {
+      background: #161b22;
+      border: 1px solid #30363d;
+      padding: 8px 14px;
+      text-align: left;
+      color: #8b949e;
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .decision-table td {
+      border: 1px solid #30363d;
+      padding: 8px 14px;
+      color: #c9d1d9;
+    }
+    .decision-table tr:hover td { background: #161b22; }
+
+    footer {
+      margin-top: 48px;
+      font-size: 12px;
+      color: #484f58;
+      border-top: 1px solid #30363d;
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar navigation ── -->
+<nav>
+  <h2>Task 18</h2>
+  <a href="#" class="active" onclick="showSlide('overview', this)">Overview</a>
+  <a href="#" onclick="showSlide('types', this)">Protocol Types</a>
+  <a href="#" onclick="showSlide('codec', this)">NdjsonCodec</a>
+  <a href="#" onclick="showSlide('decisions', this)">Design Decisions</a>
+  <a href="#" onclick="showSlide('tests', this)">Test Results</a>
+  <a href="#" onclick="showSlide('summary', this)">Summary</a>
+</nav>
+
+<!-- ── Slides ── -->
+<main>
+
+  <!-- OVERVIEW -->
+  <section class="slide active" id="overview">
+    <div class="task-badge">Task 18 / 40</div>
+    <h1>Ralph Protocol</h1>
+    <p class="subtitle">NDJSON IPC protocol for TUI ↔ Ralph subprocess communication</p>
+
+    <p>LazyJob's TUI spawns Ralph as a child process for long-running AI tasks (resume tailoring, job discovery, etc.). This task implements the wire protocol — the serialization layer over stdin/stdout that lets both sides speak a common language.</p>
+
+    <h2>What was built</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="label">New Files</div>
+        <div class="value">3</div>
+        <div class="desc">error.rs, protocol.rs, lib.rs</div>
+      </div>
+      <div class="card">
+        <div class="label">New Tests</div>
+        <div class="value">17</div>
+        <div class="desc">All passing</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Tests</div>
+        <div class="value">300</div>
+        <div class="desc">Workspace-wide</div>
+      </div>
+      <div class="card">
+        <div class="label">New Deps</div>
+        <div class="value">0</div>
+        <div class="desc">All crates already present</div>
+      </div>
+    </div>
+
+    <h2>Architecture Context</h2>
+    <p>The protocol sits at the boundary between the TUI orchestrator and the Ralph subprocess:</p>
+
+    <div class="flow">
+      <div class="flow-box">TUI<br><small style="color:#484f58">lazyjob-tui</small></div>
+      <div class="flow-arrow">→ stdin</div>
+      <div class="flow-box">WorkerCommand<br><small style="color:#58a6ff">NDJSON line</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">Ralph subprocess<br><small style="color:#484f58">lazyjob-ralph</small></div>
+      <div class="flow-arrow">→ stdout</div>
+      <div class="flow-box">WorkerEvent<br><small style="color:#58a6ff">NDJSON line</small></div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box">TUI broadcast<br><small style="color:#484f58">tokio::broadcast</small></div>
+    </div>
+
+    <h2>Tags</h2>
+    <span class="pill pill-blue">lazyjob-ralph</span>
+    <span class="pill pill-purple">serde</span>
+    <span class="pill pill-purple">NDJSON</span>
+    <span class="pill pill-green">17 tests passing</span>
+    <span class="pill pill-orange">no new deps</span>
+
+    <footer>LazyJob — ralph-protocol — 2026-04-16</footer>
+  </section>
+
+  <!-- TYPES -->
+  <section class="slide" id="types">
+    <div class="task-badge">Task 18 — Protocol Types</div>
+    <h1>WorkerCommand & WorkerEvent</h1>
+    <p class="subtitle">Tagged union enums with serde snake_case serialization</p>
+
+    <h2>WorkerCommand (TUI → subprocess)</h2>
+    <pre><span class="at">#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]</span>
+<span class="at">#[serde(tag = <span class="st">"type"</span>, rename_all = <span class="st">"snake_case"</span>)]</span>
+<span class="kw">pub enum</span> <span class="ty">WorkerCommand</span> {
+    <span class="ty">Start</span> {
+        loop_type: <span class="ty">String</span>,       <span class="cm">// "job_discovery", "resume_tailor", etc.</span>
+        params: serde_json::<span class="ty">Value</span>, <span class="cm">// Arbitrary per-loop config</span>
+    },
+    <span class="ty">Cancel</span>,
+}</pre>
+
+    <p>Wire format examples:</p>
+    <pre><span class="cm">// Start</span>
+{<span class="st">"type"</span>:<span class="st">"start"</span>, <span class="st">"loop_type"</span>:<span class="st">"resume_tailor"</span>, <span class="st">"params"</span>:{<span class="st">"job_id"</span>:<span class="st">"abc-123"</span>}}
+
+<span class="cm">// Cancel</span>
+{<span class="st">"type"</span>:<span class="st">"cancel"</span>}</pre>
+
+    <h2>WorkerEvent (subprocess → TUI)</h2>
+    <pre><span class="at">#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]</span>
+<span class="at">#[serde(tag = <span class="st">"type"</span>, rename_all = <span class="st">"snake_case"</span>)]</span>
+<span class="kw">pub enum</span> <span class="ty">WorkerEvent</span> {
+    <span class="ty">Status</span>  { phase: <span class="ty">String</span>, progress: <span class="ty">f32</span>, message: <span class="ty">String</span> },
+    <span class="ty">Results</span> { data: serde_json::<span class="ty">Value</span> },
+    <span class="ty">Error</span>   { code: <span class="ty">String</span>, message: <span class="ty">String</span> },
+    <span class="ty">Done</span>    { success: <span class="ty">bool</span> },
+}</pre>
+
+    <p>Wire format examples:</p>
+    <pre><span class="cm">// Status update (progress bars in RalphPanel)</span>
+{<span class="st">"type"</span>:<span class="st">"status"</span>, <span class="st">"phase"</span>:<span class="st">"analyzing"</span>, <span class="st">"progress"</span>:0.42, <span class="st">"message"</span>:<span class="st">"Matching skills"</span>}
+
+<span class="cm">// Results (output path, stats, etc.)</span>
+{<span class="st">"type"</span>:<span class="st">"results"</span>, <span class="st">"data"</span>:{<span class="st">"resume_path"</span>:<span class="st">"~/.lazyjob/output/acme-resume.docx"</span>}}
+
+<span class="cm">// Error (retryable or fatal)</span>
+{<span class="st">"type"</span>:<span class="st">"error"</span>, <span class="st">"code"</span>:<span class="st">"api_timeout"</span>, <span class="st">"message"</span>:<span class="st">"Request timed out after 30s"</span>}
+
+<span class="cm">// Done</span>
+{<span class="st">"type"</span>:<span class="st">"done"</span>, <span class="st">"success"</span>:true}</pre>
+
+    <h2>Error Type</h2>
+    <pre><span class="at">#[derive(Debug, Error)]</span>
+<span class="kw">pub enum</span> <span class="ty">RalphError</span> {
+    <span class="at">#[error(<span class="st">"decode error: {0}"</span>)]</span>
+    <span class="ty">Decode</span>(<span class="ty">String</span>),
+}
+
+<span class="kw">pub type</span> <span class="ty">Result</span>&lt;<span class="ty">T</span>&gt; = std::result::<span class="ty">Result</span>&lt;<span class="ty">T</span>, <span class="ty">RalphError</span>&gt;;</pre>
+
+    <footer>LazyJob — ralph-protocol — 2026-04-16</footer>
+  </section>
+
+  <!-- CODEC -->
+  <section class="slide" id="codec">
+    <div class="task-badge">Task 18 — NdjsonCodec</div>
+    <h1>NdjsonCodec</h1>
+    <p class="subtitle">Zero-size struct with associated encode/decode functions</p>
+
+    <h2>Implementation</h2>
+    <pre><span class="kw">pub struct</span> <span class="ty">NdjsonCodec</span>;
+
+<span class="kw">impl</span> <span class="ty">NdjsonCodec</span> {
+    <span class="cm">// Infallible — WorkerCommand is always serializable</span>
+    <span class="kw">pub fn</span> <span class="fn">encode</span>(cmd: &<span class="ty">WorkerCommand</span>) -> <span class="ty">String</span> {
+        <span class="kw">let mut</span> s = serde_json::<span class="fn">to_string</span>(cmd)
+            .<span class="fn">expect</span>(<span class="st">"WorkerCommand serialization never fails"</span>);
+        s.<span class="fn">push</span>(<span class="st">'\n'</span>);
+        s
+    }
+
+    <span class="cm">// Fallible — user-provided lines may be invalid JSON</span>
+    <span class="kw">pub fn</span> <span class="fn">decode</span>(line: &<span class="ty">str</span>) -> <span class="ty">Result</span>&lt;<span class="ty">WorkerEvent</span>&gt; {
+        serde_json::<span class="fn">from_str</span>(line.<span class="fn">trim</span>())
+            .<span class="fn">map_err</span>(|e| <span class="ty">RalphError</span>::<span class="ty">Decode</span>(e.<span class="fn">to_string</span>()))
+    }
+}</pre>
+
+    <h2>Design Notes</h2>
+    <ul>
+      <li><strong>encode is infallible</strong> — <span class="inline-code">WorkerCommand</span> contains only serializable types (<span class="inline-code">String</span>, <span class="inline-code">f32</span>, <span class="inline-code">bool</span>, <span class="inline-code">Value</span>). Returning <span class="inline-code">String</span> directly is ergonomic and correct.</li>
+      <li><strong>decode trims whitespace</strong> — <span class="inline-code">BufReader::read_line()</span> includes the trailing <span class="inline-code">\n</span>; <span class="inline-code">trim()</span> handles this without requiring callers to strip it.</li>
+      <li><strong>Unknown type tags return Err</strong> — serde's tagged enum rejects unknown variants, which is tested explicitly.</li>
+      <li><strong>Zero-size struct</strong> — no state needed; all methods are pure functions on their inputs.</li>
+    </ul>
+
+    <h2>Usage Pattern (task 19)</h2>
+    <pre><span class="cm">// TUI → subprocess stdin</span>
+<span class="kw">let</span> line = <span class="ty">NdjsonCodec</span>::<span class="fn">encode</span>(&<span class="ty">WorkerCommand</span>::<span class="ty">Start</span> {
+    loop_type: <span class="st">"resume_tailor"</span>.<span class="fn">to_string</span>(),
+    params: serde_json::<span class="fn">json!</span>({ <span class="st">"job_id"</span>: job_id }),
+});
+child_stdin.<span class="fn">write_all</span>(line.<span class="fn">as_bytes</span>()).<span class="kw">await</span>?;
+
+<span class="cm">// subprocess stdout → TUI broadcast</span>
+<span class="kw">while let Some</span>(Ok(line)) = stdout_lines.<span class="fn">next_line</span>().<span class="kw">await</span> {
+    <span class="kw">match</span> <span class="ty">NdjsonCodec</span>::<span class="fn">decode</span>(&line) {
+        <span class="ty">Ok</span>(event) => event_tx.<span class="fn">send</span>(event)?,
+        <span class="ty">Err</span>(e) => tracing::<span class="fn">warn!</span>(<span class="st">"bad event line: {e}"</span>),
+    }
+}</pre>
+
+    <footer>LazyJob — ralph-protocol — 2026-04-16</footer>
+  </section>
+
+  <!-- DECISIONS -->
+  <section class="slide" id="decisions">
+    <div class="task-badge">Task 18 — Design Decisions</div>
+    <h1>Design Decisions</h1>
+    <p class="subtitle">Key choices and the reasoning behind them</p>
+
+    <table class="decision-table">
+      <thead>
+        <tr>
+          <th>Decision</th>
+          <th>Chosen</th>
+          <th>Why</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Type names</td>
+          <td><code>WorkerCommand</code> / <code>WorkerEvent</code></td>
+          <td>Task description takes priority over spec's <code>IncomingMessage</code> / <code>OutgoingMessage</code>. Worker* naming makes direction explicit.</td>
+        </tr>
+        <tr>
+          <td><code>loop_type</code> field type</td>
+          <td><code>String</code></td>
+          <td>Task 20 defines the <code>LoopType</code> enum. Using <code>String</code> avoids coupling to an unimplemented type while remaining forward-compatible.</td>
+        </tr>
+        <tr>
+          <td>encode return type</td>
+          <td><code>String</code> (infallible)</td>
+          <td><code>WorkerCommand</code> only contains serializable primitives. Infallible encode removes error handling boilerplate at every call site.</td>
+        </tr>
+        <tr>
+          <td>decode whitespace handling</td>
+          <td><code>line.trim()</code> before parse</td>
+          <td><code>tokio::io::BufReader::lines()</code> strips <code>\n</code> but <code>read_line()</code> does not. <code>trim()</code> handles both cases without extra branching.</td>
+        </tr>
+        <tr>
+          <td>RalphError::Decode wraps String</td>
+          <td>No <code>From&lt;serde_json::Error&gt;</code></td>
+          <td>Avoids implicit <code>?</code> conversions from serde in non-decode contexts. Explicit <code>map_err</code> is intentional — decode errors need context about what line failed.</td>
+        </tr>
+        <tr>
+          <td>PartialEq on enums</td>
+          <td>Derived</td>
+          <td>Required for test assertions (<code>assert_eq!</code>). <code>serde_json::Value</code> already implements <code>PartialEq</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Forward Compatibility</h2>
+    <p>When Task 20 (ralph-loop-types) adds the <code>LoopType</code> enum, the protocol module can optionally deserialize <code>loop_type: String</code> into it via <code>loop_type.parse::&lt;LoopType&gt;()</code> in the subprocess handler — no breaking changes to the wire format.</p>
+
+    <h2>Relationship to Spec</h2>
+    <p>The spec (specs/06-ralph-loop-integration-implementation-plan.md) defined <code>IncomingMessage</code> / <code>OutgoingMessage</code> with more variants (Pause, Resume). The task description is more focused: <code>WorkerCommand::Start + Cancel</code> only. The task description wins — keeping the protocol minimal until the process manager (Task 19) needs more variants.</p>
+
+    <footer>LazyJob — ralph-protocol — 2026-04-16</footer>
+  </section>
+
+  <!-- TESTS -->
+  <section class="slide" id="tests">
+    <div class="task-badge">Task 18 — Test Results</div>
+    <h1>Test Results</h1>
+    <p class="subtitle">17 new tests, all passing — zero warnings</p>
+
+    <h2>cargo test -p lazyjob-ralph</h2>
+    <div class="test-output">
+<span class="test-head">    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.12s</span>
+<span class="test-head">     Running unittests src/lib.rs (...lazyjob_ralph-b33a01058aaa79a7)</span>
+<span class="test-head"></span>
+<span class="test-head">running 17 tests</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::serde_tagged_enum_serializes_type_field</span><span class="test-ok"> ... ok</span>   <span class="cm">// learning</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::serde_json_value_roundtrip</span><span class="test-ok"> ... ok</span>            <span class="cm">// learning</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_command_start_roundtrip</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_command_cancel_roundtrip</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_command_start_type_tag</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_event_status_roundtrip</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_event_results_roundtrip</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_event_error_roundtrip</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_event_done_roundtrip</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::worker_event_type_tags</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_encode_appends_newline</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_encode_start</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_decode_valid_line</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_decode_trims_whitespace</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_decode_invalid_json_returns_error</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_decode_unknown_type_returns_error</span><span class="test-ok"> ... ok</span>
+<span class="test-ok">test </span><span class="test-name">protocol::tests::ndjson_codec_encode_then_decode</span><span class="test-ok"> ... ok</span>
+<span class="test-head"></span>
+<span class="test-pass">test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s</span>
+    </div>
+
+    <h2>cargo clippy -p lazyjob-ralph -- -D warnings</h2>
+    <div class="test-output">
+<span class="test-head">    Checking lazyjob-ralph v0.1.0 (/home/lab-admin/repos/lazyjob/crates/lazyjob-ralph)</span>
+<span class="test-pass">    Finished `dev` profile — 0 warnings</span>
+    </div>
+
+    <h2>Workspace total</h2>
+    <div class="test-output">
+<span class="test-sect">lazyjob-cli</span>:   <span class="test-ok">15 passed</span>
+<span class="test-sect">lazyjob-core</span>:  <span class="test-ok">88 passed</span>
+<span class="test-sect">lazyjob-core</span>:  <span class="test-ok">62 passed</span>  <span class="cm">(integration tests, skipped w/o DB)</span>
+<span class="test-sect">lazyjob-ralph</span>: <span class="test-ok">17 passed</span>  <span class="cm">← new this task</span>
+<span class="test-sect">lazyjob-tui</span>:   <span class="test-ok">118 passed</span>
+<span class="test-head">────────────────────────────</span>
+<span class="test-pass">TOTAL: 300 passed, 0 failed</span>
+    </div>
+
+    <h2>Learning Tests</h2>
+    <ul>
+      <li><strong>serde_tagged_enum_serializes_type_field</strong> — proves <code>#[serde(tag = "type")]</code> emits a literal <code>"type"</code> key with the snake_case variant name. Confirms the Anthropic/OpenAI style discriminated union pattern works before we depend on it.</li>
+      <li><strong>serde_json_value_roundtrip</strong> — proves <code>serde_json::Value</code> survives a serialize/deserialize cycle. Critical because <code>params</code> and <code>data</code> fields hold arbitrary JSON blobs.</li>
+    </ul>
+
+    <footer>LazyJob — ralph-protocol — 2026-04-16</footer>
+  </section>
+
+  <!-- SUMMARY -->
+  <section class="slide" id="summary">
+    <div class="task-badge">Task 18 — Summary</div>
+    <h1>Summary</h1>
+    <p class="subtitle">Task 18 is complete. The ralph-protocol module is production-ready.</p>
+
+    <h2>What was delivered</h2>
+    <ul>
+      <li><strong>crates/lazyjob-ralph/src/error.rs</strong> — <code>RalphError</code> + <code>Result&lt;T&gt;</code> type alias</li>
+      <li><strong>crates/lazyjob-ralph/src/protocol.rs</strong> — <code>WorkerCommand</code>, <code>WorkerEvent</code>, <code>NdjsonCodec</code> with 17 tests</li>
+      <li><strong>crates/lazyjob-ralph/src/lib.rs</strong> — module registration + public re-exports</li>
+      <li><strong>ralph/lazyjob-implementation/output/research-task-18.md</strong></li>
+      <li><strong>ralph/lazyjob-implementation/output/plan-task-18.md</strong></li>
+    </ul>
+
+    <h2>Public API surface</h2>
+    <pre><span class="kw">use</span> lazyjob_ralph::{<span class="ty">WorkerCommand</span>, <span class="ty">WorkerEvent</span>, <span class="ty">NdjsonCodec</span>, <span class="ty">RalphError</span>};
+
+<span class="cm">// Encode a command for subprocess stdin</span>
+<span class="kw">let</span> line: <span class="ty">String</span> = <span class="ty">NdjsonCodec</span>::<span class="fn">encode</span>(&cmd);
+
+<span class="cm">// Decode an event from subprocess stdout</span>
+<span class="kw">let</span> event: <span class="ty">Result</span>&lt;<span class="ty">WorkerEvent</span>&gt; = <span class="ty">NdjsonCodec</span>::<span class="fn">decode</span>(&line);</pre>
+
+    <h2>Next task</h2>
+    <p><strong>Task 19: ralph-process-manager</strong> — <code>RalphProcessManager::spawn(loop_type, params)</code> will use <code>NdjsonCodec::encode</code> to write to the child's stdin and <code>NdjsonCodec::decode</code> to parse events from its stdout, broadcasting them via <code>tokio::sync::broadcast</code> to all TUI subscribers.</p>
+
+    <hr class="divider" />
+
+    <div class="card-grid" style="grid-template-columns: repeat(3, 1fr)">
+      <div class="card">
+        <div class="label">Build</div>
+        <div class="value" style="color:#3fb950">✓</div>
+        <div class="desc">cargo build — zero errors</div>
+      </div>
+      <div class="card">
+        <div class="label">Clippy</div>
+        <div class="value" style="color:#3fb950">✓</div>
+        <div class="desc">-D warnings — zero warnings</div>
+      </div>
+      <div class="card">
+        <div class="label">Tests</div>
+        <div class="value" style="color:#3fb950">✓</div>
+        <div class="desc">17/17 passing</div>
+      </div>
+    </div>
+
+    <footer>LazyJob — ralph-protocol — 2026-04-16 — committed: 8b3a788</footer>
+  </section>
+
+</main>
+
+<script>
+  function showSlide(id, el) {
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    el.classList.add('active');
+  }
+</script>
+</body>
+</html>
