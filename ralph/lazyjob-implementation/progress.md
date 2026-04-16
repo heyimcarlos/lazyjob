@@ -506,6 +506,30 @@ Next iteration should know:
 - Integration tests: `cargo test -p lazyjob-llm --features integration` (requires OPENAI_API_KEY or running Ollama)
 - Task 17 (llm-registry) is next — ProviderRegistry, LlmBuilder::from_config, cost estimation
 
+## Task 18: ralph-protocol — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-ralph/src/error.rs (new: RalphError, Result<T>)
+- crates/lazyjob-ralph/src/protocol.rs (new: WorkerCommand, WorkerEvent, NdjsonCodec)
+- crates/lazyjob-ralph/src/lib.rs (added pub mod error/protocol + re-exports)
+Key decisions:
+- Used `WorkerCommand` / `WorkerEvent` names per task description (not spec's IncomingMessage/OutgoingMessage)
+- `loop_type` in WorkerCommand::Start is `String` (not LoopType enum — task 20 defines that)
+- NdjsonCodec::encode is infallible (returns String not Result) — WorkerCommand is always serializable
+- NdjsonCodec::decode trims whitespace before parsing — handles lines with trailing newlines from read_line()
+- RalphError::Decode(String) wraps serde_json errors as strings (no From<serde_json::Error> to avoid implicit conversion from non-decode contexts)
+Learning tests written:
+- serde_tagged_enum_serializes_type_field — proves serde tag attribute emits a "type" JSON key with snake_case variant name
+- serde_json_value_roundtrip — proves serde_json::Value serializes and deserializes with full fidelity
+Tests passing: 300 total (17 new in lazyjob-ralph)
+Next iteration should know:
+- WorkerCommand, WorkerEvent, NdjsonCodec are in lazyjob_ralph::protocol, re-exported from crate root
+- NdjsonCodec::encode(&WorkerCommand) -> String (infallible, appends \n)
+- NdjsonCodec::decode(line: &str) -> Result<WorkerEvent> (fallible, trims whitespace)
+- RalphError and Result<T> are in lazyjob_ralph::error, re-exported from crate root
+- loop_type in WorkerCommand::Start is String — task 20 will add LoopType enum; protocol.rs uses String to avoid coupling
+- Task 19 (ralph-process-manager) is next — RalphProcessManager, spawn subprocess, broadcast WorkerEvents
+
 ## Task 17: llm-registry — DONE
 Date: 2026-04-16
 Files created/modified:
