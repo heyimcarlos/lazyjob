@@ -636,3 +636,29 @@ Next iteration should know:
 - App::with_pool(pool) is a builder method — chain after App::new()
 - TUI startup now auto-recovers stale 'running' runs older than 30s, marking them 'failed'
 - Task 22 (ralph-tui-panel) is next — implement RalphPanelView with WorkerEvent broadcast subscription, progress bars, cancel binding
+
+## Task 22: ralph-tui-panel — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-tui/src/views/ralph_panel.rs (full rewrite: ActiveEntry, CompletedEntry, RalphPanelView with on_update, cleanup, render, handle_key)
+- crates/lazyjob-tui/src/action.rs (added CancelRalphLoop(String), RalphDetail(String) variants + name() impl)
+- crates/lazyjob-tui/src/app.rs (filled in handle_ralph_update, wired ScrollDown/ScrollUp/Select to delegate to active view, added crossterm imports)
+Key decisions:
+- State held in view struct (not in App): `active: Vec<ActiveEntry>`, `completed: Vec<CompletedEntry>`, `selected: usize`
+- `on_update()` is a standalone method (not part of View trait) called from `app.handle_ralph_update()`
+- 5-second completed-entry display: expired entries cleaned up at the start of each `render()` call (which takes `&mut self`)
+- `progress` stored as 0.0-1.0 ratio (divided from percent in Progress event); passed directly to ProgressBar::new(ratio, label)
+- Keybindings: c → `Action::CancelRalphLoop(run_id)`, Enter → `Action::RalphDetail(run_id)`, Esc → `Action::NavigateBack`, j/Down and k/Up update `self.selected`
+- `handle_action(ScrollDown/Up/Select)` now delegates to `active_view_mut().handle_key(Down/Up/Enter)` — this properly routes keymap-resolved actions (j→ScrollDown→view.handle_key(Down)) to view-specific navigation; backward compatible since all stub views return None
+- `Action::CancelRalphLoop` and `Action::RalphDetail` are no-ops in `handle_action` — full wiring to `RalphProcessManager` deferred to task 36
+- Render layout: outer Block, inner split into body (active entries × 3-row: title+elapsed/progress_bar/separator, completed entries × 1-row: ✓/✗ marker) + help line
+- Empty state shows friendly hint text ("Press r on a job to run ResumeTailor")
+Learning tests written:
+- None required (no new external crates; Instant/Duration are std; ratatui proven in tasks 10-13)
+Tests passing: 354 total (16 new in ralph_panel: on_update_progress_creates_active_entry, on_update_progress_updates_existing_entry, on_update_logline_appends_to_entry, on_update_completed_moves_to_completed, on_update_failed_moves_to_completed_with_failure, cleanup_removes_expired_completed, selected_run_id_returns_none_for_empty, handle_key_j_scrolls_selection_down, handle_key_k_scrolls_selection_up, handle_key_c_returns_cancel_action, handle_key_enter_returns_detail_action, handle_key_esc_navigates_back, renders_without_panic, renders_active_loop_with_progress, renders_empty_state_without_panic, renders_completed_with_success_marker)
+Next iteration should know:
+- RalphPanelView now has on_update(RalphUpdate) method for receiving events from app.handle_ralph_update()
+- Action enum has CancelRalphLoop(String) and RalphDetail(String) variants — both no-ops in handle_action for now
+- App.handle_action now delegates ScrollDown/ScrollUp/Select to the active view via handle_key — this is the correct pattern for all future views with scroll state
+- The 5-second completion display is automatic — no timer needed, cleanup happens in render()
+- Task 23 (job-sources) is next — GreenhouseClient, LeverClient using reqwest, ammonia HTML stripping, rate limiting

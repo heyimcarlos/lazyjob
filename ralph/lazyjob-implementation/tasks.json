@@ -175,7 +175,7 @@
       "description": "Implement RalphPanelView in lazyjob-tui/src/views/ralph_panel.rs. It subscribes to the broadcast channel from RalphProcessManager. Display: list of active loops with loop_type, phase, progress bar (using the ProgressBar widget), elapsed time. Keybindings: c=Cancel selected loop, Enter=Show loop output detail. On Done event, show a ✓ with the result summary for 5 seconds then remove from list. Write a test that simulates WorkerEvent broadcasts and verifies the panel renders correctly.",
       "phase": "build",
       "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 23,
