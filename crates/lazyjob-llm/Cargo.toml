@@ -18,3 +18,5 @@ reqwest = { workspace = true }
 secrecy = { workspace = true }
 async-openai = { workspace = true }
 ollama-rs = { workspace = true }
+sqlx = { workspace = true }
+uuid = { workspace = true }

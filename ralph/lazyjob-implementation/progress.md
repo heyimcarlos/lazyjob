@@ -505,3 +505,28 @@ Next iteration should know:
 - Both providers implement both LlmProvider and EmbeddingProvider — future code calling provider_name() must use qualified syntax
 - Integration tests: `cargo test -p lazyjob-llm --features integration` (requires OPENAI_API_KEY or running Ollama)
 - Task 17 (llm-registry) is next — ProviderRegistry, LlmBuilder::from_config, cost estimation
+
+## Task 17: llm-registry — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-llm/src/cost.rs (new: estimate_cost, PRICING table)
+- crates/lazyjob-llm/src/registry.rs (new: ProviderRegistry, LlmBuilder, LoggingProvider)
+- crates/lazyjob-llm/Cargo.toml (added sqlx, uuid deps)
+- crates/lazyjob-llm/src/lib.rs (added pub mod cost, registry + re-exports)
+Key decisions:
+- PRICING table uses blended input/output rates in microdollars per 1000 tokens; matches by substring so "claude-haiku-4-5-20251001" matches "claude-haiku"
+- ProviderRegistry stores Arc<dyn LlmProvider> by name; first added becomes default, override with set_default()
+- LlmBuilder::from_config fallback chain: configured provider (if key present) → Anthropic (if key set) → OpenAI (if key set) → Ollama (always)
+- LoggingProvider is a decorator: wraps Arc<dyn LlmProvider>, implements LlmProvider, fires DB insert after each complete(); pool is Option<PgPool> so without_pool() constructor enables unit testing without a real DB
+- DB insert uses runtime sqlx::query() (not query! macro) to avoid DATABASE_URL at build time
+- Fire-and-forget logging: DB errors are swallowed (let _ = ...) so a logging failure never fails the completion
+Learning tests written:
+- None required (sqlx proven in tasks 3-4; async_trait proven in tasks 14-15; no new external crates)
+Tests passing: 283 total (22 new: 7 cost tests + 15 registry tests)
+Next iteration should know:
+- estimate_cost(model, tokens) is in lazyjob_llm::cost, re-exported from lazyjob_llm root
+- ProviderRegistry, LlmBuilder, LoggingProvider are in lazyjob_llm::registry, re-exported from root
+- LlmBuilder::from_config(config, creds) returns Result<Box<dyn LlmProvider>> — never errors, always falls back to Ollama
+- LoggingProvider::new(provider, pool) wraps any Arc<dyn LlmProvider> with DB logging; without_pool() for tests
+- sqlx and uuid are now direct deps of lazyjob-llm (in addition to lazyjob-core which also has them)
+- Task 18 (ralph-protocol) is next — WorkerCommand/WorkerEvent NDJSON protocol types in lazyjob-ralph

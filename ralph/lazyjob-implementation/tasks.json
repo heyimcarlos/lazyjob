@@ -135,7 +135,7 @@
       "description": "In lazyjob-llm/src/registry.rs, implement ProviderRegistry holding boxed providers by name. Implement LlmBuilder::from_config(config: &Config, creds: &CredentialManager) -> Box<dyn LlmProvider> with fallback chain: configured provider → Anthropic (if key set) → Ollama (always available). Add token_usage_log insert after each completion. Implement cost.rs with per-model microdollar pricing table and estimate_cost(model, tokens) -> u64. Write tests for builder fallback logic.",
       "phase": "build",
       "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 18,
