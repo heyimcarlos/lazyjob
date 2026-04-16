@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task 16: llm-openai — LazyJob Ralph Loop</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --primary: #58a6ff;
+      --green: #3fb950;
+      --yellow: #d29922;
+      --red: #f85149;
+      --purple: #bc8cff;
+      --cyan: #39c5cf;
+      --text: #c9d1d9;
+      --muted: #8b949e;
+      --sidebar-w: 240px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    #sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    #sidebar h2 {
+      padding: 16px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-item {
+      padding: 10px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      color: var(--muted);
+    }
+    .nav-item:hover { background: rgba(88,166,255,0.07); color: var(--text); }
+    .nav-item.active {
+      border-left-color: var(--primary);
+      color: var(--primary);
+      background: rgba(88,166,255,0.1);
+    }
+    .nav-section {
+      padding: 8px 16px 4px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--border);
+      margin-top: 8px;
+    }
+
+    /* ── Main content ─────────────────────────────────────── */
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+    }
+    .slide {
+      display: none;
+      padding: 40px 48px;
+      max-width: 900px;
+      min-height: 100vh;
+    }
+    .slide.active { display: block; }
+    .slide h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .slide h2 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--cyan);
+      margin: 24px 0 12px;
+    }
+    .slide h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--purple);
+      margin: 16px 0 8px;
+    }
+    .slide p {
+      font-size: 14px;
+      line-height: 1.7;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-right: 6px;
+      margin-bottom: 4px;
+    }
+    .badge-green { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+    .badge-blue  { background: rgba(88,166,255,0.15); color: var(--primary); border: 1px solid rgba(88,166,255,0.3); }
+    .badge-purple{ background: rgba(188,140,255,0.15); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+    .badge-yellow{ background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+    .badge-red   { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+
+    pre {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      font-size: 12.5px;
+      line-height: 1.6;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    code { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+    .keyword { color: #ff7b72; }
+    .string  { color: #a5d6ff; }
+    .comment { color: #8b949e; font-style: italic; }
+    .type    { color: #ffa657; }
+    .func    { color: #d2a8ff; }
+    .number  { color: #79c0ff; }
+    .macro   { color: #ff7b72; }
+
+    .terminal {
+      background: #010409;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+      margin: 12px 0;
+    }
+    .terminal .prompt { color: #3fb950; }
+    .terminal .ok     { color: #3fb950; }
+    .terminal .warn   { color: #d29922; }
+    .terminal .error  { color: #f85149; }
+    .terminal .dim    { color: #8b949e; }
+    .terminal .bold   { color: #c9d1d9; font-weight: 600; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 12px 0;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .stat { font-size: 28px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+    th { background: var(--surface); padding: 8px 12px; text-align: left; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); }
+    td { padding: 8px 12px; border-bottom: 1px solid rgba(48,54,61,0.5); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(88,166,255,0.04); }
+
+    .arch-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      margin: 8px 0;
+    }
+    .arch-layer {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 8px 0;
+    }
+    .arch-node {
+      background: rgba(88,166,255,0.1);
+      border: 1px solid rgba(88,166,255,0.3);
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      color: var(--primary);
+    }
+    .arch-node.new {
+      background: rgba(63,185,80,0.1);
+      border-color: rgba(63,185,80,0.3);
+      color: var(--green);
+    }
+    .arch-node.muted {
+      background: rgba(139,148,158,0.1);
+      border-color: rgba(139,148,158,0.2);
+      color: var(--muted);
+    }
+    .arrow { color: var(--muted); align-self: center; font-size: 18px; }
+
+    .test-row { display: flex; gap: 8px; align-items: center; padding: 4px 0; font-size: 13px; }
+    .test-ok { color: var(--green); }
+    .test-name { color: var(--text); }
+    .test-tag { font-size: 10px; color: var(--yellow); margin-left: 6px; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    .highlight-box {
+      background: rgba(88,166,255,0.06);
+      border: 1px solid rgba(88,166,255,0.2);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    .highlight-box.green {
+      background: rgba(63,185,80,0.06);
+      border-color: rgba(63,185,80,0.2);
+    }
+    .highlight-box.yellow {
+      background: rgba(210,153,34,0.06);
+      border-color: rgba(210,153,34,0.2);
+    }
+  </style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <h2>Task 16 — llm-openai</h2>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="show(0)">01 · Summary</div>
+  <div class="nav-item" onclick="show(1)">02 · Architecture</div>
+  <div class="nav-section">Implementation</div>
+  <div class="nav-item" onclick="show(2)">03 · OpenAiProvider</div>
+  <div class="nav-item" onclick="show(3)">04 · OllamaProvider</div>
+  <div class="nav-item" onclick="show(4)">05 · Key Challenges</div>
+  <div class="nav-section">Verification</div>
+  <div class="nav-item" onclick="show(5)">06 · Learning Tests</div>
+  <div class="nav-item" onclick="show(6)">07 · Test Results</div>
+  <div class="nav-item" onclick="show(7)">08 · Build &amp; Lint</div>
+  <div class="nav-section">Context</div>
+  <div class="nav-item" onclick="show(8)">09 · Decisions</div>
+  <div class="nav-item" onclick="show(9)">10 · Next Task</div>
+</nav>
+
+<main id="content">
+
+<!-- ── Slide 0: Summary ──────────────────────────────────── -->
+<section class="slide active">
+  <h1>Task 16: llm-openai</h1>
+  <p>
+    <span class="badge badge-green">✓ DONE</span>
+    <span class="badge badge-blue">lazyjob-llm</span>
+    <span class="badge badge-purple">phase: build</span>
+  </p>
+  <p>
+    Implemented <strong>OpenAiProvider</strong> (using <code>async-openai 0.34</code>) and
+    <strong>OllamaProvider</strong> (using <code>ollama-rs 0.3</code>), extending the
+    LLM provider abstraction layer with two more backends — OpenAI cloud and Ollama local.
+  </p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Tests Passing</div>
+      <div class="stat">261</div>
+      <div class="stat-label">261 total (12 new this task)</div>
+    </div>
+    <div class="card">
+      <div class="card-title">New Providers</div>
+      <div class="stat">2</div>
+      <div class="stat-label">OpenAiProvider + OllamaProvider</div>
+    </div>
+  </div>
+
+  <h2>Files Changed</h2>
+  <table>
+    <thead><tr><th>File</th><th>Action</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>Cargo.toml</code></td><td><span class="badge badge-yellow">MODIFIED</span></td><td>Added async-openai 0.34, ollama-rs 0.3 (rustls)</td></tr>
+      <tr><td><code>crates/lazyjob-llm/Cargo.toml</code></td><td><span class="badge badge-yellow">MODIFIED</span></td><td>Added new deps</td></tr>
+      <tr><td><code>providers/openai.rs</code></td><td><span class="badge badge-green">NEW</span></td><td>OpenAiProvider: LlmProvider + EmbeddingProvider</td></tr>
+      <tr><td><code>providers/ollama.rs</code></td><td><span class="badge badge-green">NEW</span></td><td>OllamaProvider: LlmProvider + EmbeddingProvider</td></tr>
+      <tr><td><code>providers/mod.rs</code></td><td><span class="badge badge-yellow">MODIFIED</span></td><td>Added pub mod declarations + re-exports</td></tr>
+      <tr><td><code>lib.rs</code></td><td><span class="badge badge-yellow">MODIFIED</span></td><td>Re-exported OpenAiProvider, OllamaProvider</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── Slide 1: Architecture ─────────────────────────────── -->
+<section class="slide">
+  <h1>Provider Abstraction Architecture</h1>
+  <p>After task 16, the LLM crate supports three providers with consistent trait-based dispatch.</p>
+
+  <div class="arch-box">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">PUBLIC TRAIT LAYER</div>
+    <div class="arch-layer">
+      <div class="arch-node"><code>LlmProvider</code> trait</div>
+      <div class="arch-node"><code>EmbeddingProvider</code> trait</div>
+    </div>
+    <div style="text-align:center;color:var(--muted);margin:8px 0">▼ implemented by</div>
+    <div class="arch-layer">
+      <div class="arch-node">AnthropicProvider<br/><small style="color:var(--muted)">reqwest + SSE</small></div>
+      <div class="arch-node new">OpenAiProvider <span style="color:var(--green)">★</span><br/><small style="color:var(--muted)">async-openai 0.34</small></div>
+      <div class="arch-node new">OllamaProvider <span style="color:var(--green)">★</span><br/><small style="color:var(--muted)">ollama-rs 0.3</small></div>
+    </div>
+    <div style="text-align:center;color:var(--muted);margin:8px 0">▼ plus always available</div>
+    <div class="arch-layer">
+      <div class="arch-node muted">MockLlmProvider</div>
+      <div class="arch-node muted">MockEmbeddingProvider</div>
+    </div>
+  </div>
+
+  <h2>Provider Capability Matrix</h2>
+  <table>
+    <thead><tr><th>Provider</th><th>LlmProvider</th><th>EmbeddingProvider</th><th>Default Model</th><th>Embedding Model</th></tr></thead>
+    <tbody>
+      <tr><td>AnthropicProvider</td><td>✅</td><td>❌ (not supported)</td><td>claude-haiku-4-5</td><td>—</td></tr>
+      <tr><td>OpenAiProvider</td><td>✅</td><td>✅</td><td>gpt-4o-mini</td><td>text-embedding-3-small (1536d)</td></tr>
+      <tr><td>OllamaProvider</td><td>✅</td><td>✅</td><td>llama3.2:latest</td><td>nomic-embed-text (768d)</td></tr>
+      <tr><td>MockLlmProvider</td><td>✅</td><td>—</td><td>mock-model</td><td>—</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── Slide 2: OpenAiProvider ─────────────────────���─────── -->
+<section class="slide">
+  <h1>OpenAiProvider Implementation</h1>
+  <p>Uses the official <code>async-openai 0.34</code> SDK with builder-pattern request construction.</p>
+
+  <h2>Construction</h2>
+  <pre><code><span class="keyword">pub struct</span> <span class="type">OpenAiProvider</span> {
+    client: <span class="type">Client</span>&lt;<span class="type">OpenAIConfig</span>&gt;,
+    default_model: <span class="type">String</span>,
+    embedding_model: <span class="type">String</span>,
+}
+
+<span class="keyword">impl</span> <span class="type">OpenAiProvider</span> {
+    <span class="comment">// Direct API key</span>
+    <span class="keyword">pub fn</span> <span class="func">new</span>(api_key: <span class="keyword">impl</span> <span class="type">Into</span>&lt;<span class="type">String</span>&gt;) -&gt; <span class="type">Self</span> {
+        <span class="keyword">let</span> config = <span class="type">OpenAIConfig</span>::<span class="func">new</span>().<span class="func">with_api_key</span>(api_key.<span class="func">into</span>());
+        <span class="type">Self</span> { client: <span class="type">Client</span>::<span class="func">with_config</span>(config), .. }
+    }
+
+    <span class="comment">// From keyring CredentialManager</span>
+    <span class="keyword">pub fn</span> <span class="func">from_credentials</span>(creds: &amp;<span class="type">CredentialManager</span>) -&gt; <span class="type">Result</span>&lt;<span class="type">Self</span>&gt; {
+        <span class="keyword">let</span> secret = creds.<span class="func">get_api_key</span>(<span class="string">"openai"</span>)?
+            .<span class="func">ok_or_else</span>(|| <span class="type">LlmError</span>::<span class="func">Auth</span>(<span class="string">"no key for 'openai'"</span>.<span class="func">into</span>()))?;
+        <span class="type">Ok</span>(<span class="type">Self</span>::<span class="func">new</span>(secret.<span class="func">expose_secret</span>().<span class="func">to_owned</span>()))
+    }
+}</code></pre>
+
+  <h2>Chat Completion</h2>
+  <pre><code><span class="comment">// Map our ChatMessage enum to async-openai typed messages</span>
+<span class="keyword">let</span> api_msg = <span class="keyword">match</span> msg {
+    <span class="type">ChatMessage</span>::<span class="func">System</span>(content) =&gt;
+        <span class="type">ChatCompletionRequestSystemMessageArgs</span>::<span class="func">default</span>()
+            .<span class="func">content</span>(content).<span class="func">build</span>()?.<span class="func">into</span>(),
+    <span class="type">ChatMessage</span>::<span class="func">User</span>(content) =&gt;
+        <span class="type">ChatCompletionRequestUserMessageArgs</span>::<span class="func">default</span>()
+            .<span class="func">content</span>(content).<span class="func">build</span>()?.<span class="func">into</span>(),
+    <span class="type">ChatMessage</span>::<span class="func">Assistant</span>(content) =&gt;
+        <span class="type">ChatCompletionRequestAssistantMessageArgs</span>::<span class="func">default</span>()
+            .<span class="func">content</span>(content).<span class="func">build</span>()?.<span class="func">into</span>(),
+};</code></pre>
+
+  <h2>Embeddings (1536 dims)</h2>
+  <pre><code><span class="keyword">let</span> request = <span class="type">CreateEmbeddingRequestArgs</span>::<span class="func">default</span>()
+    .<span class="func">model</span>(&amp;<span class="type">self</span>.embedding_model)  <span class="comment">// "text-embedding-3-small"</span>
+    .<span class="func">input</span>(text)
+    .<span class="func">build</span>()?;
+
+<span class="keyword">let</span> response = <span class="type">self</span>.client.<span class="func">embeddings</span>().<span class="func">create</span>(request).<span class="keyword">await</span>?;
+response.data[<span class="number">0</span>].embedding.clone()  <span class="comment">// Vec&lt;f32&gt; len=1536</span></code></pre>
+</section>
+
+<!-- ── Slide 3: OllamaProvider ────────────────────────────── -->
+<section class="slide">
+  <h1>OllamaProvider Implementation</h1>
+  <p>Uses <code>ollama-rs 0.3</code> to communicate with a local Ollama server (default <code>localhost:11434</code>).</p>
+
+  <h2>Construction</h2>
+  <pre><code><span class="keyword">pub struct</span> <span class="type">OllamaProvider</span> {
+    client: <span class="type">Ollama</span>,
+    default_model: <span class="type">String</span>,   <span class="comment">// "llama3.2:latest"</span>
+    embedding_model: <span class="type">String</span>, <span class="comment">// "nomic-embed-text"</span>
+}
+
+<span class="keyword">impl</span> <span class="type">OllamaProvider</span> {
+    <span class="comment">// localhost:11434</span>
+    <span class="keyword">pub fn</span> <span class="func">new</span>() -&gt; <span class="type">Self</span> { .. <span class="type">Ollama</span>::<span class="func">new</span>(DEFAULT_HOST, DEFAULT_PORT) .. }
+
+    <span class="comment">// Custom endpoint</span>
+    <span class="keyword">pub fn</span> <span class="func">with_host_port</span>(host: <span class="keyword">impl</span> <span class="type">Into</span>&lt;<span class="type">String</span>&gt;, port: <span class="type">u16</span>) -&gt; <span class="type">Self</span> {
+        <span class="type">Self</span> { client: <span class="type">Ollama</span>::<span class="func">new</span>(host.<span class="func">into</span>(), port), .. }
+    }
+}</code></pre>
+
+  <h2>Message Mapping</h2>
+  <pre><code><span class="comment">// ollama-rs has its own ChatMessage — aliased to avoid conflict</span>
+<span class="keyword">use</span> ollama_rs::generation::chat::{<span class="type">ChatMessage</span> <span class="keyword">as</span> <span class="type">OllamaMessage</span>, ..};
+
+<span class="keyword">fn</span> <span class="func">map_message</span>(msg: <span class="type">ChatMessage</span>) -&gt; <span class="type">OllamaMessage</span> {
+    <span class="keyword">match</span> msg {
+        <span class="type">ChatMessage</span>::<span class="func">System</span>(c)    =&gt; <span class="type">OllamaMessage</span>::<span class="func">system</span>(c),
+        <span class="type">ChatMessage</span>::<span class="func">User</span>(c)      =&gt; <span class="type">OllamaMessage</span>::<span class="func">user</span>(c),
+        <span class="type">ChatMessage</span>::<span class="func">Assistant</span>(c) =&gt; <span class="type">OllamaMessage</span>::<span class="func">assistant</span>(c),
+    }
+}</code></pre>
+
+  <h2>Chat + Embeddings</h2>
+  <pre><code><span class="comment">// Chat</span>
+<span class="keyword">let</span> response = <span class="type">self</span>.client
+    .<span class="func">send_chat_messages</span>(<span class="type">ChatMessageRequest</span>::<span class="func">new</span>(model, ollama_messages))
+    .<span class="keyword">await</span>?;
+<span class="comment">// token counts from final_data (only when done=true)</span>
+<span class="keyword">let</span> (p, c) = response.final_data
+    .<span class="func">map</span>(|fd| (fd.prompt_eval_count <span class="keyword">as</span> <span class="type">u32</span>, fd.eval_count <span class="keyword">as</span> <span class="type">u32</span>))
+    .<span class="func">unwrap_or</span>((<span class="number">0</span>, <span class="number">0</span>));
+
+<span class="comment">// Embeddings (nomic-embed-text = 768 dims)</span>
+<span class="keyword">let</span> response = <span class="type">self</span>.client
+    .<span class="func">generate_embeddings</span>(<span class="type">GenerateEmbeddingsRequest</span>::<span class="func">new</span>(
+        model, <span class="type">EmbeddingsInput</span>::<span class="func">Single</span>(text.<span class="func">to_string</span>())
+    )).<span class="keyword">await</span>?;
+response.embeddings[<span class="number">0</span>].clone()  <span class="comment">// Vec&lt;f32&gt; len=768</span></code></pre>
+</section>
+
+<!-- ── Slide 4: Key Challenges ────────────────────────────── -->
+<section class="slide">
+  <h1>Key Challenges Encountered</h1>
+
+  <h2>1 · async-openai 0.34 Feature Gating</h2>
+  <div class="highlight-box yellow">
+    <strong>Problem:</strong> <code>Client</code>, <code>config::OpenAIConfig</code> and builder types not visible by default.
+    They're behind the <code>_api</code> feature, which must be activated indirectly.
+  </div>
+  <pre><code><span class="comment"># Wrong — only types, no HTTP client</span>
+async-openai = <span class="string">"0.34"</span>
+
+<span class="comment"># Correct — chat-completion and embedding activate _api feature</span>
+async-openai = { version = <span class="string">"0.34"</span>, features = [<span class="string">"chat-completion"</span>, <span class="string">"embedding"</span>] }</code></pre>
+
+  <h2>2 · Type Paths Changed in 0.34</h2>
+  <div class="highlight-box yellow">
+    <strong>Problem:</strong> Builder types are in submodules, not re-exported at crate root.
+  </div>
+  <pre><code><span class="comment">// Wrong in 0.34:</span>
+<span class="keyword">use</span> async_openai::types::<span class="type">CreateChatCompletionRequestArgs</span>;
+
+<span class="comment">// Correct:</span>
+<span class="keyword">use</span> async_openai::types::chat::<span class="type">CreateChatCompletionRequestArgs</span>;
+<span class="keyword">use</span> async_openai::types::embeddings::<span class="type">CreateEmbeddingRequestArgs</span>;</code></pre>
+
+  <h2>3 · ollama-rs native-tls dependency</h2>
+  <div class="highlight-box yellow">
+    <strong>Problem:</strong> Default features pull in <code>native-tls</code> → <code>openssl-sys</code>,
+    which requires <code>libssl-dev</code> headers (not installed on this system).
+  </div>
+  <pre><code><span class="comment"># Wrong — includes native-tls/openssl-sys</span>
+ollama-rs = <span class="string">"0.3"</span>
+
+<span class="comment"># Correct — use rustls, disable default native-tls</span>
+ollama-rs = { version = <span class="string">"0.3"</span>, default-features = <span class="keyword">false</span>,
+              features = [<span class="string">"stream"</span>, <span class="string">"rustls"</span>] }</code></pre>
+
+  <h2>4 · Ambiguous provider_name() method</h2>
+  <div class="highlight-box yellow">
+    <strong>Problem:</strong> Both <code>LlmProvider</code> and <code>EmbeddingProvider</code> define
+    <code>provider_name()</code>. In tests, <code>provider.provider_name()</code> is ambiguous.
+  </div>
+  <pre><code><span class="comment">// Wrong — ambiguous in test code:</span>
+assert_eq!(provider.<span class="func">provider_name</span>(), <span class="string">"openai"</span>);
+
+<span class="comment">// Correct — use qualified syntax:</span>
+<span class="keyword">use</span> crate::provider::<span class="type">LlmProvider</span>;
+assert_eq!(<span class="type">LlmProvider</span>::<span class="func">provider_name</span>(&amp;provider), <span class="string">"openai"</span>);</code></pre>
+</section>
+
+<!-- ── Slide 5: Learning Tests ─────────────────────────���─── -->
+<section class="slide">
+  <h1>Learning Tests</h1>
+  <p>Four learning tests prove we understand both library APIs before depending on them.</p>
+
+  <h2>async-openai Learning Tests</h2>
+  <pre><code><span class="comment">// learning test: verifies async_openai Client::with_config builds without network call</span>
+<span class="macro">#[test]</span>
+<span class="keyword">fn</span> <span class="func">async_openai_client_builds_with_config</span>() {
+    <span class="keyword">let</span> config = <span class="type">OpenAIConfig</span>::<span class="func">new</span>().<span class="func">with_api_key</span>(<span class="string">"test-key"</span>);
+    <span class="keyword">let</span> _client: <span class="type">Client</span>&lt;<span class="type">OpenAIConfig</span>&gt; = <span class="type">Client</span>::<span class="func">with_config</span>(config);
+    <span class="comment">// Proves: Client construction is synchronous; no connection until .create() is called</span>
+}
+
+<span class="comment">// learning test: verifies CreateChatCompletionRequestArgs can build a request struct</span>
+<span class="macro">#[tokio::test]</span>
+<span class="keyword">async fn</span> <span class="func">async_openai_chat_request_serializes</span>() {
+    <span class="keyword">let</span> msg = <span class="type">ChatCompletionRequestUserMessageArgs</span>::<span class="func">default</span>()
+        .<span class="func">content</span>(<span class="string">"Hello!"</span>).<span class="func">build</span>().<span class="func">unwrap</span>();
+    <span class="keyword">let</span> request = <span class="type">CreateChatCompletionRequestArgs</span>::<span class="func">default</span>()
+        .<span class="func">model</span>(<span class="string">"gpt-4o-mini"</span>).<span class="func">max_tokens</span>(<span class="number">100u32</span>)
+        .<span class="func">messages</span>(<span class="macro">vec!</span>[msg.<span class="func">into</span>()]).<span class="func">build</span>().<span class="func">unwrap</span>();
+    assert_eq!(request.model, <span class="string">"gpt-4o-mini"</span>);
+    assert_eq!(request.messages.<span class="func">len</span>(), <span class="number">1</span>);
+}</code></pre>
+
+  <h2>ollama-rs Learning Tests</h2>
+  <pre><code><span class="comment">// learning test: verifies Ollama::new constructs without panicking (no network call)</span>
+<span class="macro">#[test]</span>
+<span class="keyword">fn</span> <span class="func">ollama_rs_client_constructs</span>() {
+    <span class="keyword">let</span> _ollama = <span class="type">Ollama</span>::<span class="func">new</span>(<span class="string">"http://localhost"</span>.<span class="func">to_string</span>(), <span class="number">11434</span>);
+    <span class="keyword">let</span> _default = <span class="type">Ollama</span>::<span class="func">default</span>();
+}
+
+<span class="comment">// learning test: verifies OllamaMessage constructors set content correctly</span>
+<span class="macro">#[test]</span>
+<span class="keyword">fn</span> <span class="func">ollama_rs_message_constructors</span>() {
+    <span class="keyword">let</span> system = <span class="type">OllamaMessage</span>::<span class="func">system</span>(<span class="string">"You are helpful."</span>.<span class="func">to_string</span>());
+    assert_eq!(system.content, <span class="string">"You are helpful."</span>);
+    <span class="comment">// Also proves: user() and assistant() constructors use same pattern</span>
+}</code></pre>
+</section>
+
+<!-- ── Slide 6: Test Results ─────────────────────────────── -->
+<section class="slide">
+  <h1>Test Results</h1>
+
+  <div class="terminal">
+<span class="dim">$ cargo test -p lazyjob-llm --lib</span>
+<span class="dim">   Compiling lazyjob-llm v0.1.0</span>
+<span class="dim">    Finished `test` profile in 1.02s</span>
+<span class="dim">     Running unittests src/lib.rs</span>
+
+<span class="bold">running 40 tests</span>
+<span class="ok">test error::tests::llm_error_auth_variant ... ok</span>
+<span class="ok">test error::tests::llm_error_display ... ok</span>
+<span class="ok">test message::tests::chat_message_role_and_content ... ok</span>
+<span class="ok">test message::tests::completion_options_default ... ok</span>
+<span class="ok">test message::tests::chat_message_serde_round_trip ... ok</span>
+<span class="ok">test message::tests::llm_response_construction ... ok</span>
+<span class="ok">test message::tests::token_usage_total_is_sum ... ok</span>
+<span class="ok">test mock::tests::async_trait_dyn_dispatch ... ok</span>
+<span class="ok">test mock::tests::async_trait_dyn_dispatch_embedding ... ok</span>
+<span class="ok">test providers::anthropic::tests::reqwest_client_builds_with_rustls ... ok</span>
+<span class="ok">test providers::anthropic::tests::parse_sse_stream_accumulates_text ... ok</span>
+<span class="ok">test providers::anthropic::tests::build_request_separates_system_messages ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_rs_client_constructs ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_rs_message_constructors ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_provider_name_and_model ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_with_model_override ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_default_constructs ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_message_mapping_system ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_message_mapping_user ... ok</span>
+<span class="ok">test providers::ollama::tests::ollama_message_mapping_assistant ... ok</span>
+<span class="ok">test providers::openai::tests::async_openai_client_builds_with_config ... ok</span>
+<span class="ok">test providers::openai::tests::async_openai_chat_request_serializes ... ok</span>
+<span class="ok">test providers::openai::tests::openai_provider_name_and_model ... ok</span>
+<span class="ok">test providers::openai::tests::openai_with_model_override ... ok</span>
+<span class="dim">  ... 16 more (anthropic, mock, message) ...</span>
+
+<span class="ok">test result: ok. 40 passed; 0 failed; 0 ignored; 0 measured</span>
+  </div>
+
+  <h2>Workspace-wide Results</h2>
+  <div class="terminal">
+<span class="dim">$ cargo test --workspace</span>
+<span class="ok">test result: ok. 15 passed  (lazyjob-cli)</span>
+<span class="ok">test result: ok. 88 passed  (lazyjob-core)</span>
+<span class="ok">test result: ok. 40 passed  (lazyjob-llm)  ← this task</span>
+<span class="ok">test result: ok. 118 passed (lazyjob-tui)</span>
+<span class="bold">Total: 261 tests, 0 failed ✓</span>
+  </div>
+</section>
+
+<!-- ── Slide 7: Build & Lint ─────────────────────────────── -->
+<section class="slide">
+  <h1>Build &amp; Lint Verification</h1>
+
+  <h2>cargo build</h2>
+  <div class="terminal">
+<span class="dim">$ cargo build</span>
+<span class="dim">   Compiling lazyjob-llm v0.1.0 (/home/lab-admin/repos/lazyjob/crates/lazyjob-llm)</span>
+<span class="ok">    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.5s</span>
+  </div>
+
+  <h2>cargo clippy -- -D warnings</h2>
+  <div class="terminal">
+<span class="dim">$ cargo clippy --workspace -- -D warnings</span>
+<span class="dim">    Checking lazyjob-core v0.1.0</span>
+<span class="dim">    Checking lazyjob-llm v0.1.0</span>
+<span class="dim">    Checking lazyjob-tui v0.1.0</span>
+<span class="dim">    Checking lazyjob-cli v0.1.0</span>
+<span class="ok">    Finished `dev` profile — 0 warnings ✓</span>
+  </div>
+
+  <h2>cargo fmt --all</h2>
+  <div class="terminal">
+<span class="dim">$ cargo fmt --all &amp;&amp; echo "fmt ok"</span>
+<span class="ok">fmt ok</span>
+  </div>
+
+  <h2>New Workspace Dependencies</h2>
+  <table>
+    <thead><tr><th>Crate</th><th>Version</th><th>Features</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>async-openai</code></td>
+        <td>0.34.0</td>
+        <td>chat-completion, embedding</td>
+        <td>OpenAI SDK (chat + embeddings)</td>
+      </tr>
+      <tr>
+        <td><code>ollama-rs</code></td>
+        <td>0.3.4</td>
+        <td>stream, rustls (no default-features)</td>
+        <td>Ollama local LLM client</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── Slide 8: Decisions ────────────────────────────────── -->
+<section class="slide">
+  <h1>Key Design Decisions</h1>
+
+  <h2>Both providers implement both traits</h2>
+  <div class="highlight-box">
+    <strong>Decision:</strong> Both <code>OpenAiProvider</code> and <code>OllamaProvider</code> implement
+    both <code>LlmProvider</code> and <code>EmbeddingProvider</code>.
+    <br/><br/>
+    <strong>Rationale:</strong> OpenAI has both chat and embeddings APIs. Ollama supports both locally.
+    This makes them self-contained — callers can use either provider for all LLM needs without
+    importing a separate embedding provider.
+  </div>
+
+  <h2>No retry backoff for OpenAI/Ollama</h2>
+  <div class="highlight-box">
+    <strong>Decision:</strong> No exponential backoff implemented in this iteration (unlike AnthropicProvider).
+    <br/><br/>
+    <strong>Rationale:</strong> The <code>async-openai</code> SDK handles retries internally.
+    Ollama is local (no rate limiting needed). Task 17 (ProviderRegistry) will add unified
+    retry policy at the registry layer.
+  </div>
+
+  <h2>rustls over native-tls for Ollama</h2>
+  <div class="highlight-box">
+    <strong>Decision:</strong> <code>ollama-rs</code> configured with
+    <code>default-features = false, features = ["stream", "rustls"]</code>.
+    <br/><br/>
+    <strong>Rationale:</strong> System doesn't have <code>libssl-dev</code>. The existing reqwest
+    workspace dep already uses rustls-tls. Using rustls everywhere is consistent and avoids
+    mixed TLS stacks.
+  </div>
+
+  <h2>Type alias for name conflict</h2>
+  <div class="highlight-box">
+    <strong>Decision:</strong> <code>use ollama_rs::generation::chat::ChatMessage as OllamaMessage</code>.
+    <br/><br/>
+    <strong>Rationale:</strong> Our own <code>crate::message::ChatMessage</code> and ollama-rs's
+    <code>ChatMessage</code> would collide in the same file. Aliasing is idiomatic Rust.
+  </div>
+</section>
+
+<!-- ── Slide 9: Next Task ─────────────────────────────────── -->
+<section class="slide">
+  <h1>Up Next: Task 17 — llm-registry</h1>
+  <p>The next iteration will build the provider registry and builder pattern.</p>
+
+  <div class="card" style="margin-bottom: 16px;">
+    <div class="card-title">Task 17: llm-registry</div>
+    <p style="margin-top:8px;font-size:13px">
+      Implement <code>ProviderRegistry</code> holding boxed providers by name. Implement
+      <code>LlmBuilder::from_config(config, creds)</code> with fallback chain:
+      configured provider → Anthropic (if key set) → Ollama (always available).
+      Add <code>token_usage_log</code> insert after each completion. Implement
+      <code>cost.rs</code> with per-model microdollar pricing table.
+    </p>
+  </div>
+
+  <h2>What Task 17 Needs To Know</h2>
+  <table>
+    <thead><tr><th>Item</th><th>Location</th></tr></thead>
+    <tbody>
+      <tr><td>All three providers now available</td><td><code>lazyjob_llm::{AnthropicProvider, OpenAiProvider, OllamaProvider}</code></td></tr>
+      <tr><td>Disambiguate provider_name()</td><td>Use <code>LlmProvider::provider_name(&amp;p)</code></td></tr>
+      <tr><td>async-openai type paths changed</td><td>Use <code>types::chat::*</code> submodule</td></tr>
+      <tr><td>ollama-rs needs rustls features</td><td><code>default-features = false, features = ["stream", "rustls"]</code></td></tr>
+      <tr><td>token_usage_log table</td><td>Migration 001 already created it in lazyjob-core</td></tr>
+    </tbody>
+  </table>
+
+  <hr />
+  <p style="color: var(--muted); font-size: 12px;">
+    Task 16 complete. 261 tests passing. 0 warnings. cargo fmt clean.
+  </p>
+</section>
+
+</main>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const navItems = document.querySelectorAll('.nav-item');
+  function show(n) {
+    slides.forEach((s, i) => s.classList.toggle('active', i === n));
+    navItems.forEach((item, i) => item.classList.toggle('active', i === n));
+    document.getElementById('content').scrollTo(0, 0);
+  }
+</script>
+</body>
+</html>

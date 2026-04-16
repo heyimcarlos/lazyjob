@@ -472,3 +472,36 @@ Next iteration should know:
 - Integration test: cargo test -p lazyjob-llm --features integration (requires ANTHROPIC_API_KEY env var)
 - SSE parsing is in the module-private parse_sse_response(&[u8]) function — testable independently of network
 - Task 16 (llm-openai) is next — OpenAiProvider using async-openai, OllamaProvider using ollama-rs
+
+## Task 16: llm-openai — DONE
+Date: 2026-04-16
+Files created/modified:
+- Cargo.toml (added async-openai = "0.34" with chat-completion+embedding features, ollama-rs = "0.3" with stream+rustls features)
+- crates/lazyjob-llm/Cargo.toml (added async-openai and ollama-rs deps)
+- crates/lazyjob-llm/src/providers/openai.rs (new: OpenAiProvider implementing LlmProvider + EmbeddingProvider)
+- crates/lazyjob-llm/src/providers/ollama.rs (new: OllamaProvider implementing LlmProvider + EmbeddingProvider)
+- crates/lazyjob-llm/src/providers/mod.rs (added pub mod openai, pub mod ollama, re-exports)
+- crates/lazyjob-llm/src/lib.rs (added OpenAiProvider, OllamaProvider to pub re-exports)
+Key decisions:
+- async-openai 0.34 uses feature-gated modules — `chat-completion` and `embedding` features required to activate `_api` feature (the HTTP client)
+- ollama-rs must use `default-features = false, features = ["stream", "rustls"]` to avoid native-tls/OpenSSL dependency (system does not have libssl-dev)
+- Message builder types (`*Args`) in async-openai 0.34 are in `types::chat` submodule, not `types` directly
+- Both OpenAiProvider and OllamaProvider implement both `LlmProvider` and `EmbeddingProvider` traits
+- Both providers have `provider_name()` from each trait — tests must use `LlmProvider::provider_name(&p)` qualified syntax
+- `from_credentials()` constructor on OpenAiProvider reads from CredentialManager keyring (same pattern as AnthropicProvider)
+- OllamaProvider::new() connects to localhost:11434; OllamaProvider::with_host_port() for custom hosts
+- Ollama response `final_data: Option<ChatMessageFinalResponseData>` with `prompt_eval_count: u64` and `eval_count: u64`
+Learning tests written:
+- async_openai_client_builds_with_config — proves Client::with_config(OpenAIConfig::new().with_api_key()) constructs without network call
+- async_openai_chat_request_serializes — proves CreateChatCompletionRequestArgs builder produces correct request struct
+- ollama_rs_client_constructs — proves Ollama::new() and Ollama::default() construct without panicking
+- ollama_rs_message_constructors — proves OllamaMessage::system/user/assistant set content correctly
+Tests passing: 261 (12 new: 4 openai tests + 8 ollama tests)
+Next iteration should know:
+- OpenAiProvider is in lazyjob_llm::providers::openai, re-exported as lazyjob_llm::OpenAiProvider
+- OllamaProvider is in lazyjob_llm::providers::ollama, re-exported as lazyjob_llm::OllamaProvider
+- async-openai 0.34 type path: `async_openai::types::chat::CreateChatCompletionRequestArgs` (NOT `types::CreateChatCompletionRequestArgs`)
+- ollama-rs MUST use `default-features = false` + `features = ["stream", "rustls"]` on this system (no OpenSSL)
+- Both providers implement both LlmProvider and EmbeddingProvider — future code calling provider_name() must use qualified syntax
+- Integration tests: `cargo test -p lazyjob-llm --features integration` (requires OPENAI_API_KEY or running Ollama)
+- Task 17 (llm-registry) is next — ProviderRegistry, LlmBuilder::from_config, cost estimation

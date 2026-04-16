@@ -127,7 +127,7 @@
       "description": "In lazyjob-llm/src/providers/openai.rs, implement OpenAiProvider using async-openai crate. Support chat completions and embeddings (text-embedding-3-small, 1536 dims). Read API key from CredentialManager. Implement OllamaProvider in providers/ollama.rs using ollama-rs with nomic-embed-text (768 dims). Write unit tests for both providers using MockServer or by testing message formatting logic.",
       "phase": "build",
       "spec": "specs/02-llm-provider-abstraction-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 17,
