@@ -21,6 +21,8 @@ zeroize = { workspace = true }
 ammonia = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
+futures = { workspace = true }
+tracing = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

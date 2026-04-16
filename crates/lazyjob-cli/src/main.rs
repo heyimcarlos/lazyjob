@@ -8,6 +8,7 @@ use secrecy::SecretString;
 use lazyjob_core::config::Config;
 use lazyjob_core::credentials::CredentialManager;
 use lazyjob_core::db::{DEFAULT_DATABASE_URL, Database};
+use lazyjob_core::discovery::{DiscoveryService, SourceConfig};
 use lazyjob_core::domain::Job;
 use lazyjob_core::repositories::{JobRepository, Pagination};
 
@@ -26,6 +27,7 @@ enum Commands {
     Jobs(JobsArgs),
     Profile(ProfileArgs),
     Config(ConfigArgs),
+    Ralph(RalphArgs),
     Tui,
 }
 
@@ -69,6 +71,22 @@ struct ConfigArgs {
     command: ConfigCommand,
 }
 
+#[derive(Parser)]
+struct RalphArgs {
+    #[command(subcommand)]
+    command: RalphCommand,
+}
+
+#[derive(Subcommand)]
+enum RalphCommand {
+    JobDiscovery {
+        #[arg(long)]
+        source: String,
+        #[arg(long)]
+        company_id: String,
+    },
+}
+
 #[derive(Subcommand)]
 #[allow(clippy::enum_variant_names)]
 enum ConfigCommand {
@@ -105,6 +123,12 @@ async fn run(cli: Cli) -> Result<()> {
             lazyjob_tui::run(std::sync::Arc::new(config)).await
         }
         Commands::Config(args) => handle_config(args),
+        Commands::Ralph(args) => {
+            let db = connect_db(db_url).await?;
+            let result = handle_ralph(args, &db).await;
+            db.close().await;
+            result
+        }
         Commands::Jobs(args) => {
             let db = connect_db(db_url).await?;
             let result = match args.command {
@@ -202,6 +226,39 @@ async fn handle_profile_export(db: &Database) -> Result<()> {
     let json = serde_json::to_string_pretty(&json_resume)?;
     println!("{json}");
     Ok(())
+}
+
+async fn handle_ralph(args: RalphArgs, db: &Database) -> Result<()> {
+    match args.command {
+        RalphCommand::JobDiscovery { source, company_id } => {
+            println!("Starting job discovery: {source} / {company_id}");
+
+            let (tx, mut rx) = tokio::sync::mpsc::channel(64);
+
+            let pool = db.pool().clone();
+            let sources = vec![SourceConfig { source, company_id }];
+
+            let discover_fut = DiscoveryService::run_discovery(&pool, sources, Some(tx));
+
+            let print_fut = async {
+                while let Some(progress) = rx.recv().await {
+                    println!(
+                        "[{}] {}: {}",
+                        progress.source, progress.company_id, progress.message
+                    );
+                }
+            };
+
+            let (stats, _) = tokio::join!(discover_fut, print_fut);
+            let stats = stats?;
+
+            println!(
+                "\nDiscovery complete: {} found, {} new, {} updated, {} errors",
+                stats.jobs_found, stats.jobs_new, stats.jobs_updated, stats.errors
+            );
+            Ok(())
+        }
+    }
 }
 
 fn handle_config(args: ConfigArgs) -> Result<()> {
@@ -420,6 +477,29 @@ mod tests {
                 _ => panic!("expected GetKey"),
             },
             _ => panic!("expected Config"),
+        }
+    }
+
+    #[test]
+    fn parse_ralph_job_discovery() {
+        let cli = Cli::try_parse_from([
+            "lazyjob",
+            "ralph",
+            "job-discovery",
+            "--source",
+            "greenhouse",
+            "--company-id",
+            "stripe",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Ralph(args) => match args.command {
+                RalphCommand::JobDiscovery { source, company_id } => {
+                    assert_eq!(source, "greenhouse");
+                    assert_eq!(company_id, "stripe");
+                }
+            },
+            _ => panic!("expected Ralph"),
         }
     }
 

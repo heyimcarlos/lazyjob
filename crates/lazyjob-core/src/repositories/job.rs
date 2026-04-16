@@ -106,8 +106,8 @@ impl JobRepository {
         Ok(())
     }
 
-    pub async fn upsert_discovered(&self, job: &Job) -> Result<()> {
-        sqlx::query(
+    pub async fn upsert_discovered(&self, job: &Job) -> Result<bool> {
+        let row = sqlx::query_as::<_, (bool,)>(
             "INSERT INTO jobs (id, title, company_id, company_name, location, url, description,
              salary_min, salary_max, source, source_id, match_score, ghost_score, discovered_at, notes)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
@@ -118,7 +118,8 @@ impl JobRepository {
                  location = EXCLUDED.location,
                  url = EXCLUDED.url,
                  description = EXCLUDED.description,
-                 updated_at = now()",
+                 updated_at = now()
+             RETURNING (xmax = 0) AS is_new",
         )
         .bind(job.id)
         .bind(&job.title)
@@ -135,9 +136,9 @@ impl JobRepository {
         .bind(job.ghost_score)
         .bind(job.discovered_at)
         .bind(&job.notes)
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await?;
-        Ok(())
+        Ok(row.0)
     }
 }
 
