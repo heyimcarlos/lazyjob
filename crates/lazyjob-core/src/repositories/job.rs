@@ -105,6 +105,40 @@ impl JobRepository {
             .await?;
         Ok(())
     }
+
+    pub async fn upsert_discovered(&self, job: &Job) -> Result<()> {
+        sqlx::query(
+            "INSERT INTO jobs (id, title, company_id, company_name, location, url, description,
+             salary_min, salary_max, source, source_id, match_score, ghost_score, discovered_at, notes)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+             ON CONFLICT (source, source_id) WHERE source IS NOT NULL AND source_id IS NOT NULL
+             DO UPDATE SET
+                 title = EXCLUDED.title,
+                 company_name = EXCLUDED.company_name,
+                 location = EXCLUDED.location,
+                 url = EXCLUDED.url,
+                 description = EXCLUDED.description,
+                 updated_at = now()",
+        )
+        .bind(job.id)
+        .bind(&job.title)
+        .bind(job.company_id)
+        .bind(&job.company_name)
+        .bind(&job.location)
+        .bind(&job.url)
+        .bind(&job.description)
+        .bind(job.salary_min)
+        .bind(job.salary_max)
+        .bind(&job.source)
+        .bind(&job.source_id)
+        .bind(job.match_score)
+        .bind(job.ghost_score)
+        .bind(job.discovered_at)
+        .bind(&job.notes)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
+    }
 }
 
 #[derive(sqlx::FromRow)]

@@ -39,6 +39,8 @@ reqwest = { version = "0.12", features = ["json", "rustls-tls", "stream"], defau
 async-openai = { version = "0.34", features = ["chat-completion", "embedding"] }
 ollama-rs = { version = "0.3", default-features = false, features = ["stream", "rustls"] }
 cron = "0.12"
+ammonia = "4"
+wiremock = "0.6"
 
 lazyjob-core = { path = "crates/lazyjob-core" }
 lazyjob-llm = { path = "crates/lazyjob-llm" }

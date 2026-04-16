@@ -18,6 +18,10 @@ dirs = { workspace = true }
 keyring = { workspace = true }
 secrecy = { workspace = true }
 zeroize = { workspace = true }
+ammonia = { workspace = true }
+async-trait = { workspace = true }
+reqwest = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
+wiremock = { workspace = true }

@@ -25,6 +25,9 @@ pub enum CoreError {
 
     #[error("credential error: {0}")]
     Credential(String),
+
+    #[error("HTTP error: {0}")]
+    Http(String),
 }
 
 impl From<serde_json::Error> for CoreError {

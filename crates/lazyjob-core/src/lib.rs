@@ -1,6 +1,7 @@
 pub mod config;
 pub mod credentials;
 pub mod db;
+pub mod discovery;
 pub mod domain;
 pub mod error;
 pub mod life_sheet;
