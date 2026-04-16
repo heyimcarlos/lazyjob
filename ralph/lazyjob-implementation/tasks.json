@@ -191,7 +191,7 @@
       "description": "In lazyjob-core/src/discovery/service.rs, implement DiscoveryService::run_discovery(pool: &PgPool, sources: Vec<SourceConfig>) -> Result<DiscoveryStats>. Fan out to all sources in parallel using tokio::join_all. Each source result goes through PostgreSQL upsert deduplication (INSERT ... ON CONFLICT(source, source_id) DO NOTHING). Emit progress events via a mpsc channel. Return stats: jobs_found, jobs_new, jobs_updated, errors. Wire this as the lazyjob ralph job-discovery CLI subcommand. Write tests with mock sources.",
       "phase": "build",
       "spec": "specs/05-job-discovery-layer-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 25,

@@ -696,3 +696,30 @@ Next iteration should know:
 - App.handle_action now delegates ScrollDown/ScrollUp/Select to the active view via handle_key — this is the correct pattern for all future views with scroll state
 - The 5-second completion display is automatic — no timer needed, cleanup happens in render()
 - Task 23 (job-sources) is next — GreenhouseClient, LeverClient using reqwest, ammonia HTML stripping, rate limiting
+
+## Task 24: discovery-service — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-core/src/discovery/service.rs (new: DiscoveryService, SourceConfig, DiscoveryStats, DiscoveryProgress)
+- crates/lazyjob-core/src/discovery/mod.rs (added pub mod service + re-exports)
+- crates/lazyjob-core/src/repositories/job.rs (upsert_discovered now returns Result<bool> using xmax trick)
+- crates/lazyjob-core/Cargo.toml (added futures, tracing deps)
+- crates/lazyjob-cli/src/main.rs (added Ralph subcommand with JobDiscovery command)
+Key decisions:
+- SourceConfig is a simple struct { source: String, company_id: String } — no complex trait dispatch at config time
+- upsert_discovered return type changed from Result<()> to Result<bool> using PostgreSQL RETURNING (xmax = 0) AS is_new — true=new insert, false=update
+- Parallelism via futures::future::join_all — all (source, company_id) pairs fan out simultaneously
+- discover_one returns DiscoveryStats directly (not Result) — errors are counted, never propagated, so other sources continue on partial failure
+- Progress events sent via tokio::sync::mpsc::Sender<DiscoveryProgress> — optional (None = no progress reporting)
+- CLI `lazyjob ralph job-discovery --source greenhouse --company-id stripe` uses tokio::join! to drive discovery + print progress concurrently
+- DiscoveryStats implements std::ops::Add for clean aggregation of per-source stats
+Learning tests written:
+- futures_join_all_collects_from_parallel_futures — proves futures::future::join_all aggregates results from multiple parallel futures using a named async fn (avoids opaque type collision from inline async blocks)
+Tests passing: 379 total (11 new: futures_join_all learning test, discovery_stats_add, discovery_stats_default, source_config_fields_accessible, discovery_progress_fields_accessible, run_discovery_empty_sources, discover_one_unknown_source, run_discovery_sends_progress_events, upsert_discovered_returns_true_for_new, upsert_discovered_returns_false_for_update, parse_ralph_job_discovery)
+Next iteration should know:
+- DiscoveryService::run_discovery(&pool, sources, Option<Sender<DiscoveryProgress>>) -> Result<DiscoveryStats>
+- SourceConfig and DiscoveryStats are in lazyjob-core::discovery, re-exported from discovery mod
+- upsert_discovered now returns bool — any code calling it must handle the bool return (was `()` before)
+- futures crate is now in lazyjob-core deps
+- CLI ralph subcommand: `lazyjob ralph job-discovery --source <source> --company-id <company_id>`
+- Task 25 (semantic-matching) is next — MatchScorer, cosine similarity, job_embeddings migration, GhostDetector

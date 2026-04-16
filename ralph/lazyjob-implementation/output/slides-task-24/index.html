@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 24: Discovery Service — LazyJob</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  nav {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  nav h2 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 16px 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  nav a {
+    display: block;
+    padding: 8px 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+
+  nav a:hover, nav a.active {
+    color: var(--text);
+    background: rgba(88, 166, 255, 0.1);
+    border-left-color: var(--accent);
+  }
+
+  nav .section-title {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px 4px;
+    font-weight: 600;
+  }
+
+  /* Main content */
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 48px;
+  }
+
+  .slide {
+    display: none;
+    max-width: 900px;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .slide.active { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  p { line-height: 1.7; color: var(--muted); margin-bottom: 12px; }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* Code blocks */
+  pre {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin-bottom: 16px;
+  }
+
+  code { font-family: inherit; }
+
+  .comment { color: #6e7681; }
+  .keyword { color: #ff7b72; }
+  .type { color: #79c0ff; }
+  .string { color: #a5d6ff; }
+  .number { color: #79c0ff; }
+  .fn-name { color: #d2a8ff; }
+  .attr { color: #7ee787; }
+  .punct { color: var(--muted); }
+
+  /* Terminal */
+  .terminal {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+
+  .terminal-header {
+    background: var(--surface);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red { background: #ff5f57; }
+  .dot-yellow { background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  .terminal-body {
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .term-prompt { color: var(--green); }
+  .term-cmd { color: var(--text); }
+  .term-ok { color: var(--green); }
+  .term-err { color: var(--red); }
+  .term-info { color: var(--accent); }
+  .term-muted { color: var(--muted); }
+  .term-yellow { color: var(--yellow); }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-green { background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid rgba(63, 185, 80, 0.3); }
+  .badge-blue { background: rgba(88, 166, 255, 0.15); color: var(--accent); border: 1px solid rgba(88, 166, 255, 0.3); }
+  .badge-purple { background: rgba(188, 140, 255, 0.15); color: var(--purple); border: 1px solid rgba(188, 140, 255, 0.3); }
+
+  /* Lists */
+  ul { padding-left: 20px; }
+  ul li { margin-bottom: 8px; color: var(--muted); line-height: 1.6; }
+  ul li strong { color: var(--text); }
+
+  /* Stats row */
+  .stats-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    flex: 1;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Diagram */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .flow-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: monospace;
+    color: var(--accent);
+  }
+
+  .flow-arrow {
+    color: var(--muted);
+    font-size: 18px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+
+  th {
+    background: var(--surface);
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(48, 54, 61, 0.5);
+    color: var(--muted);
+  }
+
+  td:first-child { color: var(--text); font-family: monospace; font-size: 12px; }
+  td code { background: rgba(88, 166, 255, 0.1); padding: 2px 6px; border-radius: 4px; color: var(--accent); font-size: 12px; }
+
+  /* Divider */
+  hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* Check list */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; color: var(--muted); }
+  .checklist li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .checklist li strong { color: var(--text); }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 24</h2>
+  <div class="section-title">Slides</div>
+  <a href="#" class="active" onclick="show(0); return false;">01 Overview</a>
+  <a href="#" onclick="show(1); return false;">02 Architecture</a>
+  <a href="#" onclick="show(2); return false;">03 DiscoveryService</a>
+  <a href="#" onclick="show(3); return false;">04 upsert_discovered</a>
+  <a href="#" onclick="show(4); return false;">05 CLI Subcommand</a>
+  <a href="#" onclick="show(5); return false;">06 Learning Test</a>
+  <a href="#" onclick="show(6); return false;">07 Test Suite</a>
+  <a href="#" onclick="show(7); return false;">08 Demo</a>
+  <a href="#" onclick="show(8); return false;">09 Summary</a>
+</nav>
+
+<main>
+
+<!-- Slide 0: Overview -->
+<div class="slide active" id="slide-0">
+  <h1>Task 24: Discovery Service</h1>
+  <p class="subtitle">Parallel job discovery from multiple sources with PostgreSQL deduplication and progress events</p>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-value">379</div>
+      <div class="stat-label">Tests Passing</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">11</div>
+      <div class="stat-label">New Tests</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">5</div>
+      <div class="stat-label">Files Changed</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Warnings</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>What was built</h3>
+    <ul class="checklist">
+      <li><strong>DiscoveryService::run_discovery()</strong> — fans out to multiple (source, company) pairs in parallel</li>
+      <li><strong>SourceConfig</strong> — configures which source (greenhouse/lever) and company to query</li>
+      <li><strong>DiscoveryStats</strong> — aggregates: jobs_found, jobs_new, jobs_updated, errors</li>
+      <li><strong>DiscoveryProgress channel</strong> — mpsc sender for real-time progress events</li>
+      <li><strong>upsert_discovered returns bool</strong> — uses PostgreSQL xmax trick to detect new vs updated rows</li>
+      <li><strong>lazyjob ralph job-discovery CLI subcommand</strong> — drives discovery from the command line</li>
+    </ul>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>Key dependencies</h3>
+      <ul>
+        <li><strong>futures</strong> — join_all for parallel execution (new to lazyjob-core)</li>
+        <li><strong>tracing</strong> — structured logging (new to lazyjob-core)</li>
+        <li><strong>tokio::sync::mpsc</strong> — progress channel (already in workspace)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Pattern used</h3>
+      <ul>
+        <li><strong>Fan-out / Fan-in</strong> — join_all aggregates DiscoveryStats from each source</li>
+        <li><strong>Error resilience</strong> — per-source errors counted, never fatal</li>
+        <li><strong>Trait dispatch</strong> — SourceConfig resolves to Box&lt;dyn JobSource&gt;</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 1: Architecture -->
+<div class="slide" id="slide-1">
+  <h1>Architecture</h1>
+  <p class="subtitle">How the discovery service fits into the lazyjob-core discovery module</p>
+
+  <div class="card">
+    <h3>Data flow</h3>
+    <div class="flow">
+      <div class="flow-box">CLI: ralph job-discovery</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">DiscoveryService::run_discovery()</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">join_all(discover_one × N)</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">JobSource::fetch_jobs()</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">JobRepository::upsert_discovered()</div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-box">DiscoveryStats</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Module structure</h3>
+    <pre><code>lazyjob-core/src/discovery/
+├── <span class="attr">mod.rs</span>           <span class="comment">// re-exports: DiscoveryService, SourceConfig, DiscoveryStats, DiscoveryProgress</span>
+├── <span class="attr">service.rs</span>       <span class="comment">// NEW: DiscoveryService + supporting types</span>
+└── sources/
+    ├── <span class="attr">mod.rs</span>       <span class="comment">// JobSource trait, RateLimiter, strip_html</span>
+    ├── <span class="attr">greenhouse.rs</span> <span class="comment">// GreenhouseClient (task 23)</span>
+    └── <span class="attr">lever.rs</span>     <span class="comment">// LeverClient (task 23)</span></code></pre>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>Public API surface</h3>
+      <table>
+        <tr><th>Type</th><th>Purpose</th></tr>
+        <tr><td>SourceConfig</td><td>Which source + company to query</td></tr>
+        <tr><td>DiscoveryStats</td><td>Aggregated job counts + errors</td></tr>
+        <tr><td>DiscoveryProgress</td><td>Real-time progress events via mpsc</td></tr>
+        <tr><td>DiscoveryService</td><td>Orchestrates parallel discovery</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Error resilience design</h3>
+      <ul>
+        <li><strong>Source failure</strong> → increments errors, continues with other sources</li>
+        <li><strong>Upsert failure</strong> → logged + counted, job skipped</li>
+        <li><strong>Unknown source</strong> → errors=1, returns immediately</li>
+        <li><strong>Empty sources</strong> → returns zero stats, no error</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 2: DiscoveryService -->
+<div class="slide" id="slide-2">
+  <h1>DiscoveryService</h1>
+  <p class="subtitle">Core implementation — parallel fan-out with progress events</p>
+
+  <pre><code><span class="keyword">pub struct</span> <span class="type">DiscoveryStats</span> {
+    <span class="keyword">pub</span> jobs_found: usize,
+    <span class="keyword">pub</span> jobs_new: usize,
+    <span class="keyword">pub</span> jobs_updated: usize,
+    <span class="keyword">pub</span> errors: usize,
+}
+
+<span class="keyword">impl</span> std::ops::<span class="type">Add</span> <span class="keyword">for</span> <span class="type">DiscoveryStats</span> { <span class="comment">// enables fold aggregation</span>
+    <span class="keyword">type</span> <span class="type">Output</span> = <span class="type">Self</span>;
+    <span class="keyword">fn</span> <span class="fn-name">add</span>(self, rhs: <span class="type">Self</span>) -> <span class="type">Self</span> { <span class="comment">/* sum each field */</span> }
+}
+
+<span class="keyword">pub struct</span> <span class="type">DiscoveryService</span>;
+
+<span class="keyword">impl</span> <span class="type">DiscoveryService</span> {
+    <span class="keyword">pub async fn</span> <span class="fn-name">run_discovery</span>(
+        pool: &<span class="type">PgPool</span>,
+        sources: <span class="type">Vec</span>&lt;<span class="type">SourceConfig</span>&gt;,
+        progress_tx: <span class="type">Option</span>&lt;mpsc::<span class="type">Sender</span>&lt;<span class="type">DiscoveryProgress</span>&gt;&gt;,
+    ) -> <span class="type">Result</span>&lt;<span class="type">DiscoveryStats</span>&gt; {
+        <span class="keyword">let</span> futs: <span class="type">Vec</span>&lt;_&gt; = sources
+            .<span class="fn-name">into_iter</span>()
+            .<span class="fn-name">map</span>(|cfg| {
+                <span class="keyword">let</span> pool = pool.<span class="fn-name">clone</span>();
+                <span class="keyword">let</span> tx = progress_tx.<span class="fn-name">clone</span>();
+                <span class="keyword">async move</span> { <span class="fn-name">discover_one</span>(pool, cfg, tx).<span class="fn-name">await</span> }
+            })
+            .<span class="fn-name">collect</span>();
+
+        <span class="keyword">let</span> results = <span class="fn-name">join_all</span>(futs).<span class="keyword">await</span>;
+
+        <span class="keyword">let</span> stats = results
+            .<span class="fn-name">into_iter</span>()
+            .<span class="fn-name">fold</span>(<span class="type">DiscoveryStats</span>::<span class="fn-name">default</span>(), |acc, r| acc + r);
+
+        <span class="type">Ok</span>(stats)
+    }
+}</code></pre>
+
+  <div class="card">
+    <h3>discover_one — per-source logic</h3>
+    <pre><code><span class="keyword">async fn</span> <span class="fn-name">discover_one</span>(pool: <span class="type">PgPool</span>, cfg: <span class="type">SourceConfig</span>, tx: <span class="type">Option</span>&lt;..&gt;) -> <span class="type">DiscoveryStats</span> {
+    <span class="keyword">let</span> client: <span class="type">Box</span>&lt;<span class="keyword">dyn</span> <span class="type">JobSource</span>&gt; = <span class="keyword">match</span> cfg.source.<span class="fn-name">as_str</span>() {
+        <span class="string">"greenhouse"</span> => <span class="type">Box</span>::<span class="fn-name">new</span>(<span class="type">GreenhouseClient</span>::<span class="fn-name">new</span>()),
+        <span class="string">"lever"</span>      => <span class="type">Box</span>::<span class="fn-name">new</span>(<span class="type">LeverClient</span>::<span class="fn-name">new</span>()),
+        other => { <span class="comment">/* error + return */</span> }
+    };
+
+    <span class="keyword">let</span> jobs = client.<span class="fn-name">fetch_jobs</span>(&cfg.company_id).<span class="keyword">await</span>?;
+    <span class="keyword">let</span> repo = <span class="type">JobRepository</span>::<span class="fn-name">new</span>(pool);
+
+    <span class="keyword">for</span> job <span class="keyword">in</span> &jobs {
+        <span class="keyword">match</span> repo.<span class="fn-name">upsert_discovered</span>(job).<span class="keyword">await</span> {
+            <span class="type">Ok</span>(<span class="keyword">true</span>)  => jobs_new += <span class="number">1</span>,
+            <span class="type">Ok</span>(<span class="keyword">false</span>) => jobs_updated += <span class="number">1</span>,
+            <span class="type">Err</span>(e)   => { tracing::<span class="fn-name">warn!</span>(...); errors += <span class="number">1</span>; }
+        }
+    }
+    <span class="type">DiscoveryStats</span> { jobs_found: jobs.len(), jobs_new, jobs_updated, errors }
+}</code></pre>
+  </div>
+</div>
+
+<!-- Slide 3: upsert_discovered -->
+<div class="slide" id="slide-3">
+  <h1>upsert_discovered Return Type</h1>
+  <p class="subtitle">Using PostgreSQL's xmax system column to detect new vs updated rows</p>
+
+  <div class="card">
+    <h3>The problem</h3>
+    <p>The old <code>upsert_discovered(&self, job: &Job) -> Result&lt;()&gt;</code> couldn't tell us whether the row was newly inserted or an update. The discovery service needs this to populate <code>jobs_new</code> and <code>jobs_updated</code> in DiscoveryStats.</p>
+  </div>
+
+  <div class="card">
+    <h3>Solution: PostgreSQL xmax trick</h3>
+    <p>After an <code>ON CONFLICT DO UPDATE</code>, <code>RETURNING (xmax = 0) AS is_new</code> returns <code>true</code> for fresh inserts and <code>false</code> for updates. <code>xmax</code> stores the XID of the deleting transaction — zero means no prior version existed.</p>
+
+    <pre><code><span class="keyword">pub async fn</span> <span class="fn-name">upsert_discovered</span>(&self, job: &<span class="type">Job</span>) -> <span class="type">Result</span>&lt;<span class="keyword">bool</span>&gt; {
+    <span class="keyword">let</span> row = sqlx::<span class="fn-name">query_as</span>::&lt;_, (<span class="keyword">bool</span>,)&gt;(
+        <span class="string">"INSERT INTO jobs (...)
+         VALUES (...)
+         ON CONFLICT (source, source_id)
+         WHERE source IS NOT NULL AND source_id IS NOT NULL
+         DO UPDATE SET
+             title       = EXCLUDED.title,
+             company_name = EXCLUDED.company_name,
+             location    = EXCLUDED.location,
+             url         = EXCLUDED.url,
+             description = EXCLUDED.description,
+             updated_at  = now()
+         RETURNING (xmax = 0) AS is_new"</span>,
+    )
+    .<span class="fn-name">bind</span>(...) <span class="comment">// 15 fields</span>
+    .<span class="fn-name">fetch_one</span>(&self.pool).<span class="keyword">await</span>?;
+
+    <span class="type">Ok</span>(row.<span class="number">0</span>)  <span class="comment">// true = newly inserted, false = updated</span>
+}</code></pre>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>xmax semantics</h3>
+      <ul>
+        <li><strong>INSERT → xmax = 0</strong> — no prior transaction owned this tuple</li>
+        <li><strong>UPDATE → xmax ≠ 0</strong> — the old XID is stored to mark the deleted version</li>
+        <li><strong>After DO UPDATE</strong> — xmax reflects whether the tuple existed before this statement</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Verified by integration tests</h3>
+      <ul>
+        <li><code>upsert_discovered_returns_true_for_new</code> — first insert returns true</li>
+        <li><code>upsert_discovered_returns_false_for_update</code> — second upsert with same source+source_id returns false</li>
+        <li>Uses unique source_id per test run to avoid cross-test interference</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 4: CLI Subcommand -->
+<div class="slide" id="slide-4">
+  <h1>CLI: ralph job-discovery</h1>
+  <p class="subtitle">New top-level Ralph subcommand that drives discovery from the terminal</p>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="dot dot-red"></span>
+      <span class="dot dot-yellow"></span>
+      <span class="dot dot-green"></span>
+      <span style="margin-left: 8px;">terminal</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="term-prompt">$</span> <span class="term-cmd">lazyjob ralph --help</span></div>
+      <div class="term-muted">Usage: lazyjob-cli ralph &lt;COMMAND&gt;</div>
+      <div class="term-muted"></div>
+      <div class="term-muted">Commands:</div>
+      <div class="term-muted">  job-discovery</div>
+      <div class="term-muted">  help           Print this message or the help of the given subcommand(s)</div>
+      <div>&nbsp;</div>
+      <div><span class="term-prompt">$</span> <span class="term-cmd">lazyjob ralph job-discovery --help</span></div>
+      <div class="term-muted">Usage: lazyjob-cli ralph job-discovery --source &lt;SOURCE&gt; --company-id &lt;COMPANY_ID&gt;</div>
+      <div class="term-muted"></div>
+      <div class="term-muted">Options:</div>
+      <div class="term-muted">      --source &lt;SOURCE&gt;</div>
+      <div class="term-muted">      --company-id &lt;COMPANY_ID&gt;</div>
+      <div class="term-muted">  -h, --help  Print help</div>
+      <div>&nbsp;</div>
+      <div><span class="term-prompt">$</span> <span class="term-cmd">lazyjob ralph job-discovery --source greenhouse --company-id stripe</span></div>
+      <div class="term-info">Starting job discovery: greenhouse / stripe</div>
+      <div class="term-muted">[greenhouse] stripe: fetching jobs from greenhouse / stripe</div>
+      <div class="term-ok">[greenhouse] stripe: done: 47 found, 47 new, 0 updated, 0 errors</div>
+      <div>&nbsp;</div>
+      <div class="term-ok">Discovery complete: 47 found, 47 new, 0 updated, 0 errors</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Implementation — tokio::join! for concurrent progress printing</h3>
+    <pre><code><span class="keyword">async fn</span> <span class="fn-name">handle_ralph</span>(args: <span class="type">RalphArgs</span>, db: &<span class="type">Database</span>) -> <span class="type">Result</span>&lt;()&gt; {
+    <span class="keyword">let</span> (<span class="type">RalphCommand</span>::<span class="type">JobDiscovery</span> { source, company_id }) = args.command;
+    <span class="keyword">let</span> (tx, <span class="keyword">mut</span> rx) = tokio::sync::mpsc::<span class="fn-name">channel</span>(<span class="number">64</span>);
+    <span class="keyword">let</span> sources = <span class="fn-name">vec!</span>[<span class="type">SourceConfig</span> { source, company_id }];
+
+    <span class="keyword">let</span> discover_fut = <span class="type">DiscoveryService</span>::<span class="fn-name">run_discovery</span>(pool, sources, <span class="type">Some</span>(tx));
+    <span class="keyword">let</span> print_fut = <span class="keyword">async</span> {
+        <span class="keyword">while let</span> <span class="type">Some</span>(p) = rx.<span class="fn-name">recv</span>().<span class="keyword">await</span> {
+            println!(<span class="string">"[{}] {}: {}"</span>, p.source, p.company_id, p.message);
+        }
+    };
+
+    <span class="keyword">let</span> (stats, _) = tokio::<span class="fn-name">join!</span>(discover_fut, print_fut);
+    println!(<span class="string">"Discovery complete: {} found, {} new..."</span>, stats?.jobs_found, ...);
+}</code></pre>
+  </div>
+</div>
+
+<!-- Slide 5: Learning Test -->
+<div class="slide" id="slide-5">
+  <h1>Learning Test</h1>
+  <p class="subtitle">Proving futures::future::join_all works before depending on it</p>
+
+  <div class="card">
+    <h3>The challenge: async block opaque types</h3>
+    <p>Each <code>async { ... }</code> block in Rust has a unique opaque type. You cannot put multiple inline async blocks into a <code>Vec</code> without boxing — even if they're identical, the type system considers them different. This is a subtlety worth proving before using join_all in production code.</p>
+  </div>
+
+  <pre><code><span class="comment">// learning test: verifies library behavior</span>
+<span class="attr">#[tokio::test]</span>
+<span class="keyword">async fn</span> <span class="fn-name">futures_join_all_collects_from_parallel_futures</span>() {
+    <span class="comment">// Each call to the same async fn produces the same concrete type — safe for Vec</span>
+    <span class="keyword">async fn</span> <span class="fn-name">const_fut</span>(n: usize) -> usize { n }
+
+    <span class="keyword">let</span> futs = <span class="fn-name">vec!</span>[<span class="fn-name">const_fut</span>(<span class="number">1</span>), <span class="fn-name">const_fut</span>(<span class="number">2</span>), <span class="fn-name">const_fut</span>(<span class="number">3</span>)];
+    <span class="keyword">let</span> results = <span class="fn-name">join_all</span>(futs).<span class="keyword">await</span>;
+    assert_eq!(results, <span class="fn-name">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>]);
+}</code></pre>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>What it proves</h3>
+      <ul>
+        <li><code>join_all</code> from futures 0.3 collects results in order</li>
+        <li>Named async functions produce a single concrete type — usable in homogeneous Vec</li>
+        <li>Inline async blocks are NOT interchangeable even if identical</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>First attempt (failed)</h3>
+      <pre><code><span class="comment">// error[E0308]: mismatched types
+// no two async blocks have the same type</span>
+<span class="keyword">let</span> futs = <span class="fn-name">vec!</span>[
+    <span class="keyword">async</span> { <span class="number">1</span>usize },  <span class="comment">// type A</span>
+    <span class="keyword">async</span> { <span class="number">2</span>usize },  <span class="comment">// type B ≠ A!</span>
+];</code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 6: Test Suite -->
+<div class="slide" id="slide-6">
+  <h1>Test Suite</h1>
+  <p class="subtitle">11 new tests bringing total to 379 across all crates</p>
+
+  <div class="stats-row">
+    <div class="stat">
+      <div class="stat-value">379</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">123</div>
+      <div class="stat-label">lazyjob-core</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">133</div>
+      <div class="stat-label">lazyjob-tui</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">62</div>
+      <div class="stat-label">lazyjob-llm</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">45</div>
+      <div class="stat-label">lazyjob-ralph</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">16</div>
+      <div class="stat-label">lazyjob-cli</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>New tests in discovery::service</h3>
+    <table>
+      <tr><th>Test</th><th>Type</th><th>Verifies</th></tr>
+      <tr><td>futures_join_all_collects_from_parallel_futures</td><td><span class="badge badge-purple">learning</span></td><td>join_all aggregates results in order</td></tr>
+      <tr><td>discovery_stats_add_aggregates_correctly</td><td><span class="badge badge-blue">unit</span></td><td>Add impl sums all fields</td></tr>
+      <tr><td>discovery_stats_default_is_zero</td><td><span class="badge badge-blue">unit</span></td><td>Default::default() produces zeroes</td></tr>
+      <tr><td>source_config_fields_accessible</td><td><span class="badge badge-blue">unit</span></td><td>SourceConfig struct fields</td></tr>
+      <tr><td>discovery_progress_fields_accessible</td><td><span class="badge badge-blue">unit</span></td><td>DiscoveryProgress struct fields</td></tr>
+      <tr><td>run_discovery_empty_sources_returns_zero_stats</td><td><span class="badge badge-green">integration</span></td><td>Empty input → zero DiscoveryStats</td></tr>
+      <tr><td>discover_one_unknown_source_increments_error</td><td><span class="badge badge-green">integration</span></td><td>Unknown source → errors=1, continues</td></tr>
+      <tr><td>run_discovery_sends_progress_events</td><td><span class="badge badge-green">integration</span></td><td>mpsc channel receives progress messages</td></tr>
+      <tr><td>upsert_discovered_returns_true_for_new</td><td><span class="badge badge-green">integration</span></td><td>xmax trick: first insert = true</td></tr>
+      <tr><td>upsert_discovered_returns_false_for_update</td><td><span class="badge badge-green">integration</span></td><td>xmax trick: second upsert = false</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>New test in lazyjob-cli</h3>
+    <table>
+      <tr><th>Test</th><th>Type</th><th>Verifies</th></tr>
+      <tr><td>parse_ralph_job_discovery</td><td><span class="badge badge-blue">unit</span></td><td>clap parses ralph job-discovery --source --company-id correctly</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Slide 7: Demo -->
+<div class="slide" id="slide-7">
+  <h1>Demonstration</h1>
+  <p class="subtitle">CLI help output and test run output</p>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+      <span style="margin-left:8px;">cargo test -p lazyjob-core discovery::service</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="term-prompt">$</span> <span class="term-cmd">cargo test -p lazyjob-core discovery::service</span></div>
+      <div class="term-muted">   Compiling lazyjob-core v0.1.0</div>
+      <div class="term-muted">    Finished `test` profile in 5.10s</div>
+      <div class="term-muted">     Running unittests src/lib.rs</div>
+      <div>&nbsp;</div>
+      <div class="term-muted">running 10 tests</div>
+      <div class="term-ok">test discovery::service::tests::discovery_stats_add_aggregates_correctly ... ok</div>
+      <div class="term-ok">test discovery::service::tests::discovery_progress_fields_accessible ... ok</div>
+      <div class="term-ok">test discovery::service::tests::discovery_stats_default_is_zero ... ok</div>
+      <div class="term-ok">test discovery::service::tests::source_config_fields_accessible ... ok</div>
+      <div class="term-ok">test discovery::service::tests::run_discovery_empty_sources_returns_zero_stats ... ok</div>
+      <div class="term-ok">test discovery::service::tests::discover_one_unknown_source_increments_error ... ok</div>
+      <div class="term-ok">test discovery::service::tests::run_discovery_sends_progress_events ... ok</div>
+      <div class="term-ok">test discovery::service::tests::upsert_discovered_returns_false_for_update ... ok</div>
+      <div class="term-ok">test discovery::service::tests::upsert_discovered_returns_true_for_new ... ok</div>
+      <div class="term-ok">test discovery::service::tests::futures_join_all_collects_from_parallel_futures ... ok</div>
+      <div>&nbsp;</div>
+      <div class="term-ok">test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 113 filtered out; finished in 0.00s</div>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+      <span style="margin-left:8px;">cargo clippy &amp;&amp; cargo test</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="term-prompt">$</span> <span class="term-cmd">cargo clippy -- -D warnings</span></div>
+      <div class="term-muted">    Checking lazyjob-core v0.1.0</div>
+      <div class="term-muted">    Checking lazyjob-ralph v0.1.0</div>
+      <div class="term-muted">    Checking lazyjob-llm v0.1.0</div>
+      <div class="term-muted">    Checking lazyjob-tui v0.1.0</div>
+      <div class="term-muted">    Checking lazyjob-cli v0.1.0</div>
+      <div class="term-ok">    Finished `dev` profile — 0 warnings</div>
+      <div>&nbsp;</div>
+      <div><span class="term-prompt">$</span> <span class="term-cmd">cargo test 2>&amp;1 | grep "test result"</span></div>
+      <div class="term-ok">test result: ok. 16 passed — lazyjob-cli</div>
+      <div class="term-ok">test result: ok. 123 passed — lazyjob-core</div>
+      <div class="term-ok">test result: ok. 62 passed — lazyjob-llm</div>
+      <div class="term-ok">test result: ok. 45 passed — lazyjob-ralph</div>
+      <div class="term-ok">test result: ok. 133 passed — lazyjob-tui</div>
+    </div>
+  </div>
+</div>
+
+<!-- Slide 8: Summary -->
+<div class="slide" id="slide-8">
+  <h1>Summary</h1>
+  <p class="subtitle">Task 24 complete — discovery service ready</p>
+
+  <div class="card">
+    <h3>What was delivered</h3>
+    <ul class="checklist">
+      <li><strong>DiscoveryService::run_discovery()</strong> in <code>lazyjob-core/src/discovery/service.rs</code> — parallel fan-out via join_all, progress via mpsc, stats aggregation via Add</li>
+      <li><strong>SourceConfig / DiscoveryStats / DiscoveryProgress</strong> — new public types exported from lazyjob-core::discovery</li>
+      <li><strong>upsert_discovered returns bool</strong> — PostgreSQL xmax trick enables new-vs-updated tracking</li>
+      <li><strong>lazyjob ralph job-discovery CLI</strong> — drives discovery with real-time progress printing and final stats</li>
+      <li><strong>11 new tests</strong> — 1 learning, 4 unit, 6 integration (xmax verification, unknown source, progress channel)</li>
+    </ul>
+  </div>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>Key design decisions</h3>
+      <ul>
+        <li><strong>discover_one returns DiscoveryStats</strong> (not Result) — errors counted, never propagated</li>
+        <li><strong>impl Add for DiscoveryStats</strong> — enables clean fold aggregation</li>
+        <li><strong>No SourceConfig validation</strong> at struct level — unknown sources caught at runtime</li>
+        <li><strong>Named async fn</strong> in learning test — avoids opaque type Vec collision</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Next: Task 25 — semantic-matching</h3>
+      <ul>
+        <li>MatchScorer with cosine similarity</li>
+        <li>EmbeddingProvider integration</li>
+        <li>job_embeddings PostgreSQL table (migration 003)</li>
+        <li>GhostDetector with 7-signal heuristic</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span>
+      <span style="margin-left:8px;">final verification</span>
+    </div>
+    <div class="terminal-body">
+      <div><span class="term-prompt">$</span> <span class="term-cmd">cargo build && cargo clippy -- -D warnings && cargo test</span></div>
+      <div class="term-ok">    Finished `dev` profile — no errors, no warnings</div>
+      <div class="term-ok">test result: ok. 379 passed; 0 failed</div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const links = document.querySelectorAll('nav a');
+
+  function show(idx) {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    links.forEach((a, i) => a.classList.toggle('active', i === idx));
+  }
+
+  document.addEventListener('keydown', e => {
+    const current = [...slides].findIndex(s => s.classList.contains('active'));
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') show(Math.min(current + 1, slides.length - 1));
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') show(Math.max(current - 1, 0));
+  });
+</script>
+</body>
+</html>

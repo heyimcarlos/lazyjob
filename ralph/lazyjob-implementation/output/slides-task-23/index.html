@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 23: Job Sources — LazyJob</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --accent: #58a6ff;
+    --accent2: #3fb950;
+    --warn: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --orange: #ffa657;
+    --teal: #39d353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+  #sidebar h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text2);
+    padding: 0 16px 8px;
+  }
+  #sidebar .task-badge {
+    background: var(--accent);
+    color: #000;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 10px;
+    padding: 1px 7px;
+    margin-left: 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    font-size: 13px;
+    color: var(--text2);
+    transition: all 0.15s;
+  }
+  .nav-item:hover { background: var(--bg3); color: var(--text); }
+  .nav-item.active {
+    border-left-color: var(--accent);
+    background: var(--bg3);
+    color: var(--accent);
+  }
+  .nav-icon { font-size: 15px; }
+
+  /* ── Content ── */
+  #content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 40px;
+  }
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  /* ── Typography ── */
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  h1 span { color: var(--accent); }
+  h2 { font-size: 20px; font-weight: 600; margin: 24px 0 12px; color: var(--text); }
+  h3 { font-size: 15px; font-weight: 600; margin: 16px 0 8px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; }
+  p { line-height: 1.6; color: var(--text2); margin-bottom: 12px; }
+  .subtitle { font-size: 16px; color: var(--text2); margin-bottom: 24px; }
+
+  /* ── Chips ── */
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .chip {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .chip.green { color: var(--accent2); border-color: var(--accent2); }
+  .chip.blue  { color: var(--accent);  border-color: var(--accent); }
+  .chip.orange{ color: var(--orange);  border-color: var(--orange); }
+  .chip.purple{ color: var(--purple);  border-color: var(--purple); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 12px 0;
+  }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+  .card-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .card h4 { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .card p { font-size: 13px; color: var(--text2); margin-bottom: 0; }
+
+  /* ── Code blocks ── */
+  pre {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  code { font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace; }
+  .line-num { color: var(--text2); user-select: none; margin-right: 16px; }
+
+  .kw  { color: var(--purple); }
+  .fn  { color: var(--accent); }
+  .str { color: var(--orange); }
+  .cmt { color: var(--text2); font-style: italic; }
+  .ty  { color: var(--teal); }
+  .mc  { color: var(--warn); }
+  .num { color: var(--accent2); }
+
+  /* ── Terminal ── */
+  .terminal {
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 12px 0;
+  }
+  .terminal .prompt { color: var(--accent2); }
+  .terminal .ok     { color: var(--accent2); }
+  .terminal .build  { color: var(--accent); }
+  .terminal .dim    { color: var(--text2); }
+  .terminal .err    { color: var(--red); }
+
+  /* ── Status banner ── */
+  .banner {
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    margin: 12px 0;
+  }
+  .banner.success { background: #0d2a0d; border: 1px solid var(--accent2); color: var(--accent2); }
+  .banner.info    { background: #0d1b2e; border: 1px solid var(--accent);  color: var(--accent); }
+  .banner.warn    { background: #2a1b0d; border: 1px solid var(--warn);    color: var(--warn); }
+
+  /* ── Test result rows ── */
+  .test-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13px; }
+  .test-row .ok   { color: var(--accent2); font-weight: 700; }
+  .test-row .name { color: var(--text); font-family: monospace; }
+  .test-row .tag  { background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; color: var(--text2); }
+
+  /* ── Architecture diagram ── */
+  .arch-box {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-family: monospace;
+  }
+  .arch-arrow { color: var(--text2); text-align: center; font-size: 18px; margin: 4px 0; }
+  .arch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Stats ── */
+  .stat-row { display: flex; gap: 16px; margin: 16px 0; }
+  .stat {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 24px;
+    text-align: center;
+    flex: 1;
+  }
+  .stat .num { font-size: 32px; font-weight: 700; color: var(--accent); }
+  .stat .label { font-size: 12px; color: var(--text2); margin-top: 4px; text-transform: uppercase; }
+
+  /* ── Divider ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ── File tree ── */
+  .file-tree { font-family: monospace; font-size: 13px; line-height: 1.8; }
+  .file-tree .dir  { color: var(--accent); }
+  .file-tree .file { color: var(--text2); }
+  .file-tree .new  { color: var(--accent2); }
+  .file-tree .mod  { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<nav id="sidebar">
+  <h2>Task 23 <span class="task-badge">DONE</span></h2>
+  <div class="nav-item active" onclick="go(0)">   <span class="nav-icon">🏠</span> Overview</div>
+  <div class="nav-item" onclick="go(1)">           <span class="nav-icon">🗂️</span> Files Changed</div>
+  <div class="nav-item" onclick="go(2)">           <span class="nav-icon">🏗️</span> Architecture</div>
+  <div class="nav-item" onclick="go(3)">           <span class="nav-icon">⚡</span> Rate Limiter</div>
+  <div class="nav-item" onclick="go(4)">           <span class="nav-icon">🟢</span> Greenhouse Client</div>
+  <div class="nav-item" onclick="go(5)">           <span class="nav-icon">🔵</span> Lever Client</div>
+  <div class="nav-item" onclick="go(6)">           <span class="nav-icon">🧹</span> HTML Stripping</div>
+  <div class="nav-item" onclick="go(7)">           <span class="nav-icon">🗄️</span> Migration &amp; Upsert</div>
+  <div class="nav-item" onclick="go(8)">           <span class="nav-icon">🧪</span> Tests</div>
+  <div class="nav-item" onclick="go(9)">           <span class="nav-icon">✅</span> Summary</div>
+</nav>
+
+<!-- ═══════════════ CONTENT ═══════════════ -->
+<main id="content">
+
+<!-- ── SLIDE 0: Overview ── -->
+<section class="slide active" id="s0">
+  <h1>Task 23 — <span>Job Sources</span></h1>
+  <p class="subtitle">Greenhouse &amp; Lever API clients with rate limiting, HTML stripping, and deduplicating PostgreSQL upsert</p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num">2</div><div class="label">API Clients</div></div>
+    <div class="stat"><div class="num">14</div><div class="label">New Tests</div></div>
+    <div class="stat"><div class="num">368</div><div class="label">Total Tests</div></div>
+    <div class="stat"><div class="num">0</div><div class="label">Failures</div></div>
+  </div>
+
+  <div class="banner success">✅ cargo build &amp;&amp; cargo clippy -- -D warnings &amp;&amp; cargo test — all pass</div>
+
+  <h2>What was built</h2>
+  <div class="card-grid three">
+    <div class="card">
+      <h4>🟢 GreenhouseClient</h4>
+      <p>Fetches jobs from Greenhouse Boards API (<code>boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true</code>). Rate limited to 1 req/s.</p>
+    </div>
+    <div class="card">
+      <h4>🔵 LeverClient</h4>
+      <p>Fetches jobs from Lever Postings API (<code>api.lever.co/v0/postings/{company}?mode=json</code>). Rate limited to 2 req/s.</p>
+    </div>
+    <div class="card">
+      <h4>⚡ RateLimiter</h4>
+      <p>Token-bucket rate limiter using interior mutability (<code>Mutex&lt;Option&lt;Instant&gt;&gt;</code>). Works with <code>&amp;self</code> for trait compatibility.</p>
+    </div>
+    <div class="card">
+      <h4>🧹 HTML Stripping</h4>
+      <p>Uses <code>ammonia::Builder</code> with empty tag set to strip all HTML tags from job descriptions, keeping only plain text.</p>
+    </div>
+    <div class="card">
+      <h4>🗄️ Upsert Deduplication</h4>
+      <p><code>JobRepository::upsert_discovered()</code> uses <code>ON CONFLICT</code> partial unique index — same job from same source never duplicates.</p>
+    </div>
+    <div class="card">
+      <h4>🧪 wiremock Tests</h4>
+      <p>All HTTP tests use <code>wiremock::MockServer</code> — zero real network calls. Learning tests document Greenhouse and Lever API shapes.</p>
+    </div>
+  </div>
+
+  <h2>New Dependencies</h2>
+  <div class="chip-row">
+    <span class="chip green">ammonia = "4"</span>
+    <span class="chip orange">wiremock = "0.6" (dev)</span>
+    <span class="chip blue">async-trait = "0.1" (already in workspace)</span>
+    <span class="chip blue">reqwest = "0.12" (already in workspace)</span>
+  </div>
+</section>
+
+<!-- ── SLIDE 1: Files Changed ── -->
+<section class="slide" id="s1">
+  <h1>Files <span>Changed</span></h1>
+  <p class="subtitle">11 files changed, 1 018 insertions</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>🆕 New Files</h4>
+      <div class="file-tree">
+        <div><span class="new">crates/lazyjob-core/</span></div>
+        <div>&nbsp;&nbsp;<span class="new">migrations/002_unique_job_source.sql</span></div>
+        <div>&nbsp;&nbsp;<span class="new">src/discovery/mod.rs</span></div>
+        <div>&nbsp;&nbsp;<span class="new">src/discovery/sources/mod.rs</span></div>
+        <div>&nbsp;&nbsp;<span class="new">src/discovery/sources/greenhouse.rs</span></div>
+        <div>&nbsp;&nbsp;<span class="new">src/discovery/sources/lever.rs</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <h4>✏️ Modified Files</h4>
+      <div class="file-tree">
+        <div><span class="mod">Cargo.toml</span> — added ammonia, wiremock</div>
+        <div><span class="mod">lazyjob-core/Cargo.toml</span> — added ammonia, async-trait, reqwest, wiremock dev</div>
+        <div><span class="mod">src/error.rs</span> — added CoreError::Http</div>
+        <div><span class="mod">src/lib.rs</span> — added pub mod discovery</div>
+        <div><span class="mod">src/repositories/job.rs</span> — added upsert_discovered()</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Module Structure</h2>
+  <div class="terminal">
+    <div><span class="prompt">$</span> find crates/lazyjob-core/src/discovery/ -type f | sort</div>
+    <div class="ok">crates/lazyjob-core/src/discovery/mod.rs</div>
+    <div class="ok">crates/lazyjob-core/src/discovery/sources/greenhouse.rs</div>
+    <div class="ok">crates/lazyjob-core/src/discovery/sources/lever.rs</div>
+    <div class="ok">crates/lazyjob-core/src/discovery/sources/mod.rs</div>
+    <div>&nbsp;</div>
+    <div><span class="prompt">$</span> find crates/lazyjob-core/migrations/ -type f | sort</div>
+    <div class="ok">crates/lazyjob-core/migrations/001_initial_schema.sql</div>
+    <div class="ok">crates/lazyjob-core/migrations/002_unique_job_source.sql</div>
+  </div>
+</section>
+
+<!-- ── SLIDE 2: Architecture ── -->
+<section class="slide" id="s2">
+  <h1>Architecture <span>Overview</span></h1>
+  <p class="subtitle">How discovery slots into lazyjob-core</p>
+
+  <div class="card">
+    <pre><code><span class="dim">lazyjob-core
+└── src/
+    ├── discovery/                    ← NEW module
+    │   ├── mod.rs                    ← re-exports JobSource, RateLimiter, clients
+    │   └── sources/
+    │       ├── mod.rs                ← JobSource trait + RateLimiter + strip_html()
+    │       ├── greenhouse.rs         ← GreenhouseClient (1 req/s)
+    │       └── lever.rs              ← LeverClient (2 req/s)
+    └── repositories/
+        └── job.rs                    ← + upsert_discovered() method</span>
+</code></pre>
+  </div>
+
+  <h2>Data Flow</h2>
+  <div class="card">
+    <pre><code><span class="cmt">// Production usage (task 24 wires this together)</span>
+
+<span class="kw">let</span> gh = <span class="ty">GreenhouseClient</span>::new();
+<span class="kw">let</span> jobs = gh.<span class="fn">fetch_jobs</span>(<span class="str">"stripe"</span>).await?;   <span class="cmt">// HTTP → parse → Job domain types</span>
+
+<span class="kw">let</span> repo = <span class="ty">JobRepository</span>::new(pool.clone());
+<span class="kw">for</span> job <span class="kw">in</span> &amp;jobs {
+    repo.<span class="fn">upsert_discovered</span>(job).await?;        <span class="cmt">// INSERT … ON CONFLICT DO UPDATE</span>
+}</code></pre>
+  </div>
+
+  <h2>Trait Design</h2>
+  <div class="card">
+    <pre><code><span class="kw">use</span> async_trait::async_trait;
+
+<span class="mc">#[async_trait]</span>
+<span class="kw">pub trait</span> <span class="ty">JobSource</span>: <span class="ty">Send</span> + <span class="ty">Sync</span> {
+    <span class="kw">fn</span> <span class="fn">name</span>(&amp;<span class="kw">self</span>) -&gt; &amp;<span class="kw">'static str</span>;
+    <span class="kw">async fn</span> <span class="fn">fetch_jobs</span>(&amp;<span class="kw">self</span>, company_id: &amp;<span class="kw">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">Vec</span>&lt;<span class="ty">Job</span>&gt;&gt;;
+}
+
+<span class="cmt">// Both clients implement JobSource → dyn JobSource works for future DiscoveryService</span></code></pre>
+  </div>
+</section>
+
+<!-- ── SLIDE 3: Rate Limiter ── -->
+<section class="slide" id="s3">
+  <h1>Rate <span>Limiter</span></h1>
+  <p class="subtitle">Interior mutability pattern — works with <code>&amp;self</code> for trait objects</p>
+
+  <div class="banner info">💡 Key insight: <code>std::sync::Mutex</code> (not async Mutex) is used because the lock is held for nanoseconds, never across an <code>await</code> point. Safe and fast.</div>
+
+  <h2>Implementation</h2>
+  <pre><code><span class="kw">pub struct</span> <span class="ty">RateLimiter</span> {
+    interval:  <span class="ty">Duration</span>,
+    last_call: <span class="ty">Mutex</span>&lt;<span class="ty">Option</span>&lt;<span class="ty">Instant</span>&gt;&gt;,   <span class="cmt">// interior mutability</span>
+}
+
+<span class="kw">impl</span> <span class="ty">RateLimiter</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(requests_per_second: <span class="kw">u32</span>) -&gt; <span class="ty">Self</span> {
+        <span class="kw">let</span> nanos = <span class="num">1_000_000_000</span><span class="kw">u64</span> / requests_per_second.<span class="fn">max</span>(<span class="num">1</span>) <span class="kw">as u64</span>;
+        <span class="ty">Self</span> {
+            interval:  <span class="ty">Duration</span>::<span class="fn">from_nanos</span>(nanos),
+            last_call: <span class="ty">Mutex</span>::<span class="fn">new</span>(<span class="ty">None</span>),
+        }
+    }
+
+    <span class="kw">pub async fn</span> <span class="fn">wait</span>(&amp;<span class="kw">self</span>) {
+        <span class="kw">let</span> sleep_duration = {
+            <span class="kw">let mut</span> guard = <span class="kw">self</span>.last_call.<span class="fn">lock</span>().<span class="fn">expect</span>(<span class="str">"mutex poisoned"</span>);
+            <span class="kw">let</span> now = <span class="ty">Instant</span>::<span class="fn">now</span>();
+            <span class="kw">let</span> sleep = <span class="kw">match</span> *guard {
+                <span class="ty">Some</span>(last) =&gt; {
+                    <span class="kw">let</span> elapsed = now.<span class="fn">duration_since</span>(last);
+                    <span class="kw">if</span> elapsed &lt; <span class="kw">self</span>.interval { <span class="ty">Some</span>(<span class="kw">self</span>.interval - elapsed) }
+                    <span class="kw">else</span> { <span class="ty">None</span> }
+                }
+                <span class="ty">None</span> =&gt; <span class="ty">None</span>,
+            };
+            *guard = <span class="ty">Some</span>(now);
+            sleep                            <span class="cmt">// ← lock released here, before await</span>
+        };
+        <span class="kw">if let</span> <span class="ty">Some</span>(dur) = sleep_duration {
+            tokio::time::<span class="fn">sleep</span>(dur).await;  <span class="cmt">// ← no lock held during await</span>
+        }
+    }
+}</code></pre>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>Greenhouse</h4>
+      <p><code>RateLimiter::new(1)</code> — 1 req/s = 1 000 ms interval</p>
+    </div>
+    <div class="card">
+      <h4>Lever</h4>
+      <p><code>RateLimiter::new(2)</code> — 2 req/s = 500 ms interval</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 4: Greenhouse Client ── -->
+<section class="slide" id="s4">
+  <h1>Greenhouse <span>Client</span></h1>
+  <p class="subtitle">Public Boards API — no auth required</p>
+
+  <h2>API Endpoint</h2>
+  <div class="terminal">
+    <span class="build">GET</span> https://boards-api.greenhouse.io/v1/boards/<span class="ok">{board_token}</span>/jobs?content=true
+  </div>
+
+  <h2>Response Shape (documented via learning test)</h2>
+  <pre><code>{
+  <span class="str">"jobs"</span>: [
+    {
+      <span class="str">"id"</span>:           <span class="num">127817</span>,
+      <span class="str">"title"</span>:        <span class="str">"Senior Software Engineer"</span>,
+      <span class="str">"content"</span>:      <span class="str">"&lt;div&gt;&lt;p&gt;Build things with &lt;b&gt;Rust&lt;/b&gt;&lt;/p&gt;&lt;/div&gt;"</span>,
+      <span class="str">"location"</span>:     { <span class="str">"name"</span>: <span class="str">"San Francisco, CA"</span> },
+      <span class="str">"departments"</span>:  [{ <span class="str">"name"</span>: <span class="str">"Engineering"</span> }],
+      <span class="str">"updated_at"</span>:   <span class="str">"2024-01-15T10:30:00-05:00"</span>,
+      <span class="str">"absolute_url"</span>: <span class="str">"https://boards.greenhouse.io/stripe/jobs/127817"</span>
+    }
+  ]
+}</code></pre>
+
+  <h2>Mapping to Job Domain Type</h2>
+  <pre><code><span class="kw">fn</span> <span class="fn">into_job</span>(<span class="kw">self</span>, board_token: &amp;<span class="kw">str</span>) -&gt; <span class="ty">Job</span> {
+    <span class="kw">let</span> description = <span class="kw">self</span>.content.<span class="fn">as_deref</span>().<span class="fn">map</span>(<span class="fn">strip_html</span>);  <span class="cmt">// HTML → plain text</span>
+    <span class="kw">let mut</span> job = <span class="ty">Job</span>::<span class="fn">new</span>(<span class="kw">self</span>.title);
+    job.source      = <span class="ty">Some</span>(<span class="str">"greenhouse"</span>.<span class="fn">to_string</span>());
+    job.source_id   = <span class="ty">Some</span>(<span class="kw">self</span>.id.<span class="fn">to_string</span>());     <span class="cmt">// i64 → String</span>
+    job.company_name = <span class="ty">Some</span>(board_token.<span class="fn">to_string</span>());  <span class="cmt">// board token = company</span>
+    job.location    = <span class="kw">self</span>.location.<span class="fn">and_then</span>(|l| l.name);
+    job.url         = <span class="kw">self</span>.absolute_url;
+    job.description = description;
+    job
+}</code></pre>
+</section>
+
+<!-- ── SLIDE 5: Lever Client ── -->
+<section class="slide" id="s5">
+  <h1>Lever <span>Client</span></h1>
+  <p class="subtitle">Public Postings API — no auth required</p>
+
+  <h2>API Endpoint</h2>
+  <div class="terminal">
+    <span class="build">GET</span> https://api.lever.co/v0/postings/<span class="ok">{company}</span>?mode=json
+  </div>
+
+  <h2>Response Shape (documented via learning test)</h2>
+  <pre><code>[
+  {
+    <span class="str">"id"</span>:          <span class="str">"abe0c1ec-9ffe-4e00-9e71-4d3e63f3c45a"</span>,
+    <span class="str">"text"</span>:        <span class="str">"Senior Software Engineer"</span>,
+    <span class="str">"description"</span>: <span class="str">"&lt;p&gt;We are looking for a &lt;strong&gt;skilled engineer&lt;/strong&gt;.&lt;/p&gt;"</span>,
+    <span class="str">"categories"</span>: {
+      <span class="str">"location"</span>:   <span class="str">"San Francisco, CA"</span>,
+      <span class="str">"team"</span>:       <span class="str">"Engineering"</span>,
+      <span class="str">"commitment"</span>: <span class="str">"Full-time"</span>
+    },
+    <span class="str">"createdAt"</span>:  <span class="num">1706123456000</span>,           <span class="cmt">// Unix ms</span>
+    <span class="str">"hostedUrl"</span>:  <span class="str">"https://jobs.lever.co/notion/abe0c1ec..."</span>
+  }
+]</code></pre>
+
+  <h2>Mapping to Job Domain Type</h2>
+  <pre><code><span class="kw">fn</span> <span class="fn">into_job</span>(<span class="kw">self</span>, company_id: &amp;<span class="kw">str</span>) -&gt; <span class="ty">Job</span> {
+    <span class="kw">let</span> description = <span class="kw">self</span>.description.<span class="fn">as_deref</span>().<span class="fn">map</span>(<span class="fn">strip_html</span>);
+    <span class="kw">let mut</span> job = <span class="ty">Job</span>::<span class="fn">new</span>(<span class="kw">self</span>.text);     <span class="cmt">// Lever uses "text" not "title"</span>
+    job.source      = <span class="ty">Some</span>(<span class="str">"lever"</span>.<span class="fn">to_string</span>());
+    job.source_id   = <span class="ty">Some</span>(<span class="kw">self</span>.id);        <span class="cmt">// already a String UUID</span>
+    job.company_name = <span class="ty">Some</span>(company_id.<span class="fn">to_string</span>());
+    job.url         = <span class="kw">self</span>.hosted_url;
+    job.description = description;
+    <span class="kw">if let</span> <span class="ty">Some</span>(cats) = <span class="kw">self</span>.categories {
+        job.location = cats.location;       <span class="cmt">// nested in categories object</span>
+    }
+    job
+}</code></pre>
+</section>
+
+<!-- ── SLIDE 6: HTML Stripping ── -->
+<section class="slide" id="s6">
+  <h1>HTML <span>Stripping</span></h1>
+  <p class="subtitle">Job APIs return HTML-formatted descriptions — we strip all tags for plain text storage</p>
+
+  <h2>Implementation</h2>
+  <pre><code><span class="kw">use</span> std::collections::HashSet;
+
+<span class="kw">pub</span>(crate) <span class="kw">fn</span> <span class="fn">strip_html</span>(html: &amp;<span class="kw">str</span>) -&gt; <span class="ty">String</span> {
+    ammonia::<span class="ty">Builder</span>::<span class="fn">new</span>()
+        .<span class="fn">tags</span>(<span class="ty">HashSet</span>::<span class="fn">new</span>())    <span class="cmt">// allow NO HTML tags → all tags stripped</span>
+        .<span class="fn">clean</span>(html)
+        .<span class="fn">to_string</span>()
+}</code></pre>
+
+  <div class="banner info">💡 ammonia strips tags but preserves text content and decodes HTML entities. Using Builder with an empty tag set is the idiomatic way to convert HTML to plain text.</div>
+
+  <h2>Learning Test — Proves Library Behavior</h2>
+  <pre><code><span class="cmt">// learning test: verifies ammonia strips all HTML tags and keeps text content</span>
+<span class="mc">#[test]</span>
+<span class="kw">fn</span> <span class="fn">ammonia_strips_html_tags</span>() {
+    <span class="kw">let</span> result = ammonia::<span class="ty">Builder</span>::<span class="fn">new</span>()
+        .<span class="fn">tags</span>(<span class="ty">HashSet</span>::<span class="fn">new</span>())
+        .<span class="fn">clean</span>(<span class="str">"&lt;p&gt;Hello &lt;b&gt;World&lt;/b&gt;&lt;/p&gt;"</span>)
+        .<span class="fn">to_string</span>();
+    assert_eq!(result.<span class="fn">trim</span>(), <span class="str">"Hello World"</span>);
+}</code></pre>
+
+  <h2>Test Cases</h2>
+  <div class="card-grid">
+    <div class="card"><h4>Empty string</h4><p><code>strip_html("")</code> → <code>""</code></p></div>
+    <div class="card"><h4>Plain text</h4><p><code>strip_html("hello world")</code> → <code>"hello world"</code></p></div>
+    <div class="card"><h4>Nested tags</h4><p><code>"&lt;div&gt;&lt;p&gt;Test &lt;b&gt;bold&lt;/b&gt;&lt;/p&gt;&lt;/div&gt;"</code> → <code>"Test bold"</code> (no angle brackets)</p></div>
+    <div class="card"><h4>Attributes stripped</h4><p><code>'&lt;p class="foo"&gt;Content&lt;/p&gt;'</code> → <code>"Content"</code></p></div>
+  </div>
+</section>
+
+<!-- ── SLIDE 7: Migration & Upsert ── -->
+<section class="slide" id="s7">
+  <h1>Migration &amp; <span>Upsert</span></h1>
+  <p class="subtitle">Idempotent job ingestion — same job from same source never duplicates</p>
+
+  <h2>Migration 002 — Partial Unique Index</h2>
+  <pre><code><span class="cmt">-- crates/lazyjob-core/migrations/002_unique_job_source.sql</span>
+<span class="cmt">-- Partial unique index on (source, source_id) for ON CONFLICT upsert deduplication.</span>
+<span class="cmt">-- NULL values are excluded so manually-entered jobs bypass the constraint.</span>
+<span class="kw">CREATE UNIQUE INDEX</span> idx_jobs_source_id_unique
+    <span class="kw">ON</span> jobs(source, source_id)
+    <span class="kw">WHERE</span> source <span class="kw">IS NOT NULL AND</span> source_id <span class="kw">IS NOT NULL</span>;</code></pre>
+
+  <div class="banner info">💡 Why partial? Manually entered jobs have <code>source = NULL</code>. A full unique index would prevent two manual jobs from being added — a partial index on non-NULL values is the correct design.</div>
+
+  <h2>upsert_discovered() in JobRepository</h2>
+  <pre><code><span class="kw">pub async fn</span> <span class="fn">upsert_discovered</span>(&amp;<span class="kw">self</span>, job: &amp;<span class="ty">Job</span>) -&gt; <span class="ty">Result</span>&lt;()&gt; {
+    sqlx::<span class="fn">query</span>(<span class="str">"INSERT INTO jobs (...) VALUES (...)
+         ON CONFLICT (source, source_id)
+         WHERE source IS NOT NULL AND source_id IS NOT NULL
+         DO UPDATE SET
+             title        = EXCLUDED.title,
+             company_name = EXCLUDED.company_name,
+             location     = EXCLUDED.location,
+             url          = EXCLUDED.url,
+             description  = EXCLUDED.description,
+             updated_at   = now()"</span>)
+    .<span class="fn">bind</span>(job.id)
+    <span class="cmt">// ... bind all fields ...</span>
+    .<span class="fn">execute</span>(&amp;<span class="kw">self</span>.pool)
+    .await?;
+    <span class="ty">Ok</span>(())
+}</code></pre>
+
+  <div class="card-grid">
+    <div class="card">
+      <h4>First discovery</h4>
+      <p>INSERT succeeds, new row created with the job's new UUID.</p>
+    </div>
+    <div class="card">
+      <h4>Re-discovery (same source + source_id)</h4>
+      <p>UPDATE fires: title, location, description, url refreshed. UUID unchanged.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 8: Tests ── -->
+<section class="slide" id="s8">
+  <h1>Test <span>Results</span></h1>
+  <p class="subtitle">14 new tests — all passing with wiremock MockServer (zero real HTTP calls)</p>
+
+  <div class="terminal">
+    <div><span class="prompt">$</span> cargo test -p lazyjob-core discovery</div>
+    <div class="dim">...</div>
+    <div class="dim">running 14 tests</div>
+    <div><span class="ok">test</span> discovery::sources::tests::ammonia_strips_html_tags ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::tests::strip_html_empty_string ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::tests::strip_html_plain_text ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::tests::strip_html_nested_tags ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::tests::strip_html_removes_attributes ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::tests::rate_limiter_allows_first_call_immediately ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::greenhouse::tests::wiremock_responds_with_json ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::greenhouse::tests::greenhouse_parses_response ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::greenhouse::tests::greenhouse_returns_error_on_bad_status ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::greenhouse::tests::greenhouse_job_strips_html_from_content ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::lever::tests::lever_parses_response ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::lever::tests::lever_returns_error_on_bad_status ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::lever::tests::lever_posting_strips_html_from_description ... <span class="ok">ok</span></div>
+    <div><span class="ok">test</span> discovery::sources::lever::tests::lever_posting_uses_categories_location ... <span class="ok">ok</span></div>
+    <div>&nbsp;</div>
+    <div class="ok">test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 99 filtered out; finished in 0.01s</div>
+  </div>
+
+  <h2>Test Coverage</h2>
+  <div class="card-grid three">
+    <div class="card">
+      <h4>🎓 Learning Tests (2)</h4>
+      <p><code>ammonia_strips_html_tags</code> — proves ammonia API before using it</p>
+      <p><code>wiremock_responds_with_json</code> — proves MockServer intercepts HTTP</p>
+    </div>
+    <div class="card">
+      <h4>🔬 Unit Tests (5)</h4>
+      <p>strip_html_* (4 cases) — empty, plain text, nested, attributes</p>
+      <p>rate_limiter_allows_first_call_immediately</p>
+    </div>
+    <div class="card">
+      <h4>🔗 Integration Tests (7)</h4>
+      <p>greenhouse_parses_response (wiremock)</p>
+      <p>greenhouse_returns_error_on_bad_status</p>
+      <p>greenhouse_job_strips_html_from_content</p>
+      <p>lever_parses_response (wiremock)</p>
+      <p>lever_returns_error_on_bad_status</p>
+      <p>lever_posting_strips_html_from_description</p>
+      <p>lever_posting_uses_categories_location</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── SLIDE 9: Summary ── -->
+<section class="slide" id="s9">
+  <h1><span>Summary</span></h1>
+  <p class="subtitle">Task 23 complete — ready for Task 24 (DiscoveryService)</p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num">368</div><div class="label">Tests Passing</div></div>
+    <div class="stat"><div class="num">0</div><div class="label">Warnings</div></div>
+    <div class="stat"><div class="num">0</div><div class="label">Failures</div></div>
+    <div class="stat"><div class="num">2</div><div class="label">Commits</div></div>
+  </div>
+
+  <div class="banner success">✅ cargo build && cargo clippy -- -D warnings && cargo test && cargo fmt — all pass</div>
+
+  <h2>Key Decisions</h2>
+  <div class="card">
+    <div class="test-row"><span class="ok">✓</span><span class="name">RateLimiter uses std::sync::Mutex (not async) — lock held nanoseconds, never across await</span></div>
+    <div class="test-row"><span class="ok">✓</span><span class="name">Private do_fetch() helper avoids name collision between inherent and trait fetch_jobs()</span></div>
+    <div class="test-row"><span class="ok">✓</span><span class="name">with_base_url() builder allows tests to point clients at MockServer without feature flags</span></div>
+    <div class="test-row"><span class="ok">✓</span><span class="name">CoreError::Http(String) added — distinct from Parse/Io for HTTP transport errors</span></div>
+    <div class="test-row"><span class="ok">✓</span><span class="name">Migration 002 partial unique index WHERE source IS NOT NULL — preserves manual jobs</span></div>
+    <div class="test-row"><span class="ok">✓</span><span class="name">upsert_discovered() in JobRepository — ON CONFLICT keeps existing UUID, refreshes fields</span></div>
+  </div>
+
+  <h2>Next: Task 24 — discovery-service</h2>
+  <div class="card">
+    <p>DiscoveryService::run_discovery() will fan out to all configured sources in parallel using tokio::join_all. It will call upsert_discovered() for each job. The clients and RateLimiter built here are the building blocks.</p>
+    <div class="chip-row">
+      <span class="chip blue">DiscoveryService</span>
+      <span class="chip blue">SourceConfig</span>
+      <span class="chip blue">DiscoveryStats</span>
+      <span class="chip blue">tokio::join_all</span>
+      <span class="chip blue">mpsc progress events</span>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const navItems = document.querySelectorAll('.nav-item');
+
+  function go(idx) {
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    navItems.forEach((n, i) => n.classList.toggle('active', i === idx));
+    document.getElementById('content').scrollTop = 0;
+  }
+</script>
+</body>
+</html>
