@@ -2,11 +2,13 @@ mod application;
 mod company;
 mod contact;
 mod job;
+mod ralph_loop_run;
 
 pub use application::ApplicationRepository;
 pub use company::CompanyRepository;
 pub use contact::ContactRepository;
 pub use job::JobRepository;
+pub use ralph_loop_run::{RalphLoopRun, RalphLoopRunRepository, RalphLoopRunStatus};
 
 #[derive(Debug, Clone)]
 pub struct Pagination {

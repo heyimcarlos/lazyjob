@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use sqlx::PgPool;
 use tokio::sync::broadcast;
 
 use lazyjob_core::config::Config;
@@ -49,6 +50,7 @@ pub struct App {
     pub ralph_rx: broadcast::Receiver<RalphUpdate>,
     pub views: Views,
     pub keymap: KeyMap,
+    pub pool: Option<PgPool>,
 }
 
 impl App {
@@ -65,7 +67,13 @@ impl App {
             ralph_rx,
             views: Views::new(),
             keymap,
+            pool: None,
         }
+    }
+
+    pub fn with_pool(mut self, pool: PgPool) -> Self {
+        self.pool = Some(pool);
+        self
     }
 
     #[cfg(test)]

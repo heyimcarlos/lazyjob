@@ -13,6 +13,8 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 
 use lazyjob_core::config::Config;
+use lazyjob_core::db::Database;
+use lazyjob_core::repositories::RalphLoopRunRepository;
 
 use crate::app::{App, RalphUpdate};
 
@@ -22,7 +24,22 @@ pub fn version() -> &'static str {
 
 pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
     let (_ralph_tx, ralph_rx) = broadcast::channel::<RalphUpdate>(64);
-    let app = App::new(config, ralph_rx);
+
+    let app = match Database::connect(&config.database_url).await {
+        Ok(db) => {
+            let repo = RalphLoopRunRepository::new(db.pool().clone());
+            let recovered = repo.recover_pending().await.unwrap_or(0);
+            if recovered > 0 {
+                tracing::info!("Recovered {recovered} stale ralph loop runs marked as failed");
+            }
+            App::new(config, ralph_rx).with_pool(db.pool().clone())
+        }
+        Err(err) => {
+            tracing::warn!("Could not connect to database at startup: {err}");
+            App::new(config, ralph_rx)
+        }
+    };
+
     event_loop::run_event_loop(app).await
 }
 

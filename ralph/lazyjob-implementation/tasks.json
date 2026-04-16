@@ -167,7 +167,7 @@
       "description": "Create lazyjob-core/migrations/002_ralph_loop_runs.sql with PostgreSQL table: ralph_loop_runs (id SERIAL PRIMARY KEY, loop_type TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','running','done','failed','cancelled')), params_json JSONB, started_at TIMESTAMPTZ, finished_at TIMESTAMPTZ). Implement RalphLoopRunRepository with PgPool: insert_run(), update_status(), list_pending(). On TUI startup, call recover_pending() which finds runs in 'running' status older than 30s and marks them 'failed' (they crashed). Wire this into App::new(). Write tests for the recovery logic.",
       "phase": "build",
       "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 22,

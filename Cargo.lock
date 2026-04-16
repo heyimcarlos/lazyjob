@@ -1632,6 +1632,7 @@ dependencies = [
  "lazyjob-llm",
  "lazyjob-ralph",
  "ratatui",
+ "sqlx",
  "tokio",
  "tracing",
 ]

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 21 — ralph-crash-recovery</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+
+  nav {
+    width: 220px; min-width: 220px; background: #161b22; border-right: 1px solid #30363d;
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  nav h2 { padding: 16px; font-size: 13px; color: #58a6ff; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #30363d; }
+  nav a {
+    display: block; padding: 10px 16px; font-size: 13px; color: #8b949e;
+    text-decoration: none; border-left: 3px solid transparent; transition: all 0.15s;
+  }
+  nav a:hover { color: #c9d1d9; background: #1c2128; }
+  nav a.active { color: #58a6ff; border-left-color: #58a6ff; background: #1c2128; }
+
+  main { flex: 1; overflow-y: auto; padding: 40px; }
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  h1 { font-size: 28px; color: #e6edf3; margin-bottom: 8px; }
+  h2 { font-size: 20px; color: #58a6ff; margin: 24px 0 12px; }
+  h3 { font-size: 16px; color: #79c0ff; margin: 16px 0 8px; }
+  p { line-height: 1.6; color: #8b949e; margin-bottom: 12px; }
+  .subtitle { color: #58a6ff; font-size: 15px; margin-bottom: 24px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: #0d4a1e; color: #3fb950; border: 1px solid #238636; }
+  .badge-blue { background: #0c2d6b; color: #79c0ff; border: 1px solid #1f6feb; }
+  .badge-purple { background: #2d1f6e; color: #d2a8ff; border: 1px solid #6e40c9; }
+  .badge-orange { background: #3d2000; color: #ffa657; border: 1px solid #bf6d00; }
+
+  pre {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace; margin-bottom: 16px;
+  }
+  code { color: #e6edf3; }
+  .kw { color: #ff7b72; }
+  .ty { color: #ffa657; }
+  .str { color: #a5d6ff; }
+  .num { color: #79c0ff; }
+  .cmt { color: #8b949e; }
+  .fn { color: #d2a8ff; }
+  .ok { color: #3fb950; }
+  .warn { color: #ffa657; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
+  th { background: #21262d; color: #8b949e; padding: 10px 14px; text-align: left; border-bottom: 2px solid #30363d; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:hover td { background: #161b22; }
+
+  .card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h3 { margin-top: 0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  .terminal {
+    background: #000; border: 1px solid #30363d; border-radius: 8px;
+    padding: 20px; font-family: monospace; font-size: 13px; line-height: 1.6;
+    color: #c9d1d9; margin-bottom: 16px;
+  }
+  .terminal .prompt { color: #3fb950; }
+  .terminal .pass { color: #3fb950; }
+  .terminal .info { color: #58a6ff; }
+  .terminal .warn { color: #ffa657; }
+
+  .flow-box {
+    display: inline-block; background: #161b22; border: 1px solid #30363d;
+    border-radius: 6px; padding: 10px 18px; font-size: 13px; color: #c9d1d9;
+  }
+  .flow-arrow { color: #58a6ff; font-size: 18px; margin: 0 8px; vertical-align: middle; }
+
+  ul { padding-left: 20px; margin-bottom: 12px; }
+  li { line-height: 1.8; color: #8b949e; }
+  li strong { color: #c9d1d9; }
+
+  .stat { text-align: center; }
+  .stat-num { font-size: 36px; font-weight: 700; color: #58a6ff; }
+  .stat-label { font-size: 13px; color: #8b949e; margin-top: 4px; }
+
+  .callout {
+    background: #0d2d0d; border: 1px solid #238636; border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 16px;
+  }
+  .callout p { color: #3fb950; margin: 0; }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 21 Slides</h2>
+  <a href="#" class="active" onclick="showSlide(0, this)">1. Overview</a>
+  <a href="#" onclick="showSlide(1, this)">2. Architecture</a>
+  <a href="#" onclick="showSlide(2, this)">3. Domain Types</a>
+  <a href="#" onclick="showSlide(3, this)">4. Repository API</a>
+  <a href="#" onclick="showSlide(4, this)">5. Recovery Logic</a>
+  <a href="#" onclick="showSlide(5, this)">6. TUI Wiring</a>
+  <a href="#" onclick="showSlide(6, this)">7. Test Results</a>
+  <a href="#" onclick="showSlide(7, this)">8. Key Decisions</a>
+  <a href="#" onclick="showSlide(8, this)">9. What's Next</a>
+</nav>
+
+<main>
+
+<!-- Slide 0: Overview -->
+<div class="slide active" id="slide-0">
+  <h1>Task 21: ralph-crash-recovery</h1>
+  <p class="subtitle">RalphLoopRunRepository + PostgreSQL persistence + TUI startup recovery</p>
+
+  <div style="display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;">
+    <span class="badge badge-green">DONE</span>
+    <span class="badge badge-blue">lazyjob-core</span>
+    <span class="badge badge-purple">lazyjob-tui</span>
+    <span class="badge badge-orange">Phase: build</span>
+  </div>
+
+  <div class="grid-3" style="margin-bottom: 24px;">
+    <div class="card stat">
+      <div class="stat-num">339</div>
+      <div class="stat-label">Total tests passing</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-num">11</div>
+      <div class="stat-label">New tests added</div>
+    </div>
+    <div class="card stat">
+      <div class="stat-num">0</div>
+      <div class="stat-num" style="font-size: 20px; color: #3fb950;">warnings / errors</div>
+    </div>
+  </div>
+
+  <h2>What was built</h2>
+  <ul>
+    <li><strong>RalphLoopRunRepository</strong> — full CRUD for the <code>ralph_loop_runs</code> PostgreSQL table</li>
+    <li><strong>RalphLoopRunStatus</strong> — typed enum for Pending / Running / Done / Failed / Cancelled</li>
+    <li><strong>recover_pending()</strong> — marks stale &ldquo;running&rdquo; rows (&gt;30s old) as &ldquo;failed&rdquo; on TUI startup</li>
+    <li><strong>TUI wiring</strong> — <code>run()</code> connects to DB, calls <code>recover_pending()</code>, passes pool to <code>App</code></li>
+    <li><strong>App.pool</strong> — optional <code>PgPool</code> field on App for future view DB access</li>
+  </ul>
+
+  <div class="callout">
+    <p>The ralph_loop_runs table already existed in migration 001 — no new migration file was needed. This saved work and kept the schema migration atomic.</p>
+  </div>
+</div>
+
+<!-- Slide 1: Architecture -->
+<div class="slide" id="slide-1">
+  <h1>Architecture</h1>
+  <p class="subtitle">How crash recovery fits into the LazyJob system</p>
+
+  <h2>Recovery Flow at TUI Startup</h2>
+  <div style="margin: 24px 0; line-height: 3;">
+    <span class="flow-box">lazyjob tui</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-box">Config::load()</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-box">Database::connect()</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-box">recover_pending()</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-box">App::new()</span>
+    <span class="flow-arrow">→</span>
+    <span class="flow-box">run_event_loop()</span>
+  </div>
+
+  <h2>Crate Locations</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>lazyjob-core</h3>
+      <ul>
+        <li><code>src/repositories/ralph_loop_run.rs</code> — NEW</li>
+        <li><code>src/repositories/mod.rs</code> — updated</li>
+        <li><code>migrations/001_initial_schema.sql</code> — unchanged (table already there)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>lazyjob-tui</h3>
+      <ul>
+        <li><code>src/lib.rs</code> — DB connect + recovery wired in run()</li>
+        <li><code>src/app.rs</code> — pool: Option&lt;PgPool&gt; field added</li>
+        <li><code>Cargo.toml</code> — sqlx dependency added</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Database Table</h2>
+  <pre><code><span class="cmt">-- Already in 001_initial_schema.sql</span>
+<span class="kw">CREATE TABLE</span> <span class="ty">ralph_loop_runs</span> (
+    id          <span class="ty">UUID PRIMARY KEY</span>,
+    loop_type   <span class="ty">TEXT NOT NULL</span>,
+    status      <span class="ty">TEXT NOT NULL DEFAULT</span> <span class="str">'pending'</span>
+                <span class="ty">CHECK</span>(status <span class="kw">IN</span> (<span class="str">'pending'</span>, <span class="str">'running'</span>, <span class="str">'done'</span>, <span class="str">'failed'</span>, <span class="str">'cancelled'</span>)),
+    params_json <span class="ty">JSONB</span>,
+    started_at  <span class="ty">TIMESTAMPTZ</span>,
+    finished_at <span class="ty">TIMESTAMPTZ</span>,
+    created_at  <span class="ty">TIMESTAMPTZ NOT NULL DEFAULT</span> <span class="fn">now</span>()
+);
+
+<span class="kw">CREATE INDEX</span> idx_ralph_runs_status <span class="kw">ON</span> ralph_loop_runs(status);</code></pre>
+</div>
+
+<!-- Slide 2: Domain Types -->
+<div class="slide" id="slide-2">
+  <h1>Domain Types</h1>
+  <p class="subtitle">RalphLoopRunStatus and RalphLoopRun</p>
+
+  <h2>RalphLoopRunStatus Enum</h2>
+  <pre><code><span class="cmt">// 5 variants matching the CHECK constraint in PG</span>
+<span class="kw">#[derive</span>(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)<span class="kw">]</span>
+<span class="kw">#[serde(</span>rename_all = <span class="str">"snake_case"</span><span class="kw">)]</span>
+<span class="kw">pub enum</span> <span class="ty">RalphLoopRunStatus</span> {
+    <span class="ty">Pending</span>,
+    <span class="ty">Running</span>,
+    <span class="ty">Done</span>,
+    <span class="ty">Failed</span>,
+    <span class="ty">Cancelled</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">RalphLoopRunStatus</span> {
+    <span class="kw">pub fn</span> <span class="fn">as_str</span>(&self) -> &<span class="kw">str</span> {
+        <span class="kw">match</span> self {
+            Self::Pending   => <span class="str">"pending"</span>,
+            Self::Running   => <span class="str">"running"</span>,
+            Self::Done      => <span class="str">"done"</span>,
+            Self::Failed    => <span class="str">"failed"</span>,
+            Self::Cancelled => <span class="str">"cancelled"</span>,
+        }
+    }
+}</code></pre>
+
+  <h2>RalphLoopRun Struct</h2>
+  <pre><code><span class="kw">#[derive</span>(Debug, Clone, Serialize, Deserialize)<span class="kw">]</span>
+<span class="kw">pub struct</span> <span class="ty">RalphLoopRun</span> {
+    <span class="kw">pub</span> id:          <span class="ty">Uuid</span>,
+    <span class="kw">pub</span> loop_type:   <span class="ty">String</span>,
+    <span class="kw">pub</span> status:      <span class="ty">RalphLoopRunStatus</span>,
+    <span class="kw">pub</span> params_json: <span class="ty">Option</span>&lt;<span class="ty">serde_json::Value</span>&gt;,
+    <span class="kw">pub</span> started_at:  <span class="ty">Option</span>&lt;<span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;&gt;,
+    <span class="kw">pub</span> finished_at: <span class="ty">Option</span>&lt;<span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;&gt;,
+    <span class="kw">pub</span> created_at:  <span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;,
+}
+
+<span class="kw">impl</span> <span class="ty">RalphLoopRun</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(loop_type: &<span class="kw">str</span>) -> <span class="ty">Self</span> {
+        <span class="ty">Self</span> {
+            id: <span class="ty">Uuid</span>::<span class="fn">new_v4</span>(),
+            loop_type: loop_type.<span class="fn">to_string</span>(),
+            status: <span class="ty">RalphLoopRunStatus</span>::<span class="ty">Pending</span>,
+            <span class="cmt">// all timestamps None until explicitly set</span>
+            ...
+        }
+    }
+}</code></pre>
+
+  <h2>Status → PG Round-trip</h2>
+  <p>Same pattern as <code>ApplicationStage</code>: stored as snake_case TEXT in PG, parsed via <code>FromStr</code>, serialized via <code>as_str()</code>. No custom sqlx PG enum type dependency.</p>
+</div>
+
+<!-- Slide 3: Repository API -->
+<div class="slide" id="slide-3">
+  <h1>Repository API</h1>
+  <p class="subtitle">RalphLoopRunRepository — full interface</p>
+
+  <pre><code><span class="kw">pub struct</span> <span class="ty">RalphLoopRunRepository</span> { pool: <span class="ty">PgPool</span> }
+
+<span class="kw">impl</span> <span class="ty">RalphLoopRunRepository</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(pool: <span class="ty">PgPool</span>) -> <span class="ty">Self</span>
+
+    <span class="cmt">// Persist a new run (status=pending by default)</span>
+    <span class="kw">pub async fn</span> <span class="fn">insert_run</span>(&self, run: &<span class="ty">RalphLoopRun</span>) -> <span class="ty">Result</span>&lt;()&gt;
+
+    <span class="cmt">// Transition status (returns NotFound if id doesn't exist)</span>
+    <span class="kw">pub async fn</span> <span class="fn">update_status</span>(&self, id: &<span class="ty">Uuid</span>, status: <span class="ty">RalphLoopRunStatus</span>) -> <span class="ty">Result</span>&lt;()&gt;
+
+    <span class="cmt">// Fetch all runs where status = 'pending', ordered by created_at ASC</span>
+    <span class="kw">pub async fn</span> <span class="fn">list_pending</span>(&self) -> <span class="ty">Result</span>&lt;<span class="ty">Vec</span>&lt;<span class="ty">RalphLoopRun</span>&gt;&gt;
+
+    <span class="cmt">// Mark stale running runs as failed; returns count of recovered rows</span>
+    <span class="kw">pub async fn</span> <span class="fn">recover_pending</span>(&self) -> <span class="ty">Result</span>&lt;<span class="kw">usize</span>&gt;
+}</code></pre>
+
+  <h2>sqlx Row Pattern</h2>
+  <pre><code><span class="cmt">// Intermediate DB row struct — keeps domain types free of sqlx concerns</span>
+<span class="kw">#[derive(</span><span class="ty">sqlx::FromRow</span><span class="kw">)]</span>
+<span class="kw">struct</span> <span class="ty">RalphLoopRunRow</span> {
+    id:          <span class="ty">Uuid</span>,
+    loop_type:   <span class="ty">String</span>,
+    status:      <span class="ty">String</span>,   <span class="cmt">// raw TEXT from PG</span>
+    params_json: <span class="ty">Option</span>&lt;<span class="ty">serde_json::Value</span>&gt;,
+    started_at:  <span class="ty">Option</span>&lt;<span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;&gt;,
+    finished_at: <span class="ty">Option</span>&lt;<span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;&gt;,
+    created_at:  <span class="ty">DateTime</span>&lt;<span class="ty">Utc</span>&gt;,
+}
+
+<span class="cmt">// TryFrom converts: parses status string, returns Err on unknown value</span>
+<span class="kw">impl</span> <span class="ty">TryFrom</span>&lt;<span class="ty">RalphLoopRunRow</span>&gt; <span class="kw">for</span> <span class="ty">RalphLoopRun</span> { ... }</code></pre>
+
+  <h2>Usage Pattern</h2>
+  <pre><code><span class="kw">let</span> repo = <span class="ty">RalphLoopRunRepository</span>::<span class="fn">new</span>(db.<span class="fn">pool</span>().<span class="fn">clone</span>());
+
+<span class="kw">let</span> <span class="kw">mut</span> run = <span class="ty">RalphLoopRun</span>::<span class="fn">new</span>(<span class="str">"resume_tailor"</span>);
+run.params_json = <span class="ty">Some</span>(<span class="fn">json!</span>({ <span class="str">"job_id"</span>: <span class="str">"abc-123"</span> }));
+repo.<span class="fn">insert_run</span>(&run).<span class="kw">await</span>?;
+
+repo.<span class="fn">update_status</span>(&run.id, <span class="ty">RalphLoopRunStatus</span>::<span class="ty">Running</span>).<span class="kw">await</span>?;</code></pre>
+</div>
+
+<!-- Slide 4: Recovery Logic -->
+<div class="slide" id="slide-4">
+  <h1>Recovery Logic</h1>
+  <p class="subtitle">How stale ralph runs are detected and recovered</p>
+
+  <h2>The Problem</h2>
+  <p>When the TUI crashes mid-run (OOM, kill signal, segfault), ralph subprocesses may still be marked &ldquo;running&rdquo; in the database. On next startup, these stale rows need cleanup.</p>
+
+  <h2>Recovery Query</h2>
+  <pre><code><span class="cmt">-- Find runs that were "running" but haven't updated in 30+ seconds</span>
+<span class="cmt">-- (if TUI just started, any "running" row > 30s old is from a past crash)</span>
+<span class="kw">UPDATE</span> ralph_loop_runs
+   <span class="kw">SET</span> status = <span class="str">'failed'</span>
+ <span class="kw">WHERE</span> status = <span class="str">'running'</span>
+   <span class="kw">AND</span> started_at &lt; <span class="fn">now</span>() - <span class="kw">interval</span> <span class="str">'30 seconds'</span></code></pre>
+
+  <h2>Rust Implementation</h2>
+  <pre><code><span class="kw">pub async fn</span> <span class="fn">recover_pending</span>(&self) -> <span class="ty">Result</span>&lt;<span class="kw">usize</span>&gt; {
+    <span class="kw">let</span> result = sqlx::<span class="fn">query</span>(
+        <span class="str">"UPDATE ralph_loop_runs SET status = 'failed'
+         WHERE status = 'running'
+           AND started_at &lt; now() - interval '30 seconds'"</span>,
+    )
+    .<span class="fn">execute</span>(&self.pool)
+    .<span class="kw">await</span>?;
+    <span class="ty">Ok</span>(result.<span class="fn">rows_affected</span>() <span class="kw">as</span> <span class="kw">usize</span>)
+}</code></pre>
+
+  <h2>Recovery Scenarios</h2>
+  <table>
+    <tr><th>Scenario</th><th>status</th><th>started_at</th><th>Action</th></tr>
+    <tr><td>Crashed run (5 min ago)</td><td>running</td><td>5 min ago</td><td style="color:#3fb950">→ failed</td></tr>
+    <tr><td>Recent run (just started)</td><td>running</td><td>now</td><td style="color:#8b949e">No change</td></tr>
+    <tr><td>Completed run</td><td>done</td><td>any</td><td style="color:#8b949e">No change</td></tr>
+    <tr><td>Pending (not started)</td><td>pending</td><td>NULL</td><td style="color:#8b949e">No change</td></tr>
+    <tr><td>Previously failed</td><td>failed</td><td>any</td><td style="color:#8b949e">No change</td></tr>
+  </table>
+
+  <p>The 30-second threshold is conservative — any legitimate &ldquo;running&rdquo; row from this TUI session will be less than 1 second old at startup time.</p>
+</div>
+
+<!-- Slide 5: TUI Wiring -->
+<div class="slide" id="slide-5">
+  <h1>TUI Wiring</h1>
+  <p class="subtitle">How crash recovery integrates into App startup</p>
+
+  <h2>Updated run() in lazyjob-tui/src/lib.rs</h2>
+  <pre><code><span class="kw">pub async fn</span> <span class="fn">run</span>(config: <span class="ty">Arc</span>&lt;<span class="ty">Config</span>&gt;) -> <span class="ty">anyhow::Result</span>&lt;()&gt; {
+    <span class="kw">let</span> (_ralph_tx, ralph_rx) = broadcast::<span class="fn">channel</span>::&lt;<span class="ty">RalphUpdate</span>&gt;(<span class="num">64</span>);
+
+    <span class="kw">let</span> app = <span class="kw">match</span> <span class="ty">Database</span>::<span class="fn">connect</span>(&config.database_url).<span class="kw">await</span> {
+        <span class="ty">Ok</span>(db) => {
+            <span class="kw">let</span> repo = <span class="ty">RalphLoopRunRepository</span>::<span class="fn">new</span>(db.<span class="fn">pool</span>().<span class="fn">clone</span>());
+            <span class="kw">let</span> recovered = repo.<span class="fn">recover_pending</span>().<span class="kw">await</span>.<span class="fn">unwrap_or</span>(<span class="num">0</span>);
+            <span class="kw">if</span> recovered > <span class="num">0</span> {
+                tracing::<span class="fn">info!</span>(<span class="str">"Recovered {recovered} stale ralph loop runs"</span>);
+            }
+            <span class="ty">App</span>::<span class="fn">new</span>(config, ralph_rx).<span class="fn">with_pool</span>(db.<span class="fn">pool</span>().<span class="fn">clone</span>())
+        }
+        <span class="ty">Err</span>(err) => {
+            <span class="cmt">// Graceful fallback: TUI still launches without a DB</span>
+            tracing::<span class="fn">warn!</span>(<span class="str">"Could not connect to database at startup: {err}"</span>);
+            <span class="ty">App</span>::<span class="fn">new</span>(config, ralph_rx)
+        }
+    };
+
+    event_loop::<span class="fn">run_event_loop</span>(app).<span class="kw">await</span>
+}</code></pre>
+
+  <h2>App Changes</h2>
+  <pre><code><span class="kw">pub struct</span> <span class="ty">App</span> {
+    <span class="cmt">// ... existing fields ...</span>
+    <span class="kw">pub</span> pool: <span class="ty">Option</span>&lt;<span class="ty">PgPool</span>&gt;,  <span class="cmt">// NEW — available to views for DB queries</span>
+}
+
+<span class="kw">impl</span> <span class="ty">App</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(config: <span class="ty">Arc</span>&lt;<span class="ty">Config</span>&gt;, ralph_rx: ...) -> <span class="ty">Self</span> {
+        <span class="ty">Self</span> { ..., pool: <span class="ty">None</span> }  <span class="cmt">// pool defaults to None</span>
+    }
+
+    <span class="kw">pub fn</span> <span class="fn">with_pool</span>(<span class="kw">mut</span> self, pool: <span class="ty">PgPool</span>) -> <span class="ty">Self</span> {
+        self.pool = <span class="ty">Some</span>(pool);
+        self
+    }
+}</code></pre>
+
+  <div class="callout">
+    <p>The builder pattern (with_pool) keeps App::new() synchronous and test-friendly — no DB needed in unit tests.</p>
+  </div>
+</div>
+
+<!-- Slide 6: Test Results -->
+<div class="slide" id="slide-6">
+  <h1>Test Results</h1>
+  <p class="subtitle">11 new tests, all passing — 339 total</p>
+
+  <div class="terminal">
+<span class="prompt">$</span> cargo test -p lazyjob-core 2>&amp;1 | grep "ralph_loop_run\|test result"<br><br>
+<span class="pass">test repositories::ralph_loop_run::integration_tests::insert_and_list_pending ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::integration_tests::recover_pending_ignores_done_runs ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::integration_tests::recover_pending_marks_stale_running_as_failed ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::integration_tests::recover_pending_skips_recent_runs ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::integration_tests::update_status_changes_status ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::integration_tests::update_status_not_found ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::tests::ralph_loop_run_new_has_pending_status ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::tests::ralph_loop_run_status_as_str ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::tests::ralph_loop_run_status_from_str ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::tests::ralph_loop_run_status_from_str_invalid ... ok</span><br>
+<span class="pass">test repositories::ralph_loop_run::tests::status_round_trip_via_as_str ... ok</span><br><br>
+<span class="info">test result: ok. 99 passed; 0 failed; 0 ignored; finished in 0.01s</span>
+  </div>
+
+  <div class="terminal">
+<span class="prompt">$</span> cargo clippy -- -D warnings<br>
+<span class="pass">Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.45s</span>
+  </div>
+
+  <h2>Test Categories</h2>
+  <table>
+    <tr><th>Category</th><th>Tests</th><th>Description</th></tr>
+    <tr><td>Unit: status as_str</td><td style="color:#3fb950">1</td><td>All 5 variants → correct string</td></tr>
+    <tr><td>Unit: status from_str</td><td style="color:#3fb950">1</td><td>All 5 valid values parse correctly</td></tr>
+    <tr><td>Unit: from_str invalid</td><td style="color:#3fb950">1</td><td>Unknown value returns Err</td></tr>
+    <tr><td>Unit: new() defaults</td><td style="color:#3fb950">1</td><td>New run has Pending status, no timestamps</td></tr>
+    <tr><td>Unit: round trip</td><td style="color:#3fb950">1</td><td>as_str → parse round trips all variants</td></tr>
+    <tr><td>Integration: insert + list</td><td style="color:#3fb950">1</td><td>Insert Pending, verify list_pending returns it</td></tr>
+    <tr><td>Integration: update status</td><td style="color:#3fb950">1</td><td>Pending → Running transition verified in DB</td></tr>
+    <tr><td>Integration: not found</td><td style="color:#3fb950">1</td><td>update_status on missing UUID returns NotFound</td></tr>
+    <tr><td>Integration: recover stale</td><td style="color:#3fb950">1</td><td>Old running run marked failed by recover_pending()</td></tr>
+    <tr><td>Integration: skip recent</td><td style="color:#3fb950">1</td><td>Recent running run not touched by recovery</td></tr>
+    <tr><td>Integration: skip done</td><td style="color:#3fb950">1</td><td>Done runs not affected by recovery</td></tr>
+  </table>
+</div>
+
+<!-- Slide 7: Key Decisions -->
+<div class="slide" id="slide-7">
+  <h1>Key Decisions</h1>
+  <p class="subtitle">Design choices made during implementation</p>
+
+  <div class="card">
+    <h3>No migration 002 needed</h3>
+    <p>The <code>ralph_loop_runs</code> table was already created in <code>001_initial_schema.sql</code> by a prior iteration. Creating a 002 migration would fail on first run (table already exists). The existing schema matched all requirements perfectly.</p>
+  </div>
+
+  <div class="card">
+    <h3>recovery in run() not App::new()</h3>
+    <p>App::new() is synchronous (for test convenience). Database connection and crash recovery happen in the async <code>run()</code> function before creating App. This pattern avoids making App::new() async and breaking all test code.</p>
+  </div>
+
+  <div class="card">
+    <h3>Graceful fallback when DB unavailable</h3>
+    <p>If Database::connect() fails (e.g., Postgres not running), the TUI still launches with <code>pool: None</code>. A warning is logged. This lets the TUI work in offline/demo mode without crashing at startup.</p>
+  </div>
+
+  <div class="card">
+    <h3>30-second stale threshold</h3>
+    <p>Any &ldquo;running&rdquo; row with <code>started_at &lt; now() - 30s</code> at TUI startup must be from a previous crashed session — this TUI session is only milliseconds old at recovery time. 30s is conservative enough to avoid false positives.</p>
+  </div>
+
+  <div class="card">
+    <h3>RalphLoopRunStatus as snake_case TEXT</h3>
+    <p>Follows the same pattern as ApplicationStage — stored as TEXT in PG, converted via <code>as_str()</code> and <code>FromStr</code>. This avoids PG custom enum type registration complexity and keeps migrations simple.</p>
+  </div>
+</div>
+
+<!-- Slide 8: What's Next -->
+<div class="slide" id="slide-8">
+  <h1>What&rsquo;s Next</h1>
+  <p class="subtitle">Task 22: ralph-tui-panel</p>
+
+  <h2>Task 22 Overview</h2>
+  <div class="card">
+    <h3>RalphPanelView — Full Implementation</h3>
+    <ul>
+      <li>Subscribe to the broadcast channel from <code>RalphProcessManager</code></li>
+      <li>Display list of active loops with loop_type, phase, progress bar, elapsed time</li>
+      <li>On <code>WorkerEvent::Done</code>: show ✓ with result summary for 5 seconds</li>
+      <li>Keybinding: <code>c</code> = Cancel selected loop, <code>Enter</code> = Show loop output detail</li>
+      <li>Write tests that simulate WorkerEvent broadcasts and verify panel renders</li>
+    </ul>
+  </div>
+
+  <h2>State Available to Task 22</h2>
+  <table>
+    <tr><th>Component</th><th>Status</th><th>Used by task 22</th></tr>
+    <tr><td>RalphProcessManager</td><td style="color:#3fb950">DONE (task 19)</td><td>spawn/cancel loops</td></tr>
+    <tr><td>WorkerEvent broadcast</td><td style="color:#3fb950">DONE (task 19)</td><td>subscribe in panel</td></tr>
+    <tr><td>ProgressBar widget</td><td style="color:#3fb950">DONE (task 13)</td><td>render loop progress</td></tr>
+    <tr><td>RalphPanelView stub</td><td style="color:#3fb950">DONE (task 11)</td><td>replace with full impl</td></tr>
+    <tr><td>App.pool</td><td style="color:#3fb950">DONE (this task)</td><td>update run status in DB</td></tr>
+    <tr><td>RalphLoopRunRepository</td><td style="color:#3fb950">DONE (this task)</td><td>persist run lifecycle</td></tr>
+  </table>
+
+  <div class="callout">
+    <p>Task 22 has everything it needs. RalphProcessManager, WorkerEvents, ProgressBar widget, RalphPanelView stub, and now the DB repository for persisting run state — all ready.</p>
+  </div>
+</div>
+
+</main>
+
+<script>
+function showSlide(index, el) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('slide-' + index).classList.add('active');
+  el.classList.add('active');
+  return false;
+}
+</script>
+
+</body>
+</html>

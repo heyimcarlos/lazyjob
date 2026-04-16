@@ -610,3 +610,29 @@ Next iteration should know:
 - For tests: `with_binary_and_args(PathBuf::from("sh"), vec![OsString::from("-c"), OsString::from("...script...")])`
 - The broadcast channel type is `(RunId, WorkerEvent)` — subscribers need pattern matching on the tuple
 - Task 20 (ralph-loop-types) is next — LoopType enum, LoopDispatch priority queue, LoopScheduler
+
+## Task 21: ralph-crash-recovery — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-core/src/repositories/ralph_loop_run.rs (new: RalphLoopRunStatus enum, RalphLoopRun struct, RalphLoopRunRepository)
+- crates/lazyjob-core/src/repositories/mod.rs (added pub mod ralph_loop_run + re-exports)
+- crates/lazyjob-tui/Cargo.toml (added sqlx dep)
+- crates/lazyjob-tui/src/app.rs (added pool: Option<PgPool> field + with_pool() builder)
+- crates/lazyjob-tui/src/lib.rs (wired DB connection + recover_pending() call in run())
+Key decisions:
+- No migration 002 needed — ralph_loop_runs table already existed in migration 001 with the correct schema
+- RalphLoopRunStatus stored as snake_case TEXT in PG; as_str()/FromStr for round-tripping (same pattern as ApplicationStage)
+- recovery is in run() (not App::new()) since recovery is async — App::new() stays synchronous
+- run() uses a graceful fallback: if DB connection fails, logs a warning and creates App with pool=None instead of crashing
+- App gains pool: Option<PgPool> field for future view implementations that need DB access
+- recover_pending() targets status='running' AND started_at < now()-30s — only marks truly stale runs failed (not recent ones)
+Learning tests written:
+- None required (no new external crates; sqlx proven in tasks 3-4)
+Tests passing: 339 total (11 new unit tests in ralph_loop_run.rs; 6 integration tests skipped gracefully when DATABASE_URL not set but pass when it is set — verified via DATABASE_URL being set in this run)
+Next iteration should know:
+- RalphLoopRunRepository is in lazyjob-core::repositories, re-exported as lazyjob_core::repositories::RalphLoopRunRepository
+- RalphLoopRun::new(loop_type) creates a Pending run with Uuid id and Utc::now() created_at
+- App now has pool: Option<PgPool> — use app.pool.as_ref() to access it in views
+- App::with_pool(pool) is a builder method — chain after App::new()
+- TUI startup now auto-recovers stale 'running' runs older than 30s, marking them 'failed'
+- Task 22 (ralph-tui-panel) is next — implement RalphPanelView with WorkerEvent broadcast subscription, progress bars, cancel binding
