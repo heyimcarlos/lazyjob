@@ -183,7 +183,7 @@
       "description": "In lazyjob-core/src/discovery/sources/, implement GreenhouseClient and LeverClient. Each fetches job listings via public API endpoints (no auth required). Use reqwest. Strip HTML from descriptions using ammonia::clean(). Map API responses to the Job domain type, store in PostgreSQL. Implement per-source RateLimiter (token bucket, 1 req/s for Greenhouse, 2/s for Lever). Write learning tests that document the API response shapes, and unit tests with mock HTTP responses using wiremock or similar.",
       "phase": "build",
       "spec": "specs/05-job-discovery-layer-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 24,

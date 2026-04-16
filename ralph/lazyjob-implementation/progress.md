@@ -637,6 +637,40 @@ Next iteration should know:
 - TUI startup now auto-recovers stale 'running' runs older than 30s, marking them 'failed'
 - Task 22 (ralph-tui-panel) is next — implement RalphPanelView with WorkerEvent broadcast subscription, progress bars, cancel binding
 
+## Task 23: job-sources — DONE
+Date: 2026-04-16
+Files created/modified:
+- Cargo.toml (added ammonia = "4", wiremock = "0.6" to workspace deps)
+- crates/lazyjob-core/Cargo.toml (added ammonia, async-trait, reqwest deps; wiremock dev-dep)
+- crates/lazyjob-core/src/error.rs (added CoreError::Http(String) variant for HTTP transport errors)
+- crates/lazyjob-core/src/lib.rs (added pub mod discovery)
+- crates/lazyjob-core/migrations/002_unique_job_source.sql (partial unique index on (source, source_id) for ON CONFLICT upsert)
+- crates/lazyjob-core/src/discovery/mod.rs (re-exports)
+- crates/lazyjob-core/src/discovery/sources/mod.rs (JobSource trait + RateLimiter + strip_html helper)
+- crates/lazyjob-core/src/discovery/sources/greenhouse.rs (GreenhouseClient with async fetch, rate limiting, HTML stripping)
+- crates/lazyjob-core/src/discovery/sources/lever.rs (LeverClient with async fetch, rate limiting, HTML stripping)
+- crates/lazyjob-core/src/repositories/job.rs (added upsert_discovered() using ON CONFLICT partial unique index)
+Key decisions:
+- RateLimiter uses std::sync::Mutex<Option<Instant>> for interior mutability — lock held briefly, not across await, so no async mutex needed
+- JobSource trait uses async_trait for dyn dispatch compatibility
+- Clients have a private do_fetch() helper called by both the inherent fetch_jobs() and the trait impl — avoids name collision and recursion
+- with_base_url() builder on both clients enables pointing at MockServer for tests without feature flags
+- strip_html() uses ammonia::Builder::new().tags(HashSet::new()).clean().to_string() to strip all tags and keep text
+- CoreError::Http(String) added for HTTP transport errors, distinct from Parse/Io errors
+- Migration 002 adds partial unique index WHERE source IS NOT NULL AND source_id IS NOT NULL — manually-entered jobs (NULL source) bypass the constraint
+- upsert_discovered() in JobRepository uses ON CONFLICT with the same partial WHERE clause for idempotent discovery ingestion
+Learning tests written:
+- ammonia_strips_html_tags — proves ammonia::Builder with empty tags set strips HTML and returns plain text content
+- wiremock_responds_with_json — proves wiremock MockServer intercepts HTTP requests and returns configured fixture body
+Tests passing: 368 (14 new: 2 learning + 5 strip_html/rate_limiter unit tests + 7 greenhouse/lever integration tests with wiremock)
+Next iteration should know:
+- GreenhouseClient and LeverClient are in lazyjob-core::discovery::sources, re-exported via lazyjob-core::discovery
+- JobSource trait is in lazyjob-core::discovery, requires async_trait to use as dyn trait
+- RateLimiter::new(N) creates a limiter for N req/s; call .wait(&self).await before each request
+- strip_html() is pub(crate) in sources/mod.rs — used by both clients
+- upsert_discovered() in JobRepository uses migration 002's partial unique index; requires both source and source_id to be non-NULL for conflict detection
+- Task 24 (discovery-service) is next — DiscoveryService::run_discovery() fans out to all sources in parallel, calls upsert_discovered() for deduplication
+
 ## Task 22: ralph-tui-panel — DONE
 Date: 2026-04-16
 Files created/modified:
