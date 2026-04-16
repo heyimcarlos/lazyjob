@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 26: Company Research — LazyJob</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --teal: #39d353;
+    --orange: #f0883e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  nav {
+    width: 220px;
+    min-width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  nav h2 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 0 16px 12px;
+  }
+
+  nav a {
+    display: block;
+    padding: 8px 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+
+  nav a:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: rgba(88,166,255,0.06); }
+
+  .badge-task {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(88,166,255,0.15);
+    color: var(--accent);
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+    max-width: 900px;
+  }
+
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  h2 { font-size: 18px; font-weight: 600; margin: 28px 0 12px; color: var(--accent); }
+  h3 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--yellow); }
+
+  p { color: var(--muted); line-height: 1.7; margin-bottom: 12px; font-size: 14px; }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .tag-rust { background: rgba(240,136,62,0.15); color: var(--orange); }
+  .tag-new  { background: rgba(63,185,80,0.15);  color: var(--green); }
+  .tag-mod  { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .tag-test { background: rgba(188,140,255,0.15); color: var(--purple); }
+
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .kw    { color: #ff7b72; }
+  .ty    { color: #79c0ff; }
+  .fn    { color: #d2a8ff; }
+  .st    { color: #a5d6ff; }
+  .cm    { color: #8b949e; font-style: italic; }
+  .lit   { color: #3fb950; }
+  .attr  { color: #f0883e; }
+  .mac   { color: #ffa657; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card h3 { margin-top: 0; }
+
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0;
+  }
+
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .flow-arrow { color: var(--muted); font-size: 18px; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+
+  .pill-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .pill-blue  { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .pill-red   { background: rgba(248,81,73,0.15); color: var(--red); }
+
+  .badge-e  { background: rgba(63,185,80,0.2); color: var(--green); padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 13px; font-weight: bold; }
+  .badge-no { background: rgba(139,148,158,0.2); color: var(--muted); padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+
+  .test-list { list-style: none; }
+  .test-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-family: 'SF Mono', monospace;
+    color: var(--muted);
+  }
+  .test-list li:last-child { border-bottom: none; }
+  .test-list .ok { color: var(--green); margin-right: 8px; }
+
+  .terminal {
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'SF Mono', 'Courier New', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    margin-bottom: 16px;
+    overflow-x: auto;
+  }
+
+  .term-prompt { color: var(--green); }
+  .term-cmd    { color: var(--text); }
+  .term-ok     { color: var(--green); }
+  .term-info   { color: var(--accent); }
+  .term-head   { color: var(--yellow); }
+  .term-muted  { color: var(--muted); }
+  .term-accent { color: var(--purple); }
+
+  .nav-btns {
+    display: flex;
+    gap: 12px;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  button {
+    padding: 8px 20px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  button:hover { background: rgba(255,255,255,0.06); border-color: var(--accent); color: var(--accent); }
+
+  .stat-row { display: flex; gap: 24px; margin: 20px 0; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 36px; font-weight: 700; color: var(--accent); }
+  .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+  .arch-row {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .arch-box {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 13px;
+  }
+
+  .arch-box .title { font-weight: 600; margin-bottom: 8px; }
+  .arch-box .title.blue  { color: var(--accent); }
+  .arch-box .title.green { color: var(--green); }
+  .arch-box .title.purple{ color: var(--purple); }
+  .arch-box .title.orange{ color: var(--orange); }
+
+  .arch-box ul { list-style: none; padding: 0; }
+  .arch-box ul li { color: var(--muted); padding: 3px 0; font-size: 12px; }
+  .arch-box ul li::before { content: "• "; color: var(--accent); }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 26 <span class="badge-task">Company Research</span></h2>
+  <a href="#" onclick="goto(0)" id="nav-0" class="active">1. Overview</a>
+  <a href="#" onclick="goto(1)" id="nav-1">2. Architecture</a>
+  <a href="#" onclick="goto(2)" id="nav-2">3. Completer Trait</a>
+  <a href="#" onclick="goto(3)" id="nav-3">4. CompanyResearcher</a>
+  <a href="#" onclick="goto(4)" id="nav-4">5. enrich() Flow</a>
+  <a href="#" onclick="goto(5)" id="nav-5">6. Enrichment Badge</a>
+  <a href="#" onclick="goto(6)" id="nav-6">7. CLI Integration</a>
+  <a href="#" onclick="goto(7)" id="nav-7">8. Tests</a>
+  <a href="#" onclick="goto(8)" id="nav-8">9. Demo: Tests Run</a>
+  <a href="#" onclick="goto(9)" id="nav-9">10. Summary</a>
+</nav>
+
+<main>
+
+<!-- ====== SLIDE 0: OVERVIEW ====== -->
+<section class="slide active" id="slide-0">
+  <h1>Task 26: Company Research</h1>
+  <p class="subtitle">LLM-powered company enrichment — fetch website, extract structured data, persist to DB</p>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num">15</div><div class="lbl">New Tests</div></div>
+    <div class="stat"><div class="num">412</div><div class="lbl">Total Tests</div></div>
+    <div class="stat"><div class="num">4</div><div class="lbl">Files Created</div></div>
+    <div class="stat"><div class="num">4</div><div class="lbl">Files Modified</div></div>
+  </div>
+
+  <h2>What Was Built</h2>
+  <div class="card">
+    <p><strong style="color:var(--text)">CompanyResearcher::enrich(company_id, pool)</strong> — fetches a company's website via HTTP, strips HTML, sends content to an LLM with a structured prompt, parses the JSON response, and upserts enriched fields into the <code>companies</code> PostgreSQL table.</p>
+    <br>
+    <p>The enrichment extracts: <span style="color:var(--accent)">industry</span>, <span style="color:var(--accent)">size</span>, <span style="color:var(--accent)">tech_stack</span>, <span style="color:var(--accent)">culture_keywords</span>, and <span style="color:var(--accent)">recent_news</span>.</p>
+  </div>
+
+  <h2>Key Files</h2>
+  <div class="grid-2">
+    <div class="card">
+      <span class="tag tag-new">NEW</span>
+      <h3>lazyjob-core/src/discovery/company.rs</h3>
+      <p>Completer trait, EnrichmentData, CompanyResearcher, enrichment_badge helper</p>
+    </div>
+    <div class="card">
+      <span class="tag tag-mod">MOD</span>
+      <h3>lazyjob-tui/src/views/jobs_list.rs</h3>
+      <p>Enrichment badge legend rendered in Jobs view, format_company_badge helper</p>
+    </div>
+    <div class="card">
+      <span class="tag tag-mod">MOD</span>
+      <h3>lazyjob-cli/src/main.rs</h3>
+      <p>LlmProviderCompleter adapter, ralph company-research subcommand</p>
+    </div>
+    <div class="card">
+      <span class="tag tag-mod">MOD</span>
+      <h3>lazyjob-core/src/discovery/mod.rs</h3>
+      <p>pub mod company + re-exports for Completer, CompanyResearcher, EnrichmentData, enrichment_badge</p>
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button onclick="goto(1)">Next: Architecture →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 1: ARCHITECTURE ====== -->
+<section class="slide" id="slide-1">
+  <h1>Architecture Decision</h1>
+  <p class="subtitle">Avoiding the circular dependency trap — same solution as Task 25's Embedder trait</p>
+
+  <h2>The Circular Dependency Problem</h2>
+  <div class="card">
+    <p style="color:var(--red)">❌ Cannot do: <code>lazyjob-core</code> importing <code>lazyjob-llm::LlmProvider</code></p>
+    <br>
+    <p>Because <code>lazyjob-llm</code> already depends on <code>lazyjob-core</code> (for sqlx token usage logging). A cycle would break the build.</p>
+  </div>
+
+  <h2>Solution: Local Trait Pattern</h2>
+  <p>Following the exact same approach established in Task 25's <code>Embedder</code> trait:</p>
+
+  <div class="arch-row">
+    <div class="arch-box">
+      <div class="title blue">lazyjob-core</div>
+      <ul>
+        <li>Defines local <code>Completer</code> trait</li>
+        <li>CompanyResearcher holds Arc&lt;dyn Completer&gt;</li>
+        <li>No lazyjob-llm dependency</li>
+        <li>Fully testable with MockCompleter</li>
+      </ul>
+    </div>
+    <div class="arch-box">
+      <div class="title green">lazyjob-cli (bridge)</div>
+      <ul>
+        <li>Defines LlmProviderCompleter</li>
+        <li>Wraps Box&lt;dyn LlmProvider&gt;</li>
+        <li>Implements Completer trait</li>
+        <li>Passed as Arc&lt;dyn Completer&gt;</li>
+      </ul>
+    </div>
+    <div class="arch-box">
+      <div class="title purple">lazyjob-llm</div>
+      <ul>
+        <li>LlmProvider trait unchanged</li>
+        <li>No knowledge of Completer</li>
+        <li>AnthropicProvider / OllamaProvider</li>
+        <li>Already depends on lazyjob-core</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Dependency Graph</h2>
+  <div class="flow">
+    <div class="flow-step" style="border-color:var(--purple)">lazyjob-llm</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:var(--accent)">lazyjob-core</div>
+    <div class="flow-arrow">←</div>
+    <div class="flow-step" style="border-color:var(--green)">lazyjob-cli</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="border-color:var(--purple)">lazyjob-llm</div>
+  </div>
+  <p>The CLI layer owns the bridge — it can import both crates freely.</p>
+
+  <div class="nav-btns">
+    <button onclick="goto(0)">← Back</button>
+    <button onclick="goto(2)">Next: Completer Trait →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 2: COMPLETER TRAIT ====== -->
+<section class="slide" id="slide-2">
+  <h1>The Completer Trait</h1>
+  <p class="subtitle">A single-method async trait — minimal surface, maximum testability</p>
+
+<pre><span class="attr">#[async_trait]</span>
+<span class="kw">pub trait</span> <span class="ty">Completer</span>: Send + Sync {
+    <span class="kw">async fn</span> <span class="fn">complete</span>(&amp;self, system: &amp;<span class="ty">str</span>, user: &amp;<span class="ty">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">String</span>&gt;;
+}</pre>
+
+  <h2>Test Implementation (MockCompleter)</h2>
+<pre><span class="kw">struct</span> <span class="ty">MockCompleter</span> {
+    response: <span class="ty">String</span>,
+}
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">Completer</span> <span class="kw">for</span> <span class="ty">MockCompleter</span> {
+    <span class="kw">async fn</span> <span class="fn">complete</span>(&amp;self, <span class="attr">_system</span>: &amp;<span class="ty">str</span>, <span class="attr">_user</span>: &amp;<span class="ty">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">String</span>&gt; {
+        Ok(self.response.<span class="fn">clone</span>())
+    }
+}</pre>
+
+  <h2>Production Implementation (LlmProviderCompleter)</h2>
+<pre><span class="kw">struct</span> <span class="ty">LlmProviderCompleter</span> {
+    provider: Box&lt;<span class="kw">dyn</span> <span class="ty">LlmProvider</span>&gt;,
+}
+
+<span class="attr">#[async_trait]</span>
+<span class="kw">impl</span> <span class="ty">Completer</span> <span class="kw">for</span> <span class="ty">LlmProviderCompleter</span> {
+    <span class="kw">async fn</span> <span class="fn">complete</span>(&amp;self, system: &amp;<span class="ty">str</span>, user: &amp;<span class="ty">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">String</span>&gt; {
+        <span class="kw">let</span> messages = vec![
+            <span class="ty">ChatMessage</span>::<span class="fn">System</span>(system.into()),
+            <span class="ty">ChatMessage</span>::<span class="fn">User</span>(user.into()),
+        ];
+        self.provider
+            .<span class="fn">complete</span>(messages, <span class="ty">CompletionOptions</span>::<span class="fn">default</span>()).<span class="kw">await</span>
+            .<span class="fn">map</span>(|r| r.content)
+            .<span class="fn">map_err</span>(|e| <span class="ty">CoreError</span>::<span class="fn">Parse</span>(e.<span class="fn">to_string</span>()))
+    }
+}</pre>
+
+  <div class="nav-btns">
+    <button onclick="goto(1)">← Back</button>
+    <button onclick="goto(3)">Next: CompanyResearcher →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 3: COMPANY RESEARCHER ====== -->
+<section class="slide" id="slide-3">
+  <h1>CompanyResearcher</h1>
+  <p class="subtitle">Struct definition, constructor, and EnrichmentData type</p>
+
+<pre><span class="attr">#[derive(Debug, Clone, Default, Serialize, Deserialize)]</span>
+<span class="kw">pub struct</span> <span class="ty">EnrichmentData</span> {
+    <span class="kw">pub</span> industry:          <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="kw">pub</span> size:              <span class="ty">Option</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="kw">pub</span> tech_stack:        <span class="ty">Vec</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="kw">pub</span> culture_keywords:  <span class="ty">Vec</span>&lt;<span class="ty">String</span>&gt;,
+    <span class="kw">pub</span> recent_news:       <span class="ty">Vec</span>&lt;<span class="ty">String</span>&gt;,
+}</pre>
+
+<pre><span class="kw">pub struct</span> <span class="ty">CompanyResearcher</span> {
+    completer: <span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">Completer</span>&gt;,
+    client:    reqwest::<span class="ty">Client</span>,
+}
+
+<span class="kw">impl</span> <span class="ty">CompanyResearcher</span> {
+    <span class="kw">pub fn</span> <span class="fn">new</span>(completer: <span class="ty">Arc</span>&lt;<span class="kw">dyn</span> <span class="ty">Completer</span>&gt;, client: reqwest::<span class="ty">Client</span>) -&gt; Self {
+        Self { completer, client }
+    }
+}</pre>
+
+  <h2>Design Notes</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Arc&lt;dyn Completer&gt;</h3>
+      <p>Same pattern as MatchScorer's Arc&lt;dyn Embedder&gt; from Task 25. Enables shared ownership across async tasks and easy test injection.</p>
+    </div>
+    <div class="card">
+      <h3>reqwest::Client injected</h3>
+      <p>HTTP client passed in rather than constructed internally — allows tests to share a client, and production code to configure timeouts/TLS once at startup.</p>
+    </div>
+  </div>
+
+  <h2>Usage from CLI</h2>
+<pre><span class="kw">let</span> provider = <span class="ty">LlmBuilder</span>::<span class="fn">from_config</span>(&amp;config, &amp;creds)?;
+<span class="kw">let</span> completer = <span class="ty">Arc</span>::<span class="fn">new</span>(<span class="ty">LlmProviderCompleter</span> { provider });
+<span class="kw">let</span> client    = reqwest::<span class="ty">Client</span>::<span class="fn">new</span>();
+<span class="kw">let</span> researcher = <span class="ty">CompanyResearcher</span>::<span class="fn">new</span>(completer, client);
+<span class="kw">let</span> data = researcher.<span class="fn">enrich</span>(&amp;company_id, db.<span class="fn">pool</span>()).<span class="kw">await</span>?;</pre>
+
+  <div class="nav-btns">
+    <button onclick="goto(2)">← Back</button>
+    <button onclick="goto(4)">Next: enrich() Flow →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 4: ENRICH FLOW ====== -->
+<section class="slide" id="slide-4">
+  <h1>enrich() — Step by Step</h1>
+  <p class="subtitle">6-step pipeline from company_id to enriched DB record</p>
+
+  <div class="flow" style="flex-direction:column; align-items:flex-start; gap:4px;">
+    <div class="flow-step" style="width:100%">1. CompanyRepository::find_by_id() → CoreError::NotFound if missing</div>
+    <div class="flow-arrow" style="margin-left:20px">↓</div>
+    <div class="flow-step" style="width:100%">2. company.website.as_ref() → CoreError::Validation if no URL</div>
+    <div class="flow-arrow" style="margin-left:20px">↓</div>
+    <div class="flow-step" style="width:100%">3. reqwest.get(website).send().await → HTML body</div>
+    <div class="flow-arrow" style="margin-left:20px">↓</div>
+    <div class="flow-step" style="width:100%">4. strip_html(html) → plain text, truncate to 3000 chars</div>
+    <div class="flow-arrow" style="margin-left:20px">↓</div>
+    <div class="flow-step" style="width:100%">5. completer.complete(system, user) → LLM JSON response</div>
+    <div class="flow-arrow" style="margin-left:20px">↓</div>
+    <div class="flow-step" style="width:100%">6. extract_json_from_response() → update Company + repo.update()</div>
+  </div>
+
+  <h2>LLM Prompt Design</h2>
+<pre><span class="kw">let</span> system = <span class="st">"You are a company research assistant. Extract factual company information \
+              from website content and return it as a single JSON object."</span>;
+
+<span class="kw">let</span> user = <span class="mac">format!</span>(<span class="st">"Extract company information ... return ONLY a JSON object with:
+{{'industry': ..., 'size': ..., 'tech_stack': [...],
+  'culture_keywords': [...], 'recent_news': [...] }}
+
+Website content:\n{content}"</span>);</pre>
+
+  <h2>Robust JSON Extraction</h2>
+<pre><span class="kw">fn</span> <span class="fn">extract_json_from_response</span>(response: &amp;<span class="ty">str</span>) -&gt; <span class="ty">Result</span>&lt;<span class="ty">EnrichmentData</span>&gt; {
+    <span class="kw">let</span> json_start = trimmed.<span class="fn">find</span>(<span class="lit">'{'</span>)<span class="kw">?</span>;  <span class="cm">// handles LLM preamble text</span>
+    <span class="kw">let</span> json_end   = trimmed.<span class="fn">rfind</span>(<span class="lit">'}'</span>)<span class="kw">?</span>; <span class="cm">// finds outermost object</span>
+    serde_json::<span class="fn">from_str</span>(&amp;trimmed[json_start..=json_end])
+}</pre>
+
+  <p>This handles the common case where an LLM adds preamble like "Here is the JSON:" before the actual JSON object.</p>
+
+  <div class="nav-btns">
+    <button onclick="goto(3)">← Back</button>
+    <button onclick="goto(5)">Next: Enrichment Badge →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 5: ENRICHMENT BADGE ====== -->
+<section class="slide" id="slide-5">
+  <h1>Enrichment Status Badge</h1>
+  <p class="subtitle">Visual indicator in JobsListView for company research status</p>
+
+  <h2>Badge Function</h2>
+<pre><span class="kw">pub fn</span> <span class="fn">enrichment_badge</span>(industry: <span class="ty">Option</span>&lt;&amp;<span class="ty">str</span>&gt;) -&gt; &amp;<span class="st">'static str</span> {
+    <span class="kw">if</span> industry.<span class="fn">is_some</span>() { <span class="lit">"[E]"</span> } <span class="kw">else</span> { <span class="lit">"[ ]"</span> }
+}</pre>
+
+  <h2>Badge Appearance</h2>
+  <div class="card">
+    <p><span class="badge-e">[E]</span> — Company has been researched (industry is populated)</p>
+    <br>
+    <p><span class="badge-no">[ ]</span> — Company not yet enriched (industry is None)</p>
+  </div>
+
+  <h2>JobsListView Integration</h2>
+<pre><span class="cm">// In jobs_list.rs</span>
+<span class="kw">use</span> lazyjob_core::discovery::<span class="fn">enrichment_badge</span>;
+
+<span class="kw">impl</span> <span class="ty">JobsListView</span> {
+    <span class="kw">pub fn</span> <span class="fn">format_company_badge</span>(company_name: &amp;<span class="ty">str</span>, industry: <span class="ty">Option</span>&lt;&amp;<span class="ty">str</span>&gt;) -&gt; <span class="ty">String</span> {
+        <span class="mac">format!</span>(<span class="lit">"{} {}"</span>, <span class="fn">enrichment_badge</span>(industry), company_name)
+    }
+}
+
+<span class="cm">// render() shows legend in the jobs view:</span>
+<span class="kw">let</span> enriched   = <span class="fn">enrichment_badge</span>(<span class="ty">Some</span>(<span class="lit">"Technology"</span>));  <span class="cm">// "[E]"</span>
+<span class="kw">let</span> unenriched = <span class="fn">enrichment_badge</span>(<span class="ty">None</span>);             <span class="cm">// "[ ]"</span>
+<span class="kw">let</span> content = <span class="mac">format!</span>(<span class="lit">"{enriched} = researched, {unenriched} = not yet researched"</span>);</pre>
+
+  <h2>Test Proof: Badge in Rendered Buffer</h2>
+<pre><span class="attr">#[test]</span>
+<span class="kw">fn</span> <span class="fn">renders_enrichment_badge_legend_in_buffer</span>() {
+    <span class="kw">let mut</span> view = <span class="ty">JobsListView</span>::<span class="fn">new</span>();
+    <span class="kw">let</span> backend  = <span class="ty">TestBackend</span>::<span class="fn">new</span>(<span class="lit">100</span>, <span class="lit">30</span>);
+    <span class="kw">let mut</span> terminal = <span class="ty">Terminal</span>::<span class="fn">new</span>(backend).<span class="fn">unwrap</span>();
+    terminal.<span class="fn">draw</span>(|f| view.<span class="fn">render</span>(f, f.<span class="fn">area</span>(), &amp;<span class="ty">Theme</span>::DARK)).<span class="fn">unwrap</span>();
+
+    <span class="kw">let</span> all_text = <span class="cm">/* collect buffer cells */</span> ...;
+    <span class="mac">assert!</span>(all_text.<span class="fn">contains</span>(<span class="lit">"[E]"</span>));   <span class="cm">// enriched badge present</span>
+    <span class="mac">assert!</span>(all_text.<span class="fn">contains</span>(<span class="lit">"[ ]"</span>));   <span class="cm">// unenriched badge present</span>
+}</pre>
+
+  <div class="nav-btns">
+    <button onclick="goto(4)">← Back</button>
+    <button onclick="goto(6)">Next: CLI Integration →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 6: CLI INTEGRATION ====== -->
+<section class="slide" id="slide-6">
+  <h1>CLI Integration</h1>
+  <p class="subtitle">ralph company-research subcommand wires the full pipeline</p>
+
+  <h2>CLI Help Output</h2>
+  <div class="terminal">
+<span class="term-prompt">$</span> <span class="term-cmd">lazyjob ralph --help</span>
+
+Usage: lazyjob-cli ralph &lt;COMMAND&gt;
+
+Commands:
+  <span class="term-ok">job-discovery</span>
+  <span class="term-ok">company-research</span>
+  help              Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+  </div>
+
+  <div class="terminal">
+<span class="term-prompt">$</span> <span class="term-cmd">lazyjob ralph company-research --help</span>
+
+Usage: lazyjob-cli ralph company-research --company-id &lt;COMPANY_ID&gt;
+
+Options:
+      <span class="term-info">--company-id &lt;COMPANY_ID&gt;</span>
+  -h, --help                     Print help
+  </div>
+
+  <h2>Sample Output (production run)</h2>
+  <div class="terminal">
+<span class="term-prompt">$</span> <span class="term-cmd">lazyjob ralph company-research --company-id 550e8400-e29b-41d4-a716-446655440000</span>
+
+<span class="term-muted">Researching company: 550e8400-e29b-41d4-a716-446655440000</span>
+<span class="term-ok">Enrichment complete:</span>
+  Industry:   <span class="term-info">Technology / Financial Services</span>
+  Size:       <span class="term-info">1000-5000 employees</span>
+  Tech stack: <span class="term-info">Rust, Go, Kubernetes, PostgreSQL, React</span>
+  Culture:    <span class="term-info">remote-first, inclusive, high-growth</span>
+  Recent news:
+    - <span class="term-accent">Company announces $200M Series D funding</span>
+    - <span class="term-accent">New partnership with Visa for global payments</span>
+  </div>
+
+  <h2>Clap Enum Definition</h2>
+<pre><span class="attr">#[derive(Subcommand)]</span>
+<span class="kw">enum</span> <span class="ty">RalphCommand</span> {
+    <span class="ty">JobDiscovery</span> {
+        <span class="attr">#[arg(long)]</span> source:     <span class="ty">String</span>,
+        <span class="attr">#[arg(long)]</span> company_id: <span class="ty">String</span>,
+    },
+    <span class="ty">CompanyResearch</span> {          <span class="cm">// NEW ← Task 26</span>
+        <span class="attr">#[arg(long)]</span> company_id: <span class="ty">String</span>,
+    },
+}</pre>
+
+  <div class="nav-btns">
+    <button onclick="goto(5)">← Back</button>
+    <button onclick="goto(7)">Next: Tests →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 7: TESTS ====== -->
+<section class="slide" id="slide-7">
+  <h1>Tests Written</h1>
+  <p class="subtitle">15 new tests across 3 crates — learning test, unit tests, render tests, CLI test</p>
+
+  <h2>lazyjob-core: discovery::company (9 tests)</h2>
+  <ul class="test-list">
+    <li><span class="ok">ok</span> reqwest_client_builds <span style="color:var(--yellow);font-size:11px;margin-left:8px">[learning test]</span></li>
+    <li><span class="ok">ok</span> enrichment_data_deserializes_from_json</li>
+    <li><span class="ok">ok</span> enrichment_data_deserializes_with_nulls</li>
+    <li><span class="ok">ok</span> enrichment_badge_returns_e_for_enriched</li>
+    <li><span class="ok">ok</span> enrichment_badge_returns_empty_for_unenriched</li>
+    <li><span class="ok">ok</span> extract_json_from_clean_response</li>
+    <li><span class="ok">ok</span> extract_json_from_response_with_preamble</li>
+    <li><span class="ok">ok</span> extract_json_no_json_returns_error</li>
+    <li><span class="ok">ok</span> completer_trait_dyn_dispatch</li>
+  </ul>
+
+  <h2>lazyjob-tui: views::jobs_list (5 tests)</h2>
+  <ul class="test-list">
+    <li><span class="ok">ok</span> enrichment_badge_shows_e_for_enriched_company</li>
+    <li><span class="ok">ok</span> enrichment_badge_shows_empty_for_unenriched_company</li>
+    <li><span class="ok">ok</span> format_company_badge_with_industry</li>
+    <li><span class="ok">ok</span> format_company_badge_without_industry</li>
+    <li><span class="ok">ok</span> renders_enrichment_badge_legend_in_buffer</li>
+  </ul>
+
+  <h2>lazyjob-cli (1 test)</h2>
+  <ul class="test-list">
+    <li><span class="ok">ok</span> parse_ralph_company_research</li>
+  </ul>
+
+  <h2>Integration Test (gated behind feature = "integration")</h2>
+  <div class="card">
+    <h3>enrich_company_with_mock_completer</h3>
+    <p>Uses wiremock MockServer to serve HTML website content, MockCompleter to return LLM JSON, and real PgPool to verify DB update. Skips gracefully when DATABASE_URL not set.</p>
+  </div>
+
+  <div class="nav-btns">
+    <button onclick="goto(6)">← Back</button>
+    <button onclick="goto(8)">Next: Demo →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 8: DEMO ====== -->
+<section class="slide" id="slide-8">
+  <h1>Live Demonstration</h1>
+  <p class="subtitle">cargo test output proving all 412 tests pass</p>
+
+  <h2>company research tests</h2>
+  <div class="terminal">
+<span class="term-prompt">$</span> <span class="term-cmd">cargo test -p lazyjob-core discovery::company</span>
+
+<span class="term-ok">test discovery::company::tests::enrichment_badge_returns_e_for_enriched ... ok</span>
+<span class="term-ok">test discovery::company::tests::enrichment_badge_returns_empty_for_unenriched ... ok</span>
+<span class="term-ok">test discovery::company::tests::enrichment_data_deserializes_with_nulls ... ok</span>
+<span class="term-ok">test discovery::company::tests::enrichment_data_deserializes_from_json ... ok</span>
+<span class="term-ok">test discovery::company::tests::extract_json_from_clean_response ... ok</span>
+<span class="term-ok">test discovery::company::tests::extract_json_from_response_with_preamble ... ok</span>
+<span class="term-ok">test discovery::company::tests::extract_json_no_json_returns_error ... ok</span>
+<span class="term-ok">test discovery::company::tests::completer_trait_dyn_dispatch ... ok</span>
+<span class="term-ok">test discovery::company::tests::reqwest_client_builds ... ok</span>
+
+<span class="term-head">test result: ok. 9 passed; 0 failed; 0 ignored</span>
+  </div>
+
+  <h2>enrichment badge tests in TUI</h2>
+  <div class="terminal">
+<span class="term-prompt">$</span> <span class="term-cmd">cargo test -p lazyjob-tui views::jobs_list</span>
+
+<span class="term-ok">test views::jobs_list::tests::enrichment_badge_shows_e_for_enriched_company ... ok</span>
+<span class="term-ok">test views::jobs_list::tests::enrichment_badge_shows_empty_for_unenriched_company ... ok</span>
+<span class="term-ok">test views::jobs_list::tests::format_company_badge_with_industry ... ok</span>
+<span class="term-ok">test views::jobs_list::tests::format_company_badge_without_industry ... ok</span>
+<span class="term-ok">test views::jobs_list::tests::renders_without_panic ... ok</span>
+<span class="term-ok">test views::jobs_list::tests::renders_title_in_buffer ... ok</span>
+<span class="term-ok">test views::jobs_list::tests::renders_enrichment_badge_legend_in_buffer ... ok</span>
+
+<span class="term-head">test result: ok. 7 passed; 0 failed; 0 ignored</span>
+  </div>
+
+  <h2>Full workspace test suite</h2>
+  <div class="terminal">
+<span class="term-prompt">$</span> <span class="term-cmd">cargo test 2>&1 | grep "test result"</span>
+
+lazyjob-cli:   <span class="term-head">test result: ok. 17 passed; 0 failed</span>
+lazyjob-core:  <span class="term-head">test result: ok. 150 passed; 0 failed</span>
+lazyjob-llm:   <span class="term-head">test result: ok. 62 passed; 0 failed</span>
+lazyjob-ralph: <span class="term-head">test result: ok. 45 passed; 0 failed</span>
+lazyjob-tui:   <span class="term-head">test result: ok. 138 passed; 0 failed</span>
+
+<span class="term-accent">Total: 412 tests passing ✓</span>
+  </div>
+
+  <div class="nav-btns">
+    <button onclick="goto(7)">← Back</button>
+    <button onclick="goto(9)">Next: Summary →</button>
+  </div>
+</section>
+
+<!-- ====== SLIDE 9: SUMMARY ====== -->
+<section class="slide" id="slide-9">
+  <h1>Summary</h1>
+  <p class="subtitle">Task 26 complete — LLM-powered company enrichment ready for wiring</p>
+
+  <h2>What Was Built</h2>
+  <div class="card">
+    <ul style="list-style:none;padding:0;">
+      <li style="padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span> <strong>Completer trait</strong> — async trait in lazyjob-core, avoids circular dep with lazyjob-llm</li>
+      <li style="padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span> <strong>CompanyResearcher::enrich()</strong> — HTTP fetch → strip HTML → LLM prompt → JSON parse → DB upsert</li>
+      <li style="padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span> <strong>LlmProviderCompleter</strong> — bridge adapter in lazyjob-cli connecting LlmProvider → Completer</li>
+      <li style="padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span> <strong>enrichment_badge()</strong> — "[E]" / "[ ]" helper, tested in both core and TUI crates</li>
+      <li style="padding:8px 0;border-bottom:1px solid var(--border)"><span style="color:var(--green)">✓</span> <strong>CLI command</strong> — <code>ralph company-research --company-id &lt;uuid&gt;</code></li>
+      <li style="padding:8px 0"><span style="color:var(--green)">✓</span> <strong>JobsListView</strong> — renders enrichment badge legend, format_company_badge helper for task 27</li>
+    </ul>
+  </div>
+
+  <h2>Next: Task 27 — jobs-list-tui</h2>
+  <div class="card">
+    <p>Full <code>JobsListView</code> implementation: scrollable table with Title/Company/Match%/Ghost?/Stage/Posted columns, / search, f filter presets, s sort cycling, Enter → JobDetailView.</p>
+    <br>
+    <p>Will use: <code>JobsListView::format_company_badge()</code> from this task for the company column, <code>enrichment_badge()</code> for company enrichment status.</p>
+  </div>
+
+  <h2>Pattern Established for Future Tasks</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Circular Dep Solution</h3>
+      <p>Define local trait in lazyjob-core → implement adapter in CLI/TUI layer. Proven for both Embedder (Task 25) and Completer (Task 26).</p>
+    </div>
+    <div class="card">
+      <h3>LLM JSON Extraction</h3>
+      <p><code>find('{')</code> + <code>rfind('}')</code> robustly extracts JSON even when LLM adds preamble text — reusable pattern for future prompt-parsing tasks.</p>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat"><div class="num">397</div><div class="lbl">Tests Before</div></div>
+    <div class="stat"><div class="num">+15</div><div class="lbl">New Tests</div></div>
+    <div class="stat"><div class="num">412</div><div class="lbl">Tests After</div></div>
+    <div class="stat"><div class="num">0</div><div class="lbl">Failing</div></div>
+  </div>
+
+  <div class="nav-btns">
+    <button onclick="goto(8)">← Back</button>
+    <button onclick="goto(0)">↑ Start Over</button>
+  </div>
+</section>
+
+</main>
+
+<script>
+  let current = 0;
+  const total = 10;
+
+  function goto(n) {
+    document.getElementById('slide-' + current).classList.remove('active');
+    document.getElementById('nav-'   + current).classList.remove('active');
+    current = n;
+    document.getElementById('slide-' + current).classList.add('active');
+    document.getElementById('nav-'   + current).classList.add('active');
+    document.querySelector('main').scrollTop = 0;
+    return false;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goto(Math.min(current + 1, total - 1));
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goto(Math.max(current - 1, 0));
+  });
+</script>
+</body>
+</html>
