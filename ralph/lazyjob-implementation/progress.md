@@ -554,3 +554,29 @@ Next iteration should know:
 - LoggingProvider::new(provider, pool) wraps any Arc<dyn LlmProvider> with DB logging; without_pool() for tests
 - sqlx and uuid are now direct deps of lazyjob-llm (in addition to lazyjob-core which also has them)
 - Task 18 (ralph-protocol) is next — WorkerCommand/WorkerEvent NDJSON protocol types in lazyjob-ralph
+
+## Task 19: ralph-process-manager — DONE
+Date: 2026-04-16
+Files created/modified:
+- crates/lazyjob-ralph/src/error.rs (added Io(#[from] std::io::Error) and NotFound(String) variants)
+- crates/lazyjob-ralph/src/process_manager.rs (new: RunId, ProcessHandle, RalphProcessManager)
+- crates/lazyjob-ralph/src/lib.rs (added pub mod process_manager + re-exports)
+Key decisions:
+- Added `with_binary_and_args(path, args)` constructor to support both production (current_exe + "worker" arg) and test (sh -c 'script' worker) usage patterns — avoids temp executable files which cause ETXTBSY on Linux when created and executed concurrently
+- Event broadcast channel type is `broadcast::Sender<(RunId, WorkerEvent)>` — tags each event with its RunId so multiple TUI subscribers can correlate events to specific runs
+- `cancel()` sends WorkerCommand::Cancel to stdin, waits up to 3s for graceful exit via `tokio::time::timeout`, then calls `child.kill()` (SIGKILL) if timed out
+- `ChildStdin` is stored separately from `Child` in `ProcessHandle` — necessary because `Child` does not allow concurrent access to its stdin handle after `take()`
+- Background reader task uses `BufReader::lines()` for async line-by-line reading; decode errors are silently ignored (best-effort for malformed subprocess output)
+- `binary_args` stores `Vec<OsString>` for maximum OS compatibility; args are injected before the hardcoded "worker" subcommand arg
+Learning tests written:
+- tokio_process_piped_stdout — proves `tokio::process::Command` with `Stdio::piped()` allows async stdout line reading via `BufReader::lines()`
+- tokio_process_stdin_write — proves bidirectional pipe communication: write to stdin via `AsyncWriteExt::write_all`, read back via `BufReader::lines()` (using `cat` as subprocess)
+Tests passing: 307 total (7 new: 2 learning + 5 unit: run_id_is_unique, run_id_display_is_uuid_format, spawn_emits_worker_events, cancel_terminates_running_process, cancel_unknown_run_returns_not_found)
+Next iteration should know:
+- RalphProcessManager is in lazyjob_ralph::process_manager, re-exported as lazyjob_ralph::RalphProcessManager
+- RunId is in lazyjob_ralph::process_manager, re-exported as lazyjob_ralph::RunId
+- RalphError now has Io(#[from] io::Error) and NotFound(String) in addition to Decode(String)
+- For production: `RalphProcessManager::new()` uses `current_exe()` and spawns `<current_exe> worker`
+- For tests: `with_binary_and_args(PathBuf::from("sh"), vec![OsString::from("-c"), OsString::from("...script...")])`
+- The broadcast channel type is `(RunId, WorkerEvent)` — subscribers need pattern matching on the tuple
+- Task 20 (ralph-loop-types) is next — LoopType enum, LoopDispatch priority queue, LoopScheduler

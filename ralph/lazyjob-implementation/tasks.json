@@ -151,7 +151,7 @@
       "description": "In lazyjob-ralph/src/process_manager.rs, implement RalphProcessManager. spawn(loop_type, params) uses std::env::current_exe() to get binary path, spawns tokio::process::Command with piped stdin/stdout, starts a background tokio task reading stdout lines and broadcasting WorkerEvent via tokio::sync::broadcast. cancel(run_id) sends Cancel WorkerCommand then waits 3s before SIGKILL. Track active runs in a HashMap<RunId, ProcessHandle>. Write tests using a mock subprocess that echoes NDJSON.",
       "phase": "build",
       "spec": "specs/06-ralph-loop-integration-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 20,
