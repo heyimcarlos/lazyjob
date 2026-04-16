@@ -1,0 +1,58 @@
+[
+  {
+    "id": 1,
+    "name": "01-architecture",
+    "description": "Created implementation plan for specs/01-architecture.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 2,
+    "name": "02-gaps-job-discovery",
+    "description": "Created implementation plan for specs/02-gaps-job-discovery.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 3,
+    "name": "02-llm-provider-abstraction",
+    "description": "Created implementation plan for specs/02-llm-provider-abstraction.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 4,
+    "name": "03-life-sheet-data-model",
+    "description": "Created implementation plan for specs/03-life-sheet-data-model.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 5,
+    "name": "03-gaps-ralph-ai",
+    "description": "Created implementation plan for specs/03-gaps-ralph-ai.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 6,
+    "name": "04-sqlite-persistence",
+    "description": "Created implementation plan for specs/04-sqlite-persistence.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 7,
+    "name": "05-job-discovery-layer",
+    "description": "Created implementation plan for specs/05-job-discovery-layer.md",
+    "phase": "impl-plan",
+    "done": true
+  },
+  {
+    "id": 8,
+    "name": "06-ralph-loop-integration",
+    "description": "Created implementation plan for specs/06-ralph-loop-integration.md",
+    "phase": "impl-plan",
+    "done": true
+  }
+]
