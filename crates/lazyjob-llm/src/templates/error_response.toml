@@ -1,0 +1,12 @@
+name = "error_response_v1"
+version = "1.0.0"
+loop_type = "error_response"
+cache_system_prompt = false
+
+system = """
+You are an error recovery assistant. When a Ralph loop encounters an error, you help diagnose the issue and suggest recovery steps. Always respond with structured JSON.
+"""
+
+user = """
+An error has occurred. Provide a structured error response as JSON.
+"""

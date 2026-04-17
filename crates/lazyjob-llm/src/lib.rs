@@ -2,6 +2,7 @@ pub mod cost;
 pub mod error;
 pub mod message;
 pub mod mock;
+pub mod prompts;
 pub mod provider;
 pub mod providers;
 pub mod registry;
