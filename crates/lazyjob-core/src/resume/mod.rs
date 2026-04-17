@@ -1,4 +1,5 @@
 pub mod content_drafter;
+pub mod docx;
 pub mod fabrication;
 pub mod gap_analyzer;
 pub mod jd_parser;

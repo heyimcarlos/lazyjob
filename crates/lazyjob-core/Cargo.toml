@@ -27,6 +27,7 @@ reqwest = { workspace = true }
 futures = { workspace = true }
 tracing = { workspace = true }
 strsim = { workspace = true }
+docx-rs = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
