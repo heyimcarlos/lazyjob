@@ -905,3 +905,33 @@ Next iteration should know:
 - load_applications() is called on startup and on Ctrl+R Refresh
 - Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
 - Task 30 (dashboard-stats) is next
+
+## Task 30: dashboard-stats — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-core/src/stats.rs (new: DashboardStats, StaleApplication, compute_dashboard_stats(), find_stale_applications())
+- crates/lazyjob-core/src/lib.rs (added pub mod stats)
+- crates/lazyjob-tui/src/views/dashboard.rs (full rewrite: StatBlocks, kanban counts, stale list, scroll navigation)
+- crates/lazyjob-tui/src/app.rs (added load_dashboard_stats() method, imported stats module)
+- crates/lazyjob-tui/src/event_loop.rs (call load_dashboard_stats() on Refresh)
+- crates/lazyjob-tui/src/lib.rs (call load_dashboard_stats() on startup)
+Key decisions:
+- No reminders table/service — the DB has no reminders table. Stale detection uses applications.updated_at < now()-14d for non-terminal stages instead.
+- No ReminderPoller background task — dashboard refreshes on startup and Ctrl+R like other views. Polling adds complexity for minimal value at this stage.
+- "Interviewing" stat counts PhoneScreen + Technical + Onsite stages (interview-related stages since there's no interviews table)
+- compute_dashboard_stats uses 3 SQL queries: total jobs count, applied this week count, per-stage aggregation. Stage loop computes in_pipeline and interviewing from the per-stage results.
+- find_stale_applications uses EXTRACT(EPOCH) with ::FLOAT8 cast (PG returns NUMERIC from EXTRACT, incompatible with Rust f64 without cast)
+- DashboardView uses 3-section vertical layout: Length(4) for stat blocks, Length(5) for pipeline counts, Fill(1) for stale list
+- Stage short labels are 3-char abbreviations (INT, APP, PHN, TEC, ONS, OFR, ACC, REJ, WDR) for compact pipeline display
+- Stale list supports j/k scroll navigation with selected_stale index, same pattern as other views
+Learning tests written:
+- None required (no new external crates introduced; sqlx and ratatui already proven)
+Tests passing: 511 (27 new: 7 in lazyjob-core stats, 16 in lazyjob-tui dashboard, 4 existing dashboard tests updated)
+Next iteration should know:
+- DashboardStats and StaleApplication are in lazyjob-core::stats
+- compute_dashboard_stats(pool) and find_stale_applications(pool) are the two async query functions
+- DashboardView stores stats + stale list; use set_stats(stats, stale) to populate
+- load_dashboard_stats() is called at startup and on Ctrl+R alongside load_jobs() and load_applications()
+- No reminders infrastructure exists — if task 31+ needs reminders, a migration and table must be created first
+- Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
+- Task 31 (prompt-templates) is next

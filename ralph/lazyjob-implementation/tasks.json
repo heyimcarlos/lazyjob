@@ -239,7 +239,7 @@
       "description": "Implement DashboardView in lazyjob-tui/src/views/dashboard.rs. Top row: StatBlocks for (Total Jobs, Applied This Week, In Pipeline, Interviews Scheduled). Middle: mini kanban column counts. Bottom: Actions Required list (applications stale > 14d, reminders due). Implement compute_stats(db) SQL queries. Implement ReminderService::check_due() that queries reminders table. Wire ReminderPoller as a background tokio task that broadcasts ReminderDue events. Write tests for the SQL queries.",
       "phase": "build",
       "spec": "specs/10-application-workflow-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 31,

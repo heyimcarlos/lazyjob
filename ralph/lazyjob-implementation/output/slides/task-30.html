@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Task 30: dashboard-stats — LazyJob</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --primary: #58a6ff;
+    --success: #3fb950;
+    --warning: #d29922;
+    --error: #f85149;
+    --purple: #bc8cff;
+    --nav-width: 240px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  nav {
+    width: var(--nav-width);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  nav .nav-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  nav .nav-header .task-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--primary);
+    background: rgba(88,166,255,0.1);
+    border: 1px solid rgba(88,166,255,0.3);
+    border-radius: 4px;
+    padding: 2px 7px;
+    display: inline-block;
+    margin-bottom: 6px;
+  }
+  nav .nav-header h2 {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  nav a {
+    display: block;
+    padding: 10px 16px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  nav a:hover, nav a.active {
+    color: var(--text);
+    background: var(--bg3);
+    border-left-color: var(--primary);
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 32px 48px;
+  }
+
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  h1 { font-size: 28px; color: var(--text); margin-bottom: 8px; }
+  h2 { font-size: 20px; color: var(--primary); margin: 24px 0 12px; }
+  h3 { font-size: 16px; color: var(--warning); margin: 16px 0 8px; }
+  p, li { font-size: 14px; line-height: 1.7; color: var(--text); }
+  ul, ol { padding-left: 20px; margin-bottom: 12px; }
+  li { margin-bottom: 4px; }
+
+  code {
+    background: var(--bg3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    color: var(--purple);
+  }
+
+  pre {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 12px 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  pre code {
+    background: none;
+    padding: 0;
+    color: var(--text);
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-box .label { font-size: 12px; color: var(--muted); }
+  .stat-box .value { font-size: 28px; font-weight: 700; margin: 4px 0; }
+  .stat-box:nth-child(1) .value { color: var(--primary); }
+  .stat-box:nth-child(2) .value { color: var(--success); }
+  .stat-box:nth-child(3) .value { color: var(--warning); }
+  .stat-box:nth-child(4) .value { color: var(--purple); }
+
+  .pipeline-bar {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 4px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    margin: 12px 0;
+    text-align: center;
+  }
+  .pipeline-bar .stage { font-size: 11px; color: var(--muted); }
+  .pipeline-bar .count { font-size: 18px; font-weight: 700; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-success { background: rgba(63,185,80,0.15); color: var(--success); }
+  .badge-info { background: rgba(88,166,255,0.15); color: var(--primary); }
+  .badge-warning { background: rgba(210,153,34,0.15); color: var(--warning); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  th { color: var(--muted); font-weight: 600; }
+</style>
+<script>
+function showSlide(id) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector(`nav a[href="#${id}"]`).classList.add('active');
+}
+window.addEventListener('load', () => showSlide('overview'));
+</script>
+</head>
+<body>
+
+<nav>
+  <div class="nav-header">
+    <span class="task-badge">Task 30</span>
+    <h2>Dashboard Stats</h2>
+  </div>
+  <a href="#overview" onclick="showSlide('overview')">Overview</a>
+  <a href="#architecture" onclick="showSlide('architecture')">Architecture</a>
+  <a href="#stats-module" onclick="showSlide('stats-module')">Stats Module</a>
+  <a href="#dashboard-view" onclick="showSlide('dashboard-view')">Dashboard View</a>
+  <a href="#wiring" onclick="showSlide('wiring')">App Wiring</a>
+  <a href="#tests" onclick="showSlide('tests')">Tests</a>
+  <a href="#demo" onclick="showSlide('demo')">Demo Layout</a>
+</nav>
+
+<main>
+
+<!-- SLIDE: Overview -->
+<div id="overview" class="slide active">
+  <h1>Task 30: Dashboard Stats</h1>
+  <p>Full implementation of the DashboardView with live database statistics, pipeline visualization, and stale application alerts.</p>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="label">Files Created</div>
+      <div class="value">1</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Files Modified</div>
+      <div class="value">5</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">New Tests</div>
+      <div class="value">27</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Total Tests</div>
+      <div class="value">511</div>
+    </div>
+  </div>
+
+  <h2>What Was Built</h2>
+  <ul>
+    <li><strong>Stats Module</strong> (<code>lazyjob-core::stats</code>) &mdash; SQL queries for dashboard aggregations</li>
+    <li><strong>DashboardView</strong> &mdash; 3-section layout: stat blocks, pipeline counts, stale application list</li>
+    <li><strong>App Integration</strong> &mdash; <code>load_dashboard_stats()</code> on startup and Ctrl+R refresh</li>
+  </ul>
+
+  <h2>Key Decisions</h2>
+  <ul>
+    <li>No reminders table/service &mdash; the DB has no reminders table; stale detection uses <code>updated_at &lt; now()-14d</code></li>
+    <li>"Interviewing" counts PhoneScreen + Technical + Onsite stages (no interviews table exists yet)</li>
+    <li>Dashboard refreshes on startup + Ctrl+R &mdash; no background polling (keeps it simple)</li>
+  </ul>
+</div>
+
+<!-- SLIDE: Architecture -->
+<div id="architecture" class="slide">
+  <h1>Architecture</h1>
+
+  <h2>New Module</h2>
+  <pre><code>lazyjob-core/src/stats.rs
+  DashboardStats        -- aggregated counts
+  StaleApplication      -- stale app details for display
+  compute_dashboard_stats(pool) -> Result&lt;DashboardStats&gt;
+  find_stale_applications(pool) -> Result&lt;Vec&lt;StaleApplication&gt;&gt;</code></pre>
+
+  <h2>Modified Files</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td><code>lazyjob-core/src/lib.rs</code></td><td>Added <code>pub mod stats</code></td></tr>
+    <tr><td><code>lazyjob-tui/src/views/dashboard.rs</code></td><td>Full rewrite: StatBlocks + pipeline + stale list</td></tr>
+    <tr><td><code>lazyjob-tui/src/app.rs</code></td><td>Added <code>load_dashboard_stats()</code> method</td></tr>
+    <tr><td><code>lazyjob-tui/src/event_loop.rs</code></td><td>Call stats loader on Refresh</td></tr>
+    <tr><td><code>lazyjob-tui/src/lib.rs</code></td><td>Call stats loader on startup</td></tr>
+  </table>
+
+  <h2>Data Flow</h2>
+  <pre><code>Startup / Ctrl+R
+  -> App::load_dashboard_stats()
+    -> stats::compute_dashboard_stats(pool)   -- 3 SQL queries
+    -> stats::find_stale_applications(pool)    -- 1 SQL query
+    -> view.set_stats(stats, stale)
+  -> DashboardView::render() uses stored data</code></pre>
+</div>
+
+<!-- SLIDE: Stats Module -->
+<div id="stats-module" class="slide">
+  <h1>Stats Module</h1>
+
+  <h2>DashboardStats</h2>
+  <pre><code>pub struct DashboardStats {
+    pub total_jobs: i64,
+    pub applied_this_week: i64,
+    pub in_pipeline: i64,        // non-terminal, non-Interested
+    pub interviewing: i64,       // PhoneScreen + Technical + Onsite
+    pub stage_counts: HashMap&lt;ApplicationStage, i64&gt;,
+}</code></pre>
+
+  <h2>SQL Queries</h2>
+  <h3>Total Jobs</h3>
+  <pre><code>SELECT COUNT(*) FROM jobs</code></pre>
+
+  <h3>Applied This Week</h3>
+  <pre><code>SELECT COUNT(*) FROM applications
+WHERE stage != 'interested'
+AND updated_at >= now() - interval '7 days'</code></pre>
+
+  <h3>Per-Stage Counts</h3>
+  <pre><code>SELECT stage, COUNT(*) FROM applications GROUP BY stage</code></pre>
+  <p>The <code>in_pipeline</code> and <code>interviewing</code> counts are computed from the stage breakdown in Rust, avoiding extra queries.</p>
+
+  <h3>Stale Applications</h3>
+  <pre><code>SELECT a.id, j.title, j.company_name,
+       (EXTRACT(EPOCH FROM (now() - a.updated_at)) / 86400.0)::FLOAT8
+FROM applications a JOIN jobs j ON a.job_id = j.id
+WHERE a.stage NOT IN ('accepted', 'rejected', 'withdrawn')
+AND a.updated_at &lt; now() - interval '14 days'
+ORDER BY a.updated_at ASC</code></pre>
+  <p>Note: <code>::FLOAT8</code> cast is required because PostgreSQL's <code>EXTRACT(EPOCH)</code> returns <code>NUMERIC</code>, not <code>FLOAT8</code>.</p>
+</div>
+
+<!-- SLIDE: Dashboard View -->
+<div id="dashboard-view" class="slide">
+  <h1>Dashboard View</h1>
+
+  <h2>Layout Structure</h2>
+  <pre><code>Vertical Layout:
+  [Length(4)]  -- Stat Blocks (4 equal-width columns)
+  [Length(5)]  -- Pipeline Counts (9 equal-width columns, bordered)
+  [Fill(1)]   -- Actions Required (scrollable stale list)</code></pre>
+
+  <h2>Stat Blocks Row</h2>
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="label">Total Jobs</div>
+      <div class="value">42</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Applied This Week</div>
+      <div class="value">7</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">In Pipeline</div>
+      <div class="value">12</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Interviewing</div>
+      <div class="value">3</div>
+    </div>
+  </div>
+
+  <h2>Pipeline Counts</h2>
+  <div class="pipeline-bar">
+    <div><div class="stage">INT</div><div class="count" style="color:var(--muted)">8</div></div>
+    <div><div class="stage">APP</div><div class="count" style="color:var(--primary)">5</div></div>
+    <div><div class="stage">PHN</div><div class="count" style="color:var(--purple)">1</div></div>
+    <div><div class="stage">TEC</div><div class="count" style="color:var(--purple)">1</div></div>
+    <div><div class="stage">ONS</div><div class="count" style="color:var(--purple)">1</div></div>
+    <div><div class="stage">OFR</div><div class="count" style="color:var(--warning)">0</div></div>
+    <div><div class="stage">ACC</div><div class="count" style="color:var(--success)">2</div></div>
+    <div><div class="stage">REJ</div><div class="count" style="color:var(--error)">3</div></div>
+    <div><div class="stage">WDR</div><div class="count" style="color:var(--muted)">1</div></div>
+  </div>
+
+  <h2>Actions Required</h2>
+  <p>Stale applications (no update in 14+ days) listed with warning icon, job title, company, and days stale. j/k navigation with highlight. Empty state shows friendly "No stale applications" message.</p>
+</div>
+
+<!-- SLIDE: Wiring -->
+<div id="wiring" class="slide">
+  <h1>App Wiring</h1>
+
+  <h2>New Method: <code>App::load_dashboard_stats()</code></h2>
+  <pre><code>pub async fn load_dashboard_stats(&mut self) {
+    let Some(pool) = &self.pool else { return };
+    let stats = match stats::compute_dashboard_stats(pool).await {
+        Ok(s) => s,
+        Err(err) => {
+            tracing::warn!("Failed to load dashboard stats: {err}");
+            return;
+        }
+    };
+    let stale = match stats::find_stale_applications(pool).await {
+        Ok(s) => s,
+        Err(err) => {
+            tracing::warn!("Failed to load stale applications: {err}");
+            Vec::new()
+        }
+    };
+    self.views.dashboard.set_stats(stats, stale);
+}</code></pre>
+
+  <h2>Call Sites</h2>
+  <ul>
+    <li><strong>Startup</strong> (<code>lib.rs:45</code>): <code>app.load_dashboard_stats().await;</code></li>
+    <li><strong>Refresh</strong> (<code>event_loop.rs:59</code>): Called after <code>load_jobs()</code> and <code>load_applications()</code></li>
+  </ul>
+
+  <h2>Follows Existing Pattern</h2>
+  <p>Same guard-on-pool + query + set-data pattern as <code>load_jobs()</code> and <code>load_applications()</code>.</p>
+</div>
+
+<!-- SLIDE: Tests -->
+<div id="tests" class="slide">
+  <h1>Tests</h1>
+
+  <h2>lazyjob-core::stats (7 tests)</h2>
+  <table>
+    <tr><th>Test</th><th>Verifies</th></tr>
+    <tr><td><code>default_stats_are_zero</code></td><td>Default DashboardStats has all-zero fields</td></tr>
+    <tr><td><code>stale_application_fields</code></td><td>StaleApplication construction</td></tr>
+    <tr><td><code>compute_stats_empty_db</code></td><td>Returns zeros on empty DB</td></tr>
+    <tr><td><code>compute_stats_with_data</code></td><td>Correct counts for Applied, Technical, Rejected</td></tr>
+    <tr><td><code>find_stale_empty_db</code></td><td>Empty list on empty DB</td></tr>
+    <tr><td><code>find_stale_ignores_terminal</code></td><td>Rejected apps not flagged as stale</td></tr>
+    <tr><td><code>find_stale_returns_old_active_apps</code></td><td>20-day-old Applied app is stale</td></tr>
+  </table>
+
+  <h2>lazyjob-tui::views::dashboard (16 tests)</h2>
+  <table>
+    <tr><th>Test</th><th>Verifies</th></tr>
+    <tr><td><code>renders_without_panic</code></td><td>Empty dashboard renders safely</td></tr>
+    <tr><td><code>renders_with_data_without_panic</code></td><td>Populated dashboard renders safely</td></tr>
+    <tr><td><code>renders_stat_block_values</code></td><td>StatBlock values appear in buffer</td></tr>
+    <tr><td><code>renders_pipeline_label</code></td><td>"Pipeline" title visible</td></tr>
+    <tr><td><code>renders_stage_counts</code></td><td>Stage abbreviations + counts in buffer</td></tr>
+    <tr><td><code>renders_stale_apps</code></td><td>Stale job titles and days visible</td></tr>
+    <tr><td><code>renders_empty_stale_message</code></td><td>"No stale" message when list empty</td></tr>
+    <tr><td><code>handle_key_j_scrolls_down</code></td><td>j increments selection</td></tr>
+    <tr><td><code>handle_key_k_scrolls_up</code></td><td>k decrements selection</td></tr>
+    <tr><td><code>handle_key_k_clamps_to_zero</code></td><td>Can't scroll past top</td></tr>
+    <tr><td><code>handle_key_j_clamps_to_last</code></td><td>Can't scroll past bottom</td></tr>
+    <tr><td><code>handle_key_j_empty_list_no_panic</code></td><td>j on empty list is safe</td></tr>
+    <tr><td><code>set_stats_resets_selection</code></td><td>New data resets scroll position</td></tr>
+    <tr><td><code>name_returns_dashboard</code></td><td>View name is "Dashboard"</td></tr>
+    <tr><td><code>renders_in_small_area</code></td><td>No panic on tiny terminal</td></tr>
+    <tr><td><code>stage_short_labels_are_three_chars</code></td><td>All 9 labels are 3 chars</td></tr>
+  </table>
+
+  <h2>Test Results</h2>
+  <p><span class="badge badge-success">511 tests passing</span> across the workspace. Only pre-existing <code>database_url_defaults_to_none</code> test fails (known issue when DATABASE_URL env var is set).</p>
+</div>
+
+<!-- SLIDE: Demo -->
+<div id="demo" class="slide">
+  <h1>Demo: Dashboard Layout</h1>
+
+  <p>The dashboard renders in three sections, filling the full terminal body area:</p>
+
+  <pre><code>+------------------------------+------------------------------+------------------------------+------------------------------+
+|         Total Jobs           |      Applied This Week       |         In Pipeline          |        Interviewing          |
+|             42               |              7               |             12               |              3               |
++------------------------------+------------------------------+------------------------------+------------------------------+
+| Pipeline                                                                                                                  |
+| INT    APP    PHN    TEC    ONS    OFR    ACC    REJ    WDR                                                                |
+|  8      5      1      1      1      0      2      3      1                                                                |
++---------------------------------------------------------------------------------------------------------------------------+
+| Actions Required                                                                                                          |
+| * Rust Engineer at StaleInc -- 21d stale                                                                                  |
+| * Go Developer at OldCorp -- 15d stale                                                                                    |
+|                                                                                                                           |
+| Navigate: j/k to scroll stale list                                                                                        |
++---------------------------------------------------------------------------------------------------------------------------+</code></pre>
+
+  <h2>Features</h2>
+  <ul>
+    <li>4 stat blocks with color-coded values (blue, green, yellow, magenta)</li>
+    <li>9-column pipeline showing per-stage counts with stage-appropriate colors</li>
+    <li>Scrollable stale application list with warning icons and days-stale counter</li>
+    <li>Selected item highlighted with theme's selected style (white on blue, bold)</li>
+    <li>Graceful empty state: "No stale applications. You're on top of things!"</li>
+    <li>Loads on startup and refreshes with Ctrl+R</li>
+  </ul>
+</div>
+
+</main>
+</body>
+</html>
