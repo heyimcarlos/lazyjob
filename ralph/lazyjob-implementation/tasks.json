@@ -271,7 +271,7 @@
       "description": "In lazyjob-core/src/resume/docx.rs, implement DocxGenerator::generate(resume: &TailoredResume) -> Result<Vec<u8>> using docx-rs. Layout: name + contact header, summary section, experience section (each job: title/company/dates, bullet points), skills section, education section. Apply consistent formatting: Calibri 11pt body, 14pt name, bold section headers, consistent margins. Implement DocxGenerator::save_to_file(resume, path). Write a test that generates a DOCX and verifies the file can be opened (non-zero bytes, valid zip structure).",
       "phase": "build",
       "spec": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 35,

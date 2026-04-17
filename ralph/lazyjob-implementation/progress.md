@@ -1059,3 +1059,39 @@ Next iteration should know:
 - DOCX generation is NOT included (task 34) — pipeline outputs ResumeContent struct
 - Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
 - Task 34 (docx-generator) is next
+
+## Task 34: docx-generator — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-core/src/resume/docx.rs (new: DocxGenerator struct with generate() and save_to_file() methods, helper functions for sections)
+- crates/lazyjob-core/src/resume/mod.rs (added pub mod docx)
+- Cargo.toml (added docx-rs = "0.4" to workspace deps)
+- crates/lazyjob-core/Cargo.toml (added docx-rs = { workspace = true })
+- ralph/lazyjob-implementation/output/research-task-34.md (research doc)
+- ralph/lazyjob-implementation/output/plan-task-34.md (plan doc)
+Key decisions:
+- Used Basics from life_sheet/types.rs as personal info — no new PersonalInfo type needed since Basics already has name, email, phone, url, location
+- DocxGenerator is a zero-sized struct with static methods (no state needed)
+- Signature: generate(resume: &ResumeContent, basics: &Basics) -> Result<Vec<u8>> — takes ResumeContent and Basics separately
+- pack() requires Write + Seek, so used std::io::Cursor<&mut Vec<u8>> instead of raw Vec<u8>
+- Font sizes in half-points: Name=28 (14pt), section headings=24 (12pt bold), body=22 (11pt), contact=20 (10pt)
+- Contact line format: "email | phone | url | city, region, country" — only non-None fields included, pipe-separated
+- Skills format: "Rust, Go | Also: Python" — primary comma-separated, then secondary with "Also:" prefix
+- Sections only rendered when non-empty — empty ResumeContent produces a valid but minimal DOCX
+- Experience bullets use Unicode bullet character U+2022
+- Education format: "B.S. in Computer Science, 2018  MIT"
+- Projects show name (bold), description, and "Technologies: X, Y" italic line
+- CoreError::Io used for pack() errors via std::io::Error::other()
+Learning tests written:
+- docx_rs_creates_valid_zip — proves Docx::new().build().pack(Cursor) produces valid ZIP bytes starting with PK magic
+- docx_rs_paragraph_with_bold_run — proves Run builder methods (bold, size, add_text) chain correctly and produce non-empty DOCX
+Tests passing: 12 new (2 learning + 10 unit: generate_returns_non_empty_bytes, generate_starts_with_pk_magic_bytes, generate_with_full_content, generate_with_empty_sections, build_contact_line_all_fields, build_contact_line_partial_fields, build_contact_line_no_fields, save_to_file_creates_file, format_skills_both_categories, format_skills_primary_only)
+Next iteration should know:
+- DocxGenerator is in lazyjob_core::resume::docx — public struct with two public methods
+- DocxGenerator::generate(resume, basics) -> Result<Vec<u8>> produces DOCX bytes
+- DocxGenerator::save_to_file(resume, basics, path) -> Result<()> writes DOCX to disk
+- Uses Basics from life_sheet (not a separate PersonalInfo type) — callers pass &life_sheet.basics
+- docx-rs 0.4.20 is now a workspace dependency
+- Pre-existing issue: 37 DB integration tests fail due to TestDb connection issues (not caused by this task)
+- Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
+- Task 35 (cover-letter-generation) is next

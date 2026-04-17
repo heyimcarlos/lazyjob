@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 34: DOCX Generator</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+nav { width: 280px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 16px 0; flex-shrink: 0; }
+nav h2 { padding: 8px 16px; font-size: 14px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+nav a { display: block; padding: 8px 16px; color: #c9d1d9; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+nav a:hover, nav a.active { background: #1f2937; border-left-color: #58a6ff; color: #58a6ff; }
+main { flex: 1; overflow-y: auto; padding: 40px; }
+.slide { display: none; max-width: 900px; margin: 0 auto; }
+.slide.active { display: block; }
+h1 { font-size: 32px; color: #58a6ff; margin-bottom: 8px; }
+h2 { font-size: 24px; color: #79c0ff; margin: 24px 0 12px; }
+h3 { font-size: 18px; color: #d2a8ff; margin: 16px 0 8px; }
+p, li { line-height: 1.7; margin-bottom: 8px; }
+ul { padding-left: 24px; }
+code { background: #1f2937; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #f0883e; }
+pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-green { background: #238636; color: #fff; }
+.badge-blue { background: #1f6feb; color: #fff; }
+.badge-purple { background: #8957e5; color: #fff; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+.stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+.stat-card .num { font-size: 28px; font-weight: 700; color: #58a6ff; }
+.stat-card .label { font-size: 12px; color: #8b949e; margin-top: 4px; }
+.section-box { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin: 12px 0; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #30363d; font-size: 14px; }
+th { color: #8b949e; font-weight: 600; }
+.docx-preview { background: #fff; color: #000; border-radius: 8px; padding: 32px; margin: 16px 0; font-family: 'Calibri', 'Segoe UI', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.docx-preview .name { font-size: 14pt; font-weight: bold; text-align: center; }
+.docx-preview .contact { font-size: 10pt; text-align: center; color: #555; margin-bottom: 12px; }
+.docx-preview .section-title { font-size: 12pt; font-weight: bold; margin-top: 16px; margin-bottom: 4px; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
+.docx-preview .body-text { font-size: 11pt; line-height: 1.5; }
+.docx-preview .exp-title { font-weight: bold; font-size: 11pt; }
+.docx-preview .exp-date { font-style: italic; color: #555; font-size: 11pt; }
+.docx-preview .bullet { margin-left: 20px; font-size: 11pt; }
+</style>
+</head>
+<body>
+<nav>
+<h2>Task 34</h2>
+<a href="#" data-slide="overview" class="active">Overview</a>
+<a href="#" data-slide="architecture">Architecture</a>
+<a href="#" data-slide="api">Public API</a>
+<a href="#" data-slide="docx-preview">DOCX Preview</a>
+<a href="#" data-slide="helpers">Helper Functions</a>
+<a href="#" data-slide="tests">Test Results</a>
+<a href="#" data-slide="decisions">Key Decisions</a>
+</nav>
+<main>
+
+<div class="slide active" id="overview">
+<h1>Task 34: DOCX Generator</h1>
+<p><span class="badge badge-green">DONE</span> <span class="badge badge-blue">lazyjob-core</span></p>
+<p>Implements DOCX document generation from <code>ResumeContent</code> using the <code>docx-rs</code> crate.
+Given a tailored resume (output of the 6-stage pipeline from Task 33) and the user's personal info,
+produces a professional DOCX file with proper formatting.</p>
+
+<div class="stat-grid">
+<div class="stat-card"><div class="num">1</div><div class="label">Files Created</div></div>
+<div class="stat-card"><div class="num">12</div><div class="label">Tests Written</div></div>
+<div class="stat-card"><div class="num">0</div><div class="label">Clippy Warnings</div></div>
+</div>
+
+<h2>Files Changed</h2>
+<table>
+<tr><th>File</th><th>Action</th></tr>
+<tr><td><code>crates/lazyjob-core/src/resume/docx.rs</code></td><td>Created</td></tr>
+<tr><td><code>crates/lazyjob-core/src/resume/mod.rs</code></td><td>Added <code>pub mod docx</code></td></tr>
+<tr><td><code>Cargo.toml</code></td><td>Added <code>docx-rs = "0.4"</code> workspace dep</td></tr>
+<tr><td><code>crates/lazyjob-core/Cargo.toml</code></td><td>Added <code>docx-rs</code> dependency</td></tr>
+</table>
+</div>
+
+<div class="slide" id="architecture">
+<h1>Architecture</h1>
+<h2>Where It Fits</h2>
+<div class="section-box">
+<p>The DOCX generator is a <strong>pure sync function</strong> &mdash; no async, no I/O beyond the final file write.
+It takes the structured <code>ResumeContent</code> (output of the tailoring pipeline) and <code>Basics</code> (from the life sheet)
+and produces DOCX bytes.</p>
+</div>
+
+<h2>Data Flow</h2>
+<pre>
+LifeSheet + Job
+     |
+     v
+ResumeTailor::tailor()     [Task 33]
+     |
+     v
+(ResumeContent, GapReport, FabricationReport)
+     |
+     v
+DocxGenerator::generate()  [Task 34]  &lt;-- THIS TASK
+     |
+     v
+Vec&lt;u8&gt; (DOCX bytes)
+     |
+     v
+save_to_file() or store in DB
+</pre>
+
+<h2>Document Layout</h2>
+<pre>
++----------------------------------+
+|        JANE DOE (14pt bold)      |
+|  jane@example.com | 555-1234     |
++----------------------------------+
+| Professional Summary (12pt bold) |
+| Body text (11pt)...              |
++----------------------------------+
+| Experience (12pt bold)           |
+| Title -- Company (bold) Date(i)  |
+|   * Bullet point                 |
+|   * Bullet point                 |
++----------------------------------+
+| Skills (12pt bold)               |
+| Rust, Go | Also: Python          |
++----------------------------------+
+| Education (12pt bold)            |
+| B.S. in CS, 2018  MIT           |
++----------------------------------+
+| Projects (12pt bold)             |
+| LazyJob (url)                    |
+| Description                     |
+| Technologies: Rust, ratatui     |
++----------------------------------+
+| Certifications (12pt bold)       |
+| AWS Solutions Architect          |
++----------------------------------+
+</pre>
+</div>
+
+<div class="slide" id="api">
+<h1>Public API</h1>
+<h2>DocxGenerator</h2>
+<pre>
+pub struct DocxGenerator;
+
+impl DocxGenerator {
+    /// Generate DOCX bytes from resume content and personal info.
+    pub fn generate(
+        resume: &amp;ResumeContent,
+        basics: &amp;Basics,
+    ) -&gt; Result&lt;Vec&lt;u8&gt;&gt;;
+
+    /// Generate and save DOCX to a file path.
+    pub fn save_to_file(
+        resume: &amp;ResumeContent,
+        basics: &amp;Basics,
+        path: &amp;Path,
+    ) -&gt; Result&lt;()&gt;;
+}
+</pre>
+
+<h2>Usage Example</h2>
+<pre>
+use lazyjob_core::resume::docx::DocxGenerator;
+
+let (content, _, _) = tailor.tailor(&amp;job, &amp;sheet, opts, None).await?;
+let bytes = DocxGenerator::generate(&amp;content, &amp;sheet.basics)?;
+
+// Or save directly:
+DocxGenerator::save_to_file(&amp;content, &amp;sheet.basics, Path::new("resume.docx"))?;
+</pre>
+
+<h2>Font Size Constants (half-points)</h2>
+<table>
+<tr><th>Constant</th><th>Half-pts</th><th>Points</th><th>Usage</th></tr>
+<tr><td><code>NAME_SIZE</code></td><td>28</td><td>14pt</td><td>Name header</td></tr>
+<tr><td><code>SECTION_HEADING_SIZE</code></td><td>24</td><td>12pt</td><td>Section titles (bold)</td></tr>
+<tr><td><code>BODY_SIZE</code></td><td>22</td><td>11pt</td><td>All body text</td></tr>
+<tr><td><code>CONTACT_SIZE</code></td><td>20</td><td>10pt</td><td>Contact line</td></tr>
+</table>
+</div>
+
+<div class="slide" id="docx-preview">
+<h1>DOCX Preview</h1>
+<p>This is a visual approximation of the generated DOCX output:</p>
+<div class="docx-preview">
+<div class="name">Jane Doe</div>
+<div class="contact">jane@example.com | +1-555-1234 | https://janedoe.dev | San Francisco, CA, US</div>
+
+<div class="section-title">Professional Summary</div>
+<div class="body-text">Experienced engineer specializing in Rust and distributed systems.</div>
+
+<div class="section-title">Experience</div>
+<div><span class="exp-title">Senior Software Engineer &mdash; Acme Corp</span> <span class="exp-date">2021-03 &ndash; Present</span></div>
+<div class="bullet">&bull; Reduced API latency by 40% through caching layer redesign</div>
+<div class="bullet">&bull; Mentored 3 junior engineers</div>
+
+<div class="section-title">Skills</div>
+<div class="body-text">Rust, PostgreSQL, Kubernetes | Also: Python, TypeScript</div>
+
+<div class="section-title">Education</div>
+<div><span class="exp-title">B.S. in Computer Science, 2018</span> <span class="exp-date">MIT</span></div>
+
+<div class="section-title">Projects</div>
+<div><span class="exp-title">LazyJob</span> (https://github.com/example/lazyjob)</div>
+<div class="body-text">AI-powered job search TUI</div>
+<div class="body-text" style="font-style: italic;">Technologies: Rust, ratatui</div>
+
+<div class="section-title">Certifications</div>
+<div class="body-text">AWS Solutions Architect</div>
+</div>
+</div>
+
+<div class="slide" id="helpers">
+<h1>Helper Functions</h1>
+
+<h2>build_contact_line(basics)</h2>
+<div class="section-box">
+<p>Builds pipe-separated contact string from non-None fields.</p>
+<pre>
+// All fields: "jane@example.com | +1-555 | https://dev | SF, CA, US"
+// Email only: "jane@example.com"
+// No fields:  "" (empty string, paragraph skipped)
+</pre>
+</div>
+
+<h2>add_section_heading(doc, title)</h2>
+<div class="section-box"><p>Adds bold 12pt section title paragraph.</p></div>
+
+<h2>add_experience_entry(doc, exp)</h2>
+<div class="section-box">
+<p>Renders title/company (bold) + date range (italic) on one line, then bullet points with Unicode &bull; character.</p>
+</div>
+
+<h2>add_education_entry(doc, edu)</h2>
+<div class="section-box"><p>Renders "Degree in Field, Year  Institution" format.</p></div>
+
+<h2>add_project_entry(doc, proj)</h2>
+<div class="section-box"><p>Renders project name (bold, with URL if present), description, and italic technologies line.</p></div>
+
+<h2>format_skills(skills)</h2>
+<div class="section-box">
+<p>Comma-separated primary skills, then "Also: secondary" after pipe separator.</p>
+<pre>"Rust, Go | Also: Python"</pre>
+</div>
+</div>
+
+<div class="slide" id="tests">
+<h1>Test Results</h1>
+<p><span class="badge badge-green">12 passed</span></p>
+
+<h2>Learning Tests (2)</h2>
+<table>
+<tr><th>Test</th><th>What It Proves</th></tr>
+<tr><td><code>docx_rs_creates_valid_zip</code></td><td>Docx::new().build().pack(Cursor) produces bytes starting with PK (ZIP magic)</td></tr>
+<tr><td><code>docx_rs_paragraph_with_bold_run</code></td><td>Run builder methods (bold, size, add_text) chain and produce substantial DOCX</td></tr>
+</table>
+
+<h2>Unit Tests (10)</h2>
+<table>
+<tr><th>Test</th><th>Assertion</th></tr>
+<tr><td><code>generate_returns_non_empty_bytes</code></td><td>Output is non-empty</td></tr>
+<tr><td><code>generate_starts_with_pk_magic_bytes</code></td><td>First 2 bytes are "PK" (valid ZIP/DOCX)</td></tr>
+<tr><td><code>generate_with_full_content</code></td><td>Full resume with all sections &gt; 1000 bytes</td></tr>
+<tr><td><code>generate_with_empty_sections</code></td><td>Empty ResumeContent still produces valid DOCX</td></tr>
+<tr><td><code>build_contact_line_all_fields</code></td><td>All fields pipe-separated</td></tr>
+<tr><td><code>build_contact_line_partial_fields</code></td><td>Single field, no pipes</td></tr>
+<tr><td><code>build_contact_line_no_fields</code></td><td>Returns empty string</td></tr>
+<tr><td><code>save_to_file_creates_file</code></td><td>File exists on disk with non-zero size</td></tr>
+<tr><td><code>format_skills_both_categories</code></td><td>"Rust, Go | Also: Python"</td></tr>
+<tr><td><code>format_skills_primary_only</code></td><td>"Rust" (no pipe, no Also prefix)</td></tr>
+</table>
+</div>
+
+<div class="slide" id="decisions">
+<h1>Key Decisions</h1>
+
+<h2>Use Basics, Not PersonalInfo</h2>
+<div class="section-box">
+<p>The spec mentions a <code>PersonalInfo</code> type but it was never implemented. The existing <code>Basics</code> struct
+from <code>life_sheet/types.rs</code> already has name, email, phone, url, and location &mdash; everything needed
+for the contact header. No new type necessary.</p>
+</div>
+
+<h2>Cursor for pack()</h2>
+<div class="section-box">
+<p><code>docx-rs</code>'s <code>pack()</code> method requires <code>Write + Seek</code>, not just <code>Write</code>.
+A raw <code>Vec&lt;u8&gt;</code> doesn't implement <code>Seek</code>, so we wrap it in <code>std::io::Cursor&lt;&amp;mut Vec&lt;u8&gt;&gt;</code>.</p>
+</div>
+
+<h2>Zero-Sized Struct</h2>
+<div class="section-box">
+<p><code>DocxGenerator</code> is stateless &mdash; it's a namespace for pure functions. No configuration or
+state needed. All formatting constants are module-level <code>const</code> values.</p>
+</div>
+
+<h2>Graceful Empty Handling</h2>
+<div class="section-box">
+<p>Every section is guarded by a non-empty check. An empty <code>ResumeContent</code> produces a valid DOCX
+containing only the name header. No panics, no errors.</p>
+</div>
+</div>
+
+</main>
+<script>
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+        link.classList.add('active');
+        document.getElementById(link.dataset.slide).classList.add('active');
+    });
+});
+</script>
+</body>
+</html>
