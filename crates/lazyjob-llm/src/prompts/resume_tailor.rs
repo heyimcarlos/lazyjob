@@ -1,6 +1,10 @@
 use super::error::{Result, TemplateError};
 use super::types::TemplateVars;
+use crate::anti_fabrication::{
+    GroundingReport, ProhibitedPhrase, check_grounding, prohibited_phrase_detector,
+};
 use crate::prompts::sanitizer::sanitize_user_value;
+use lazyjob_core::life_sheet::LifeSheet;
 
 pub struct ResumeTailorContext {
     pub job_description: String,
@@ -67,6 +71,25 @@ pub fn validate_output(raw: &str) -> Result<ResumeTailorOutput> {
     serde_json::from_str(raw).map_err(|e| TemplateError::ValidationFailed(e.to_string()))
 }
 
+pub fn validate_grounding(
+    output: &ResumeTailorOutput,
+    life_sheet: &LifeSheet,
+) -> (GroundingReport, Vec<ProhibitedPhrase>) {
+    let mut claims: Vec<String> = output
+        .experience
+        .iter()
+        .flat_map(|e| e.bullets.iter().cloned())
+        .collect();
+    claims.push(output.summary.clone());
+
+    let grounding = check_grounding(&claims, life_sheet);
+
+    let full_text = claims.join(" ");
+    let prohibited = prohibited_phrase_detector(&full_text);
+
+    (grounding, prohibited)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,5 +153,111 @@ mod tests {
     fn validate_invalid_output() {
         let err = validate_output(r#"{ "summary": "test" }"#).unwrap_err();
         matches!(err, TemplateError::ValidationFailed(_));
+    }
+
+    #[test]
+    fn validate_grounding_all_grounded() {
+        use crate::anti_fabrication::FabricationLevel;
+        use lazyjob_core::life_sheet::{Achievement, Basics, Skill, SkillCategory, WorkExperience};
+
+        let sheet = LifeSheet {
+            basics: Basics {
+                name: "Alice".into(),
+                label: None,
+                email: None,
+                phone: None,
+                url: None,
+                summary: None,
+                location: None,
+            },
+            work_experience: vec![WorkExperience {
+                company: "Acme Corp".into(),
+                position: "Senior Engineer".into(),
+                start_date: "2020-01".into(),
+                end_date: None,
+                location: None,
+                url: None,
+                summary: None,
+                is_current: true,
+                achievements: vec![Achievement {
+                    description: "Led migration from Python to Rust".into(),
+                    metric_type: None,
+                    metric_value: None,
+                    metric_unit: None,
+                }],
+                tech_stack: vec!["Rust".into()],
+                team_size: None,
+                industry: None,
+            }],
+            education: vec![],
+            skills: vec![SkillCategory {
+                name: "Languages".into(),
+                level: None,
+                skills: vec![Skill {
+                    name: "Rust".into(),
+                    years_experience: Some(4),
+                    proficiency: None,
+                }],
+            }],
+            certifications: vec![],
+            languages: vec![],
+            projects: vec![],
+            preferences: None,
+            goals: None,
+        };
+
+        let output = ResumeTailorOutput {
+            summary: "Senior Engineer at Acme Corp with Rust expertise".into(),
+            experience: vec![ExperienceEntry {
+                company: "Acme Corp".into(),
+                position: "Senior Engineer".into(),
+                start_date: Some("2020-01".into()),
+                end_date: None,
+                bullets: vec!["Led migration from Python to Rust at Acme Corp".into()],
+            }],
+            skills: vec![],
+        };
+
+        let (report, prohibited) = validate_grounding(&output, &sheet);
+        assert_eq!(report.level, FabricationLevel::Grounded);
+        assert!(prohibited.is_empty());
+    }
+
+    #[test]
+    fn validate_grounding_detects_prohibited() {
+        use lazyjob_core::life_sheet::Basics;
+
+        let sheet = LifeSheet {
+            basics: Basics {
+                name: "Test".into(),
+                label: None,
+                email: None,
+                phone: None,
+                url: None,
+                summary: None,
+                location: None,
+            },
+            work_experience: vec![],
+            education: vec![],
+            skills: vec![],
+            certifications: vec![],
+            languages: vec![],
+            projects: vec![],
+            preferences: None,
+            goals: None,
+        };
+
+        let output = ResumeTailorOutput {
+            summary: "I am passionate about technology and a proven track record of excellence"
+                .into(),
+            experience: vec![],
+            skills: vec![],
+        };
+
+        let (_report, prohibited) = validate_grounding(&output, &sheet);
+        assert!(!prohibited.is_empty());
+        let phrases: Vec<&str> = prohibited.iter().map(|p| p.phrase.as_str()).collect();
+        assert!(phrases.contains(&"passionate about"));
+        assert!(phrases.contains(&"proven track record"));
     }
 }

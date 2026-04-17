@@ -1,6 +1,10 @@
 use super::error::{Result, TemplateError};
 use super::types::TemplateVars;
+use crate::anti_fabrication::{
+    GroundingReport, ProhibitedPhrase, check_grounding, prohibited_phrase_detector,
+};
 use crate::prompts::sanitizer::sanitize_user_value;
+use lazyjob_core::life_sheet::LifeSheet;
 
 pub struct CoverLetterContext {
     pub user_name: String,
@@ -74,6 +78,18 @@ pub fn validate_output(raw: &str) -> Result<CoverLetterOutput> {
     Ok(output)
 }
 
+pub fn validate_grounding(
+    output: &CoverLetterOutput,
+    life_sheet: &LifeSheet,
+) -> (GroundingReport, Vec<ProhibitedPhrase>) {
+    let grounding = check_grounding(&output.paragraphs, life_sheet);
+
+    let full_text = output.paragraphs.join(" ");
+    let prohibited = prohibited_phrase_detector(&full_text);
+
+    (grounding, prohibited)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -134,5 +150,113 @@ mod tests {
     fn validate_invalid_json() {
         let err = validate_output("not json at all").unwrap_err();
         matches!(err, TemplateError::ValidationFailed(_));
+    }
+
+    #[test]
+    fn validate_grounding_detects_cliches() {
+        use lazyjob_core::life_sheet::Basics;
+
+        let sheet = LifeSheet {
+            basics: Basics {
+                name: "Test".into(),
+                label: None,
+                email: None,
+                phone: None,
+                url: None,
+                summary: None,
+                location: None,
+            },
+            work_experience: vec![],
+            education: vec![],
+            skills: vec![],
+            certifications: vec![],
+            languages: vec![],
+            projects: vec![],
+            preferences: None,
+            goals: None,
+        };
+
+        let output = CoverLetterOutput {
+            paragraphs: vec![
+                "I am passionate about this role and am a self-starter.".into(),
+                "I have a proven track record and am highly motivated.".into(),
+            ],
+            template_type: "standard_professional".into(),
+            subject_line: None,
+            key_themes: vec![],
+        };
+
+        let (_report, prohibited) = validate_grounding(&output, &sheet);
+        assert!(!prohibited.is_empty());
+        let phrases: Vec<&str> = prohibited.iter().map(|p| p.phrase.as_str()).collect();
+        assert!(phrases.contains(&"passionate about"));
+        assert!(phrases.contains(&"self-starter"));
+    }
+
+    #[test]
+    fn validate_grounding_with_real_experience() {
+        use crate::anti_fabrication::FabricationLevel;
+        use lazyjob_core::life_sheet::{Basics, Skill, SkillCategory, WorkExperience};
+
+        let sheet = LifeSheet {
+            basics: Basics {
+                name: "Alice".into(),
+                label: None,
+                email: None,
+                phone: None,
+                url: None,
+                summary: None,
+                location: None,
+            },
+            work_experience: vec![WorkExperience {
+                company: "Stripe".into(),
+                position: "Backend Engineer".into(),
+                start_date: "2021-01".into(),
+                end_date: None,
+                location: None,
+                url: None,
+                summary: None,
+                is_current: true,
+                achievements: vec![],
+                tech_stack: vec!["Ruby".into(), "Go".into()],
+                team_size: None,
+                industry: None,
+            }],
+            education: vec![],
+            skills: vec![SkillCategory {
+                name: "Languages".into(),
+                level: None,
+                skills: vec![
+                    Skill {
+                        name: "Ruby".into(),
+                        years_experience: Some(5),
+                        proficiency: None,
+                    },
+                    Skill {
+                        name: "Go".into(),
+                        years_experience: Some(3),
+                        proficiency: None,
+                    },
+                ],
+            }],
+            certifications: vec![],
+            languages: vec![],
+            projects: vec![],
+            preferences: None,
+            goals: None,
+        };
+
+        let output = CoverLetterOutput {
+            paragraphs: vec![
+                "As a Backend Engineer at Stripe, I built payment processing systems using Ruby and Go.".into(),
+            ],
+            template_type: "standard_professional".into(),
+            subject_line: None,
+            key_themes: vec![],
+        };
+
+        let (report, prohibited) = validate_grounding(&output, &sheet);
+        assert_eq!(report.level, FabricationLevel::Grounded);
+        assert!(prohibited.is_empty());
     }
 }
