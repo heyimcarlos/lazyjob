@@ -28,8 +28,8 @@ impl Default for Pagination {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::Database;
     use crate::domain::*;
+    use crate::test_db::TestDb;
 
     #[test]
     fn pagination_default() {
@@ -38,22 +38,9 @@ mod tests {
         assert_eq!(p.offset, 0);
     }
 
-    async fn setup_db() -> Option<Database> {
-        let url = match std::env::var("DATABASE_URL") {
-            Ok(url) => url,
-            Err(_) => {
-                eprintln!("Skipping integration test: DATABASE_URL not set");
-                return None;
-            }
-        };
-        Some(Database::connect(&url).await.unwrap())
-    }
-
     #[tokio::test]
     async fn job_crud() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let repo = JobRepository::new(db.pool().clone());
 
         let mut job = Job::new("Rust Developer");
@@ -84,15 +71,11 @@ mod tests {
         repo.delete(&job.id).await.unwrap();
         let found = repo.find_by_id(&job.id).await.unwrap();
         assert!(found.is_none());
-
-        db.close().await;
     }
 
     #[tokio::test]
     async fn application_crud() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let job_repo = JobRepository::new(db.pool().clone());
         let app_repo = ApplicationRepository::new(db.pool().clone());
 
@@ -117,18 +100,11 @@ mod tests {
 
         let list = app_repo.list(&Pagination::default()).await.unwrap();
         assert!(list.iter().any(|a| a.id == app.id));
-
-        app_repo.delete(&app.id).await.unwrap();
-        job_repo.delete(&job.id).await.unwrap();
-
-        db.close().await;
     }
 
     #[tokio::test]
     async fn company_crud_with_arrays() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let repo = CompanyRepository::new(db.pool().clone());
 
         let mut company = Company::new("ArrayTestCo");
@@ -152,17 +128,11 @@ mod tests {
 
         let list = repo.list(&Pagination::default()).await.unwrap();
         assert!(list.iter().any(|c| c.id == company.id));
-
-        repo.delete(&company.id).await.unwrap();
-
-        db.close().await;
     }
 
     #[tokio::test]
     async fn contact_crud_with_company_fk() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let company_repo = CompanyRepository::new(db.pool().clone());
         let contact_repo = ContactRepository::new(db.pool().clone());
 
@@ -188,51 +158,35 @@ mod tests {
 
         let list = contact_repo.list(&Pagination::default()).await.unwrap();
         assert!(list.iter().any(|c| c.id == contact.id));
-
-        contact_repo.delete(&contact.id).await.unwrap();
-        company_repo.delete(&company.id).await.unwrap();
-
-        db.close().await;
     }
 
     #[tokio::test]
     async fn find_by_id_returns_none_for_missing() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let repo = JobRepository::new(db.pool().clone());
         let result = repo.find_by_id(&JobId::new()).await.unwrap();
         assert!(result.is_none());
-        db.close().await;
     }
 
     #[tokio::test]
     async fn delete_is_idempotent() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let repo = JobRepository::new(db.pool().clone());
         repo.delete(&JobId::new()).await.unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn update_missing_returns_not_found() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let repo = JobRepository::new(db.pool().clone());
         let job = Job::new("Ghost Job");
         let result = repo.update(&job).await;
         assert!(result.is_err());
-        db.close().await;
     }
 
     #[tokio::test]
     async fn transition_stage_succeeds() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let job_repo = JobRepository::new(db.pool().clone());
         let app_repo = ApplicationRepository::new(db.pool().clone());
 
@@ -253,17 +207,11 @@ mod tests {
 
         let updated = app_repo.find_by_id(&app.id).await.unwrap().unwrap();
         assert_eq!(updated.stage, ApplicationStage::Applied);
-
-        app_repo.delete(&app.id).await.unwrap();
-        job_repo.delete(&job.id).await.unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn transition_stage_invalid_rejects() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let job_repo = JobRepository::new(db.pool().clone());
         let app_repo = ApplicationRepository::new(db.pool().clone());
 
@@ -280,17 +228,11 @@ mod tests {
 
         let unchanged = app_repo.find_by_id(&app.id).await.unwrap().unwrap();
         assert_eq!(unchanged.stage, ApplicationStage::Interested);
-
-        app_repo.delete(&app.id).await.unwrap();
-        job_repo.delete(&job.id).await.unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn transition_history_returns_ordered() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let job_repo = JobRepository::new(db.pool().clone());
         let app_repo = ApplicationRepository::new(db.pool().clone());
 
@@ -323,23 +265,16 @@ mod tests {
         assert_eq!(history[2].to_stage, ApplicationStage::Technical);
         assert!(history[0].transitioned_at <= history[1].transitioned_at);
         assert!(history[1].transitioned_at <= history[2].transitioned_at);
-
-        app_repo.delete(&app.id).await.unwrap();
-        job_repo.delete(&job.id).await.unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn transition_stage_not_found() {
-        let Some(db) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
         let app_repo = ApplicationRepository::new(db.pool().clone());
         let fake_id = ApplicationId::new();
         let result = app_repo
             .transition_stage(&fake_id, ApplicationStage::Applied, None)
             .await;
         assert!(result.is_err());
-        db.close().await;
     }
 }

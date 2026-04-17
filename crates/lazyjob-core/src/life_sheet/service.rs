@@ -207,32 +207,16 @@ education:
 
     #[tokio::test]
     async fn import_and_load_roundtrip() {
-        let database_url = match std::env::var("DATABASE_URL") {
-            Ok(url) => url,
-            Err(_) => {
-                eprintln!("Skipping import_and_load_roundtrip: DATABASE_URL not set");
-                return;
-            }
-        };
-
-        let db = crate::db::Database::connect(&database_url).await.unwrap();
-        let pool = db.pool().clone();
-
-        sqlx::query("DELETE FROM life_sheet_items")
-            .execute(&pool)
-            .await
-            .unwrap();
+        let db = crate::test_db::TestDb::spawn().await;
 
         let fixture_path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("tests/fixtures/life-sheet.yaml");
-        let imported = import_from_yaml(&fixture_path, &pool).await.unwrap();
-        let loaded = load_from_db(&pool).await.unwrap();
+        let imported = import_from_yaml(&fixture_path, db.pool()).await.unwrap();
+        let loaded = load_from_db(db.pool()).await.unwrap();
 
         assert_eq!(imported.basics.name, loaded.basics.name);
         assert_eq!(imported.work_experience.len(), loaded.work_experience.len());
         assert_eq!(imported.education.len(), loaded.education.len());
         assert_eq!(imported.skills.len(), loaded.skills.len());
-
-        db.close().await;
     }
 }

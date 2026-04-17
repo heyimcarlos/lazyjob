@@ -220,14 +220,12 @@ mod tests {
         assert!(result.contains("AI"));
     }
 
-    #[cfg(all(test, feature = "integration"))]
     #[tokio::test]
     async fn enrich_company_with_mock_completer() {
         use crate::domain::Company;
         use wiremock::{Mock, MockServer, ResponseTemplate, matchers::method};
 
-        let database_url = std::env::var("DATABASE_URL").unwrap();
-        let pool = sqlx::PgPool::connect(&database_url).await.unwrap();
+        let db = crate::test_db::TestDb::spawn().await;
 
         let mock_server = MockServer::start().await;
         Mock::given(method("GET"))
@@ -241,7 +239,7 @@ mod tests {
 
         let mut company = Company::new("TechCorp");
         company.website = Some(mock_server.uri());
-        let repo = CompanyRepository::new(pool.clone());
+        let repo = CompanyRepository::new(db.pool().clone());
         repo.insert(&company).await.unwrap();
 
         let completer = Arc::new(MockCompleter {
@@ -250,13 +248,11 @@ mod tests {
         let client = reqwest::Client::new();
         let researcher = CompanyResearcher::new(completer, client);
 
-        let data = researcher.enrich(&company.id, &pool).await.unwrap();
+        let data = researcher.enrich(&company.id, db.pool()).await.unwrap();
         assert_eq!(data.industry.as_deref(), Some("Technology"));
         assert_eq!(data.tech_stack, vec!["Rust", "Python"]);
 
         let updated = repo.find_by_id(&company.id).await.unwrap().unwrap();
         assert_eq!(updated.industry.as_deref(), Some("Technology"));
-
-        repo.delete(&company.id).await.unwrap();
     }
 }

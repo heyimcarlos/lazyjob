@@ -6,6 +6,8 @@ pub mod domain;
 pub mod error;
 pub mod life_sheet;
 pub mod repositories;
+#[cfg(any(test, feature = "integration"))]
+pub mod test_db;
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")

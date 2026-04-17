@@ -61,15 +61,7 @@ mod tests {
 
     #[tokio::test]
     async fn connect_and_migrate() {
-        let database_url = match std::env::var("DATABASE_URL") {
-            Ok(url) => url,
-            Err(_) => {
-                eprintln!("Skipping connect_and_migrate: DATABASE_URL not set");
-                return;
-            }
-        };
-
-        let db = Database::connect(&database_url).await.unwrap();
+        let db = crate::test_db::TestDb::spawn().await;
 
         let tables: Vec<(String,)> = sqlx::query_as(
             "SELECT tablename::text FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
@@ -99,7 +91,5 @@ mod tests {
                 "missing table: {expected_table}"
             );
         }
-
-        db.close().await;
     }
 }

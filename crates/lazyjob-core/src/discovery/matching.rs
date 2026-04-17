@@ -479,29 +479,23 @@ mod tests {
         }
     }
 
-    #[cfg(feature = "integration")]
     #[tokio::test]
     async fn store_and_load_embedding() {
-        use std::str::FromStr;
-
-        let db_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgresql://localhost/lazyjob".to_string());
-        let pool = sqlx::PgPool::connect(&db_url).await.unwrap();
-        sqlx::migrate!().run(&pool).await.unwrap();
+        let db = crate::test_db::TestDb::spawn().await;
 
         let scorer = make_mock_scorer(vec![0.1, 0.2, 0.3]);
-        let mut job = clean_job();
+        let job = clean_job();
 
-        let repo = crate::repositories::JobRepository::new(pool.clone());
+        let repo = crate::repositories::JobRepository::new(db.pool().clone());
         repo.insert(&job).await.unwrap();
 
         let embedding = vec![0.1f32, 0.2, 0.3, 0.4, 0.5];
         scorer
-            .store_embedding(&pool, &job.id, &embedding)
+            .store_embedding(db.pool(), &job.id, &embedding)
             .await
             .unwrap();
         let loaded = scorer
-            .load_embedding(&pool, &job.id)
+            .load_embedding(db.pool(), &job.id)
             .await
             .unwrap()
             .unwrap();
@@ -510,7 +504,5 @@ mod tests {
         for (a, b) in embedding.iter().zip(loaded.iter()) {
             assert!((a - b).abs() < 1e-7);
         }
-
-        repo.delete(&job.id).await.unwrap();
     }
 }

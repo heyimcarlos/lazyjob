@@ -234,26 +234,12 @@ mod tests {
 #[cfg(test)]
 mod integration_tests {
     use super::*;
-    use crate::db::Database;
-
-    async fn setup_db() -> Option<(Database, RalphLoopRunRepository)> {
-        let url = match std::env::var("DATABASE_URL") {
-            Ok(url) => url,
-            Err(_) => {
-                eprintln!("Skipping integration test: DATABASE_URL not set");
-                return None;
-            }
-        };
-        let db = Database::connect(&url).await.unwrap();
-        let repo = RalphLoopRunRepository::new(db.pool().clone());
-        Some((db, repo))
-    }
+    use crate::test_db::TestDb;
 
     #[tokio::test]
     async fn insert_and_list_pending() {
-        let Some((db, repo)) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
+        let repo = RalphLoopRunRepository::new(db.pool().clone());
 
         let run = RalphLoopRun::new("job_discovery");
         repo.insert_run(&run).await.unwrap();
@@ -264,20 +250,12 @@ mod integration_tests {
             pending.iter().find(|r| r.id == run.id).unwrap().loop_type,
             "job_discovery"
         );
-
-        sqlx::query("DELETE FROM ralph_loop_runs WHERE id = $1")
-            .bind(run.id)
-            .execute(db.pool())
-            .await
-            .unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn update_status_changes_status() {
-        let Some((db, repo)) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
+        let repo = RalphLoopRunRepository::new(db.pool().clone());
 
         let run = RalphLoopRun::new("resume_tailor");
         repo.insert_run(&run).await.unwrap();
@@ -292,36 +270,24 @@ mod integration_tests {
             .await
             .unwrap();
         assert_eq!(row.0, "running");
-
-        sqlx::query("DELETE FROM ralph_loop_runs WHERE id = $1")
-            .bind(run.id)
-            .execute(db.pool())
-            .await
-            .unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn update_status_not_found() {
-        let Some((db, repo)) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
+        let repo = RalphLoopRunRepository::new(db.pool().clone());
 
         let result = repo
             .update_status(&Uuid::new_v4(), RalphLoopRunStatus::Done)
             .await;
         assert!(result.is_err());
-
-        db.close().await;
     }
 
     #[tokio::test]
     async fn recover_pending_marks_stale_running_as_failed() {
-        let Some((db, repo)) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
+        let repo = RalphLoopRunRepository::new(db.pool().clone());
 
-        // Insert a 'running' run with an old started_at (well past 30 seconds)
         let run_id = Uuid::new_v4();
         sqlx::query(
             "INSERT INTO ralph_loop_runs (id, loop_type, status, started_at, created_at)
@@ -341,22 +307,13 @@ mod integration_tests {
             .await
             .unwrap();
         assert_eq!(row.0, "failed");
-
-        sqlx::query("DELETE FROM ralph_loop_runs WHERE id = $1")
-            .bind(run_id)
-            .execute(db.pool())
-            .await
-            .unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn recover_pending_skips_recent_runs() {
-        let Some((db, repo)) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
+        let repo = RalphLoopRunRepository::new(db.pool().clone());
 
-        // Insert a 'running' run with started_at = now (recent)
         let run_id = Uuid::new_v4();
         sqlx::query(
             "INSERT INTO ralph_loop_runs (id, loop_type, status, started_at, created_at)
@@ -367,8 +324,6 @@ mod integration_tests {
         .await
         .unwrap();
 
-        // recover_pending should NOT touch this recent run
-        // (but may touch others; we check only this run)
         repo.recover_pending().await.unwrap();
 
         let row: (String,) = sqlx::query_as("SELECT status FROM ralph_loop_runs WHERE id = $1")
@@ -377,20 +332,12 @@ mod integration_tests {
             .await
             .unwrap();
         assert_eq!(row.0, "running");
-
-        sqlx::query("DELETE FROM ralph_loop_runs WHERE id = $1")
-            .bind(run_id)
-            .execute(db.pool())
-            .await
-            .unwrap();
-        db.close().await;
     }
 
     #[tokio::test]
     async fn recover_pending_ignores_done_runs() {
-        let Some((db, repo)) = setup_db().await else {
-            return;
-        };
+        let db = TestDb::spawn().await;
+        let repo = RalphLoopRunRepository::new(db.pool().clone());
 
         let run_id = Uuid::new_v4();
         sqlx::query(
@@ -402,9 +349,7 @@ mod integration_tests {
         .await
         .unwrap();
 
-        let recovered = repo.recover_pending().await.unwrap();
-        // may or may not be 0 depending on other rows; check that this row is not touched
-        let _ = recovered;
+        repo.recover_pending().await.unwrap();
 
         let row: (String,) = sqlx::query_as("SELECT status FROM ralph_loop_runs WHERE id = $1")
             .bind(run_id)
@@ -412,12 +357,5 @@ mod integration_tests {
             .await
             .unwrap();
         assert_eq!(row.0, "done");
-
-        sqlx::query("DELETE FROM ralph_loop_runs WHERE id = $1")
-            .bind(run_id)
-            .execute(db.pool())
-            .await
-            .unwrap();
-        db.close().await;
     }
 }
