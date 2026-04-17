@@ -247,7 +247,7 @@
       "description": "In lazyjob-llm/src/prompts/, create one module per Ralph loop type: job_discovery.rs, company_research.rs, resume_tailor.rs, cover_letter.rs, interview_prep.rs. Each module has: system_prompt() -> &str, user_prompt(context: &XContext) -> String, validate_output(raw: &str) -> Result<XOutput>. Define context structs (JobDiscoveryContext, ResumeTailorContext with job_description + life_sheet, CoverLetterContext, etc.). Validate with serde_json or regex. Write tests with fixture contexts.",
       "phase": "build",
       "spec": "specs/17-ralph-prompt-templates-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 32,

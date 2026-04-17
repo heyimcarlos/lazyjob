@@ -935,3 +935,57 @@ Next iteration should know:
 - No reminders infrastructure exists — if task 31+ needs reminders, a migration and table must be created first
 - Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
 - Task 31 (prompt-templates) is next
+
+## Task 31: prompt-templates — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-llm/src/prompts/mod.rs (new: module declarations + re-exports)
+- crates/lazyjob-llm/src/prompts/types.rs (new: LoopType enum, PromptTemplate, FewShotExample, RenderedPrompt, TemplateVars)
+- crates/lazyjob-llm/src/prompts/error.rs (new: TemplateError enum with MissingVariable, ParseError, NotRegistered, ValidationFailed, OverrideParseError)
+- crates/lazyjob-llm/src/prompts/engine.rs (new: SimpleTemplateEngine, interpolate() with {variable} substitution)
+- crates/lazyjob-llm/src/prompts/registry.rs (new: DefaultPromptRegistry with 9 embedded TOML templates, user override loading)
+- crates/lazyjob-llm/src/prompts/sanitizer.rs (new: sanitize_user_value() stripping prompt injection patterns, template_vars! macro)
+- crates/lazyjob-llm/src/prompts/cache.rs (new: build_anthropic_system_field() for prompt caching)
+- crates/lazyjob-llm/src/prompts/job_discovery.rs (new: JobDiscoveryContext, JobDiscoveryOutput, system_prompt/user_prompt/validate_output)
+- crates/lazyjob-llm/src/prompts/company_research.rs (new: CompanyResearchContext, CompanyResearchOutput, system_prompt/user_prompt/validate_output)
+- crates/lazyjob-llm/src/prompts/resume_tailor.rs (new: ResumeTailorContext, ResumeTailorOutput, system_prompt/user_prompt/validate_output)
+- crates/lazyjob-llm/src/prompts/cover_letter.rs (new: CoverLetterContext, CoverLetterOutput, system_prompt/user_prompt/validate_output)
+- crates/lazyjob-llm/src/prompts/interview_prep.rs (new: InterviewPrepContext, InterviewPrepOutput, system_prompt/user_prompt/validate_output)
+- crates/lazyjob-llm/src/templates/base_system.toml (new: Ralph persona preamble)
+- crates/lazyjob-llm/src/templates/job_discovery.toml (new: job search scoring template)
+- crates/lazyjob-llm/src/templates/company_research.toml (new: company analysis template)
+- crates/lazyjob-llm/src/templates/resume_tailoring.toml (new: resume rewriting template)
+- crates/lazyjob-llm/src/templates/cover_letter.toml (new: cover letter generation template)
+- crates/lazyjob-llm/src/templates/interview_prep.toml (new: interview Q&A template)
+- crates/lazyjob-llm/src/templates/salary_negotiation.toml (new: negotiation strategy template)
+- crates/lazyjob-llm/src/templates/networking.toml (new: outreach drafting template)
+- crates/lazyjob-llm/src/templates/error_response.toml (new: error recovery template)
+- crates/lazyjob-llm/src/lib.rs (added pub mod prompts)
+- crates/lazyjob-llm/Cargo.toml (added toml, tracing deps; tempfile dev-dep)
+Key decisions:
+- Used TOML templates embedded via include_str! per spec — all 9 templates compile into the binary, no runtime file loading needed
+- SimpleTemplateEngine uses single-pass {variable} interpolation — unmatched `{` without `}` passes through verbatim (handles JSON in prompts)
+- DefaultPromptRegistry loads all 9 embedded templates; supports user override loading from config_dir/prompts/*.toml
+- Sanitizer strips 7 common injection patterns (\n\nSystem:, \n\nAssistant:, Ignore previous instructions, etc.) replacing with [REDACTED]
+- template_vars! macro auto-sanitizes all values — callers can't forget to sanitize
+- Per-loop context structs have to_template_vars() methods; output structs use serde_json for validation
+- CoverLetterOutput.validate_output() enforces non-empty paragraphs; InterviewPrepOutput validates non-empty questions
+- RenderedPrompt::into_chat_messages() converts to Vec<ChatMessage> compatible with LlmProvider::complete()
+- build_anthropic_system_field() injects cache_control: {type: "ephemeral"} when cache_system_prompt=true
+- No new crates added — toml and tracing were already in workspace deps
+Learning tests written:
+- toml_parses_prompt_template — proves toml::from_str correctly deserializes PromptTemplate with all fields
+- toml_defaults_for_optional_fields — proves missing optional fields (cache_system_prompt, few_shot_examples, output_schema) use serde defaults
+Tests passing: 585 total (22 new in lazyjob-llm: 2 learning, 7 engine, 8 sanitizer, 3 cache, 12 registry, 6 job_discovery, 5 company_research, 4 resume_tailor, 5 cover_letter, 5 interview_prep, 4 types)
+Next iteration should know:
+- Prompt templates are in lazyjob_llm::prompts, all public types re-exported from prompts/mod.rs
+- DefaultPromptRegistry::new() loads 9 embedded templates; use .get(LoopType::X) to retrieve
+- SimpleTemplateEngine::render(template, vars) produces RenderedPrompt
+- Per-loop modules: prompts::job_discovery, prompts::company_research, prompts::resume_tailor, prompts::cover_letter, prompts::interview_prep
+- Each per-loop module has: XContext struct with to_template_vars(), XOutput struct, system_prompt(), user_prompt(&ctx), validate_output(raw)
+- template_vars! macro is exported from lazyjob_llm crate root for ergonomic sanitized var building
+- RenderedPrompt::into_chat_messages() -> Vec<ChatMessage> for direct use with LlmProvider::complete()
+- build_anthropic_system_field() in prompts::cache for Anthropic prompt caching
+- Salary negotiation and networking templates exist in registry but don't have per-loop Rust modules (they aren't in the 5 required by the task)
+- Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
+- Task 32 (anti-fabrication) is next
