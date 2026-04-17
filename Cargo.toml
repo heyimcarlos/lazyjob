@@ -40,6 +40,7 @@ async-openai = { version = "0.34", features = ["chat-completion", "embedding"] }
 ollama-rs = { version = "0.3", default-features = false, features = ["stream", "rustls"] }
 cron = "0.12"
 ammonia = "4"
+strsim = "0.11"
 open = "5"
 wiremock = "0.6"
 

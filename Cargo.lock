@@ -1741,6 +1741,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sqlx",
+ "strsim",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
