@@ -41,6 +41,7 @@ pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
     };
 
     app.load_jobs().await;
+    app.load_applications().await;
     event_loop::run_event_loop(app).await
 }
 

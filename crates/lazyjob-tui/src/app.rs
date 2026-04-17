@@ -5,7 +5,7 @@ use sqlx::PgPool;
 use tokio::sync::broadcast;
 
 use lazyjob_core::config::Config;
-use lazyjob_core::repositories::{JobRepository, Pagination};
+use lazyjob_core::repositories::{ApplicationRepository, JobRepository, Pagination};
 
 use crate::action::{Action, ViewId};
 use crate::keybindings::KeyMap;
@@ -151,6 +151,23 @@ impl App {
                     }
                 }
             }
+            Action::ScrollLeft => {
+                if let Some(action) = self
+                    .active_view_mut()
+                    .handle_key(KeyCode::Left, KeyModifiers::NONE)
+                {
+                    self.handle_action(action);
+                }
+            }
+            Action::ScrollRight => {
+                if let Some(action) = self
+                    .active_view_mut()
+                    .handle_key(KeyCode::Right, KeyModifiers::NONE)
+                {
+                    self.handle_action(action);
+                }
+            }
+            Action::TransitionApplication(_, _) => {}
             Action::ApplyToJob(_) | Action::TailorResume(_) | Action::GenerateCoverLetter(_) => {}
             Action::OpenUrl(url) => {
                 let _ = open::that(&url);
@@ -191,6 +208,36 @@ impl App {
             }
             Err(err) => {
                 tracing::warn!("Failed to load jobs: {err}");
+            }
+        }
+    }
+
+    pub async fn load_applications(&mut self) {
+        use crate::views::applications::ApplicationCard;
+
+        let Some(pool) = &self.pool else { return };
+        let app_repo = ApplicationRepository::new(pool.clone());
+        let job_repo = JobRepository::new(pool.clone());
+        match app_repo.list(&Pagination::default()).await {
+            Ok(applications) => {
+                let mut cards = Vec::with_capacity(applications.len());
+                for app in &applications {
+                    let (title, company) = match job_repo.find_by_id(&app.job_id).await {
+                        Ok(Some(job)) => (job.title, job.company_name.unwrap_or_default()),
+                        _ => ("Unknown Job".to_string(), String::new()),
+                    };
+                    cards.push(ApplicationCard {
+                        application_id: app.id,
+                        title,
+                        company,
+                        stage: app.stage,
+                        updated_at: app.updated_at,
+                    });
+                }
+                self.views.applications.set_applications(cards);
+            }
+            Err(err) => {
+                tracing::warn!("Failed to load applications: {err}");
             }
         }
     }

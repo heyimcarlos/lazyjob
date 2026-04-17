@@ -55,6 +55,7 @@ pub async fn run_event_loop(mut app: App) -> anyhow::Result<()> {
                             app.handle_action(action);
                             if is_refresh {
                                 app.load_jobs().await;
+                                app.load_applications().await;
                             }
                         }
                     }

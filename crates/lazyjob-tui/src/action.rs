@@ -1,4 +1,4 @@
-use lazyjob_core::domain::JobId;
+use lazyjob_core::domain::{ApplicationId, ApplicationStage, JobId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -9,6 +9,8 @@ pub enum Action {
     Refresh,
     ScrollDown,
     ScrollUp,
+    ScrollLeft,
+    ScrollRight,
     Select,
     OpenJob(JobId),
     ApplyToJob(JobId),
@@ -17,6 +19,7 @@ pub enum Action {
     OpenUrl(String),
     CancelRalphLoop(String),
     RalphDetail(String),
+    TransitionApplication(ApplicationId, ApplicationStage),
     EnterSearch,
     ExitSearch,
 }
@@ -31,6 +34,8 @@ impl Action {
             Self::Refresh => "Refresh",
             Self::ScrollDown => "Scroll Down",
             Self::ScrollUp => "Scroll Up",
+            Self::ScrollLeft => "Scroll Left",
+            Self::ScrollRight => "Scroll Right",
             Self::Select => "Select",
             Self::OpenJob(_) => "Open Job",
             Self::ApplyToJob(_) => "Apply",
@@ -39,6 +44,7 @@ impl Action {
             Self::OpenUrl(_) => "Open URL",
             Self::CancelRalphLoop(_) => "Cancel Loop",
             Self::RalphDetail(_) => "Loop Detail",
+            Self::TransitionApplication(_, _) => "Transition Stage",
             Self::EnterSearch => "Search",
             Self::ExitSearch => "Exit Search",
         }
