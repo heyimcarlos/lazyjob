@@ -779,3 +779,60 @@ Next iteration should know:
 - LlmProviderCompleter is defined in lazyjob-cli — any other binary layer can define the same bridge
 - CLI command: `lazyjob ralph company-research --company-id <uuid>`
 - Task 27 (jobs-list-tui) is next — full JobsListView with scrollable table, filtering, sorting, enrichment badges
+
+## Infrastructure: TestDb (zero2prod-style isolated test databases) — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-core/src/test_db.rs (new: TestDb struct with spawn/pool/Drop)
+- crates/lazyjob-core/src/lib.rs (added pub mod test_db gated behind #[cfg(any(test, feature = "integration"))])
+- crates/lazyjob-core/src/db.rs (updated connect_and_migrate test to use TestDb)
+- crates/lazyjob-core/src/repositories/mod.rs (rewrote all integration tests to use TestDb, removed setup_db() helper)
+- crates/lazyjob-core/src/repositories/ralph_loop_run.rs (rewrote all integration tests to use TestDb)
+- crates/lazyjob-core/src/life_sheet/service.rs (rewrote import_and_load_roundtrip to use TestDb)
+- crates/lazyjob-core/src/discovery/service.rs (rewrote all 5 integration tests to use TestDb)
+- crates/lazyjob-core/src/discovery/matching.rs (rewrote store_and_load_embedding to use TestDb, removed integration feature gate)
+- crates/lazyjob-core/src/discovery/company.rs (rewrote enrich_company_with_mock_completer to use TestDb, removed integration feature gate)
+- scripts/init_db.sh (fixed: removed sqlx-cli dependency, uses psql to create database, fixed &>2 typos)
+Key decisions:
+- Pattern from https://github.com/heyimcarlos/zero2prod: each test gets its own database with UUID name (test_<uuid>), migrations run on it, auto-dropped on Drop
+- TestDb::spawn() reads DATABASE_URL env var (falls back to DEFAULT_DATABASE_URL), strips the database name, creates test_<uuid> database
+- Drop uses fire-and-forget std::thread::spawn (no .join()) to avoid deadlocking the tokio runtime — databases may linger briefly but are cleaned up asynchronously
+- All tests that previously used `setup_db() -> Option<Database>` with early-return on missing DATABASE_URL now use `TestDb::spawn().await` directly — tests always run against a real Postgres (no more silent skips)
+- Removed `#[cfg(feature = "integration")]` gates from matching.rs and company.rs tests — they now run with `cargo test` directly
+- No manual cleanup needed in tests — no more DELETE statements or db.close() calls
+Tests passing: 152 (all lazyjob-core tests, including previously-skipped integration tests)
+Next iteration should know:
+- **DATABASE IS WORKING.** PostgreSQL is configured at `postgres://postgres:password@localhost:5432/lazyjob`. Use `DATABASE_URL=postgres://postgres:password@localhost:5432/lazyjob` for test runs.
+- **TestDb is the standard pattern for all DB tests.** Use `let db = TestDb::spawn().await;` then `db.pool()` — isolated per test, auto-cleaned.
+- TestDb is in lazyjob_core::test_db, gated behind `#[cfg(any(test, feature = "integration"))]`
+- The `scripts/init_db.sh` script creates the lazyjob database and checks Postgres availability. Run with `SKIP_DOCKER=true ./scripts/init_db.sh` for local Postgres.
+- Migrations run automatically on both TestDb::spawn() and Database::connect()
+- **Tests no longer silently skip.** All integration tests now require a running Postgres. If Postgres is down, tests will fail with connection errors (not silently pass).
+
+## Task 27: jobs-list-tui — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-tui/src/action.rs (added OpenJob(JobId) variant)
+- crates/lazyjob-tui/src/views/jobs_list.rs (added Stage column, fixed Enter key, fixed Applied filter, added application_stages HashMap, removed dead Clear code)
+- crates/lazyjob-tui/src/app.rs (handle OpenJob action, added async load_jobs method with JobRepository)
+- crates/lazyjob-tui/src/event_loop.rs (call load_jobs on Refresh action)
+- crates/lazyjob-tui/src/lib.rs (call load_jobs on startup)
+- ralph/lazyjob-implementation/output/research-task-27.md (updated research)
+- ralph/lazyjob-implementation/output/plan-task-27.md (updated plan)
+Key decisions:
+- Previous iteration implemented 90% of JobsListView (875 lines, 44 tests). This iteration completed the remaining gaps.
+- Added Stage column (6th column, between Ghost and Posted) showing application stage per job via HashMap<JobId, String>
+- Enter key now returns Action::OpenJob(JobId) instead of falling through to catch-all
+- Applied filter now works — checks application_stages HashMap for the job ID
+- DB loading wired: App::load_jobs() queries JobRepository and calls set_jobs(); called on startup and on Ctrl+R Refresh
+- OpenJob action is a no-op in App — will be wired to JobDetailView in task 28
+- Removed dead `let _ = Clear` code and unused Clear import
+Learning tests written:
+- None required (no new external crates introduced)
+Tests passing: 431 (6 new: handle_key_enter_returns_open_job, handle_key_enter_returns_none_when_empty, filter_applied_shows_only_applied_jobs, filter_applied_empty_when_no_applications, set_application_stages_updates_filter, stage_column_renders_in_table)
+Next iteration should know:
+- JobsListView is now feature-complete for task 27: 6-column table (Title, Company, Match%, Ghost, Stage, Posted), filtering, sorting, search, Enter→OpenJob
+- Action::OpenJob(JobId) exists but is not handled (no-op in App) — task 28 should wire it to JobDetailView
+- App::load_jobs() is async and queries JobRepository — called at TUI startup and on Ctrl+R
+- application_stages is populated externally via set_application_stages(HashMap<JobId, String>) — no automatic loading from DB yet (needs Application → Job join query)
+- Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` fails when DATABASE_URL env var is set (clap env feature picks it up). Not related to this task.

@@ -215,7 +215,7 @@
       "description": "Implement the full JobsListView in lazyjob-tui/src/views/jobs_list.rs. Render a scrollable table with columns: Title, Company, Match%, Ghost?, Stage, Posted. Support filtering: / to type filter text (searches title+company), f to cycle filter presets (all, new, matched > 70%, applied). Support sorting: s to cycle sort (date, match, company). j/k scroll, Enter to open JobDetailView. Show match score as a colored percentage bar. Write render tests verifying the table layout.",
       "phase": "build",
       "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 28,
