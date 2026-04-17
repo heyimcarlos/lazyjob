@@ -68,6 +68,7 @@ pub async fn run_event_loop(
                                 app.load_jobs().await;
                                 app.load_applications().await;
                                 app.load_dashboard_stats().await;
+                                app.load_contacts().await;
                             }
                         }
                     }

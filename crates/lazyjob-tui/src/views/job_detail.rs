@@ -6,6 +6,7 @@ use ratatui::text::{Line, Span, Text};
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 
 use lazyjob_core::domain::{Application, Job, StageTransition};
+use lazyjob_core::networking::WarmPath;
 
 use crate::action::Action;
 use crate::theme::Theme;
@@ -16,6 +17,7 @@ pub struct JobDetailView {
     job: Option<Job>,
     application: Option<Application>,
     transitions: Vec<StageTransition>,
+    warm_paths: Vec<WarmPath>,
     scroll_offset: u16,
 }
 
@@ -31,6 +33,7 @@ impl JobDetailView {
             job: None,
             application: None,
             transitions: Vec::new(),
+            warm_paths: Vec::new(),
             scroll_offset: 0,
         }
     }
@@ -49,16 +52,26 @@ impl JobDetailView {
         self.transitions = transitions;
     }
 
+    pub fn job(&self) -> Option<&Job> {
+        self.job.as_ref()
+    }
+
+    pub fn set_warm_paths(&mut self, paths: Vec<WarmPath>) {
+        self.warm_paths = paths;
+    }
+
     pub fn clear(&mut self) {
         self.job = None;
         self.application = None;
         self.transitions.clear();
+        self.warm_paths.clear();
         self.scroll_offset = 0;
     }
 
     fn render_metadata<'a>(
         job: &'a Job,
         application: &Option<Application>,
+        warm_paths: &[WarmPath],
         theme: &Theme,
     ) -> Text<'a> {
         let mut lines = Vec::new();
@@ -171,6 +184,36 @@ impl JobDetailView {
             )));
         }
 
+        if !warm_paths.is_empty() {
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                format!("Warm Paths ({}):", warm_paths.len()),
+                Style::default()
+                    .fg(theme.success)
+                    .add_modifier(Modifier::BOLD),
+            )));
+            for wp in warm_paths.iter().take(5) {
+                let role_str = wp
+                    .contact_role
+                    .as_deref()
+                    .map(|r| format!(" ({r})"))
+                    .unwrap_or_default();
+                lines.push(Line::from(vec![
+                    Span::styled("● ", Style::default().fg(theme.success)),
+                    Span::styled(
+                        format!("{}{role_str}", wp.contact_name),
+                        Style::default().fg(theme.text_primary),
+                    ),
+                ]));
+            }
+            if warm_paths.len() > 5 {
+                lines.push(Line::from(Span::styled(
+                    format!("  +{} more", warm_paths.len() - 5),
+                    Style::default().fg(theme.text_muted),
+                )));
+            }
+        }
+
         Text::from(lines)
     }
 
@@ -256,7 +299,7 @@ impl View for JobDetailView {
             .constraints([Constraint::Fill(1), Constraint::Min(0)])
             .split(meta_area);
 
-        let metadata = Self::render_metadata(job, &self.application, theme);
+        let metadata = Self::render_metadata(job, &self.application, &self.warm_paths, theme);
         let history = Self::render_history(&self.transitions, theme);
 
         let meta_height = metadata.height() as u16;

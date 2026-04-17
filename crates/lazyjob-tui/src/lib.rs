@@ -44,6 +44,7 @@ pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
     app.load_jobs().await;
     app.load_applications().await;
     app.load_dashboard_stats().await;
+    app.load_contacts().await;
     event_loop::run_event_loop(app, ralph_tx, ralph_cmd_rx).await
 }
 

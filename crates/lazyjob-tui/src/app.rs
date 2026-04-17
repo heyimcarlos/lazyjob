@@ -5,7 +5,10 @@ use sqlx::PgPool;
 use tokio::sync::{broadcast, mpsc};
 
 use lazyjob_core::config::Config;
-use lazyjob_core::repositories::{ApplicationRepository, JobRepository, Pagination};
+use lazyjob_core::networking;
+use lazyjob_core::repositories::{
+    ApplicationRepository, ContactRepository, JobRepository, Pagination,
+};
 use lazyjob_core::stats;
 
 use crate::action::{Action, ViewId};
@@ -167,6 +170,7 @@ impl App {
                     .cloned();
                 if let Some(job) = job {
                     self.views.job_detail.set_job(job);
+                    self.update_warm_paths();
                     self.viewing_job_detail = true;
                     if self.active_view != ViewId::Jobs {
                         self.prev_view = Some(self.active_view);
@@ -305,6 +309,34 @@ impl App {
             }
         };
         self.views.dashboard.set_stats(stats, stale);
+    }
+
+    pub async fn load_contacts(&mut self) {
+        let Some(pool) = &self.pool else { return };
+        let repo = ContactRepository::new(pool.clone());
+        match repo
+            .list(&Pagination {
+                limit: 500,
+                offset: 0,
+            })
+            .await
+        {
+            Ok(contacts) => {
+                self.views.contacts.set_contacts(contacts);
+            }
+            Err(err) => {
+                tracing::warn!("Failed to load contacts: {err}");
+            }
+        }
+    }
+
+    pub fn update_warm_paths(&mut self) {
+        let job = match self.views.job_detail.job() {
+            Some(j) => j.clone(),
+            None => return,
+        };
+        let warm_paths = networking::warm_paths_for_job(self.views.contacts.contacts(), &job);
+        self.views.job_detail.set_warm_paths(warm_paths);
     }
 
     pub fn handle_ralph_update(&mut self, update: RalphUpdate) {

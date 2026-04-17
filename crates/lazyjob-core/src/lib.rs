@@ -6,6 +6,7 @@ pub mod discovery;
 pub mod domain;
 pub mod error;
 pub mod life_sheet;
+pub mod networking;
 pub mod repositories;
 pub mod resume;
 pub mod stats;

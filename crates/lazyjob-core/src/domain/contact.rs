@@ -10,6 +10,8 @@ pub struct Contact {
     pub email: Option<String>,
     pub linkedin_url: Option<String>,
     pub company_id: Option<CompanyId>,
+    pub current_company: Option<String>,
+    pub source: Option<String>,
     pub relationship: Option<String>,
     pub notes: Option<String>,
 }
@@ -23,6 +25,8 @@ impl Contact {
             email: None,
             linkedin_url: None,
             company_id: None,
+            current_company: None,
+            source: None,
             relationship: None,
             notes: None,
         }
@@ -38,6 +42,8 @@ mod tests {
         let contact = Contact::new("Alice Smith");
         assert_eq!(contact.name, "Alice Smith");
         assert!(contact.company_id.is_none());
+        assert!(contact.current_company.is_none());
+        assert!(contact.source.is_none());
     }
 
     #[test]
@@ -45,6 +51,8 @@ mod tests {
         let mut contact = Contact::new("Bob Jones");
         contact.email = Some("bob@example.com".into());
         contact.company_id = Some(CompanyId::new());
+        contact.current_company = Some("Acme Corp".into());
+        contact.source = Some("linkedin_csv".into());
         contact.relationship = Some("Former colleague".into());
 
         let json = serde_json::to_string(&contact).unwrap();
