@@ -1095,3 +1095,41 @@ Next iteration should know:
 - Pre-existing issue: 37 DB integration tests fail due to TestDb connection issues (not caused by this task)
 - Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
 - Task 35 (cover-letter-generation) is next
+
+## Task 35: cover-letter-generation — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-core/migrations/005_cover_letter_versions.sql (new: cover_letter_versions table with version, template, tone, length, JSONB options/key_points)
+- crates/lazyjob-core/src/cover_letter/mod.rs (new: CoverLetterService orchestrator with generate(), list_versions(), prohibited phrase detection, version diffing)
+- crates/lazyjob-core/src/cover_letter/types.rs (new: CoverLetterId, CoverLetterTemplate, CoverLetterTone, CoverLetterLength, CoverLetterOptions, CoverLetterVersion, CoverLetterVersionSummary, ProgressEvent)
+- crates/lazyjob-core/src/cover_letter/generator.rs (new: CoverLetterGenerator with template-specific prompts, key_points extraction, plain_text stripping)
+- crates/lazyjob-core/src/cover_letter/repository.rs (new: CoverLetterRepository with save/get/list_for_job/pin_to_application/count_for_job/latest_for_job)
+- crates/lazyjob-core/src/cover_letter/docx.rs (new: CoverLetterDocxGenerator with generate/save_to_file)
+- crates/lazyjob-core/src/lib.rs (added pub mod cover_letter)
+- crates/lazyjob-cli/src/main.rs (added CoverLetter command with Generate subcommand, handle_cover_letter handler, progress printing)
+- Cargo.toml (added similar = "2" to workspace deps)
+- crates/lazyjob-core/Cargo.toml (added similar = { workspace = true })
+Key decisions:
+- Three templates (StandardProfessional, ProblemSolution, CareerChanger) each get different system prompts with specific structure instructions
+- Prohibited phrase detection is implemented directly in lazyjob-core (20 common clichés) to avoid circular dependency with lazyjob-llm (which depends on lazyjob-core)
+- lazyjob-llm anti_fabrication check_grounding/prohibited_phrase_detector can still be called from the CLI/TUI layer for deeper checks — the core service runs a lightweight check
+- Version management with monotonic version numbers per job and unified diff (similar crate) from previous version
+- Repository uses TEXT columns for content/plain_text, JSONB for key_points and options — same sqlx::FromRow pattern as resume repository
+- CoverLetterTemplate::from_str_loose() accepts flexible input ("standard", "problem_solution", "career-changer") for CLI ergonomics
+- Generator builds separate system prompt (structure + rules) and user prompt (job details + candidate background) per the Completer trait pattern
+- `gen` variable renamed to `generator` since `gen` is a reserved keyword in Rust edition 2024
+Learning tests written:
+- similar_text_diff_produces_unified_diff — proves TextDiff::from_lines produces unified diff with context_radius and header containing +/- markers
+Tests passing: 39 new in cover_letter module (10 types, 12 generator, 8 repository, 5 docx, 4 service/mod), 2 new CLI tests
+Next iteration should know:
+- CoverLetterService is in lazyjob_core::cover_letter, all types re-exported via pub use types::*
+- CoverLetterService::new(completer: Arc<dyn Completer>, pool: PgPool) — same Completer trait as resume and company modules
+- CoverLetterService::generate(job, life_sheet, options, progress_tx) -> Result<CoverLetterVersion>
+- CoverLetterRepository has latest_for_job() for diffing and pin_to_application() for submission tracking
+- CoverLetterDocxGenerator::generate(version, basics) -> Result<Vec<u8>> uses Basics from life_sheet (same pattern as resume docx)
+- CLI: `lazyjob cover-letter generate --job-id <uuid> --template <template>`
+- similar crate v2 is now in workspace deps
+- Migration 005 creates cover_letter_versions table
+- Prohibited phrase check runs in-service; lazyjob-llm grounding check should be called from CLI/TUI layer (circular dep prevents import in lazyjob-core)
+- Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
+- Task 36 (resume-tailor-ralph-loop) is next

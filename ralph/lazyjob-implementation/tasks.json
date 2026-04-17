@@ -279,7 +279,7 @@
       "description": "In lazyjob-core/src/cover_letter/, implement CoverLetterService::generate(job_id, life_sheet, template: CoverLetterTemplate). Templates: StandardProfessional (intro + 2 body paras + closing), ProblemSolution (open with company challenge + how I solved it + call to action), CareerChanger (acknowledge pivot + transferable skills + enthusiasm). Run prohibited_phrase_detector and anti-fabrication check on output. Store in cover_letters table. Add CLI command `cover-letter generate --job-id --template`. Write tests with MockLlmProvider fixture responses.",
       "phase": "build",
       "spec": "specs/08-cover-letter-generation-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 36,
