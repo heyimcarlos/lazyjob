@@ -28,6 +28,7 @@ futures = { workspace = true }
 tracing = { workspace = true }
 strsim = { workspace = true }
 docx-rs = { workspace = true }
+similar = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

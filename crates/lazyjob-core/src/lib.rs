@@ -1,4 +1,5 @@
 pub mod config;
+pub mod cover_letter;
 pub mod credentials;
 pub mod db;
 pub mod discovery;

@@ -8,6 +8,7 @@ use clap::{Parser, Subcommand};
 use secrecy::SecretString;
 
 use lazyjob_core::config::Config;
+use lazyjob_core::cover_letter::{CoverLetterOptions, CoverLetterService, CoverLetterTemplate};
 use lazyjob_core::credentials::CredentialManager;
 use lazyjob_core::db::{DEFAULT_DATABASE_URL, Database};
 use lazyjob_core::discovery::{CompanyResearcher, Completer, DiscoveryService, SourceConfig};
@@ -32,6 +33,7 @@ enum Commands {
     Profile(ProfileArgs),
     Config(ConfigArgs),
     Ralph(RalphArgs),
+    CoverLetter(CoverLetterArgs),
     Tui,
 }
 
@@ -92,6 +94,22 @@ enum RalphCommand {
     CompanyResearch {
         #[arg(long)]
         company_id: String,
+    },
+}
+
+#[derive(Parser)]
+struct CoverLetterArgs {
+    #[command(subcommand)]
+    command: CoverLetterCommand,
+}
+
+#[derive(Subcommand)]
+enum CoverLetterCommand {
+    Generate {
+        #[arg(long)]
+        job_id: String,
+        #[arg(long, default_value = "standard")]
+        template: String,
     },
 }
 
@@ -156,6 +174,12 @@ async fn run(cli: Cli) -> Result<()> {
                 ProfileCommand::Import { file } => handle_profile_import(&db, file).await,
                 ProfileCommand::Export => handle_profile_export(&db).await,
             };
+            db.close().await;
+            result
+        }
+        Commands::CoverLetter(args) => {
+            let db = connect_db(db_url).await?;
+            let result = handle_cover_letter(args, &db).await;
             db.close().await;
             result
         }
@@ -327,6 +351,73 @@ async fn handle_ralph(args: RalphArgs, db: &Database) -> Result<()> {
                     println!("    - {news}");
                 }
             }
+            Ok(())
+        }
+    }
+}
+
+async fn handle_cover_letter(args: CoverLetterArgs, db: &Database) -> Result<()> {
+    match args.command {
+        CoverLetterCommand::Generate { job_id, template } => {
+            let job_uuid = job_id.parse::<uuid::Uuid>().context("invalid job UUID")?;
+
+            let repo = JobRepository::new(db.pool().clone());
+            let job = repo
+                .find_by_id(&lazyjob_core::domain::JobId::from_uuid(job_uuid))
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("Job not found: {job_uuid}"))?;
+
+            let life_sheet = lazyjob_core::life_sheet::load_from_db(db.pool())
+                .await
+                .context("failed to load life sheet — run `lazyjob profile import` first")?;
+
+            let config = Config::load().unwrap_or_default();
+            let creds = CredentialManager::new();
+            let provider =
+                LlmBuilder::from_config(&config, &creds).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+            let completer = Arc::new(LlmProviderCompleter { provider });
+            let svc = CoverLetterService::new(completer, db.pool().clone());
+
+            let options = CoverLetterOptions {
+                template: CoverLetterTemplate::from_str_loose(&template),
+                ..Default::default()
+            };
+
+            let (tx, mut rx) = tokio::sync::mpsc::channel(16);
+            let generate_fut = svc.generate(&job, &life_sheet, options, Some(tx));
+
+            let print_fut = async {
+                while let Some(event) = rx.recv().await {
+                    match event {
+                        lazyjob_core::cover_letter::ProgressEvent::Generating { pct } => {
+                            println!("[{pct}%] Generating cover letter...");
+                        }
+                        lazyjob_core::cover_letter::ProgressEvent::CheckingFabrication { pct } => {
+                            println!("[{pct}%] Checking for prohibited phrases...");
+                        }
+                        lazyjob_core::cover_letter::ProgressEvent::Persisting { pct } => {
+                            println!("[{pct}%] Saving version...");
+                        }
+                        lazyjob_core::cover_letter::ProgressEvent::Done { version } => {
+                            println!("[100%] Done — version {version}");
+                        }
+                        lazyjob_core::cover_letter::ProgressEvent::Error { message } => {
+                            eprintln!("Error: {message}");
+                        }
+                    }
+                }
+            };
+
+            let (version, _) = tokio::join!(generate_fut, print_fut);
+            let version = version?;
+
+            println!("\nCover letter generated:");
+            println!("  Version: {}", version.version);
+            println!("  Template: {}", version.template.as_str());
+            println!("  Words: {}", version.plain_text.split_whitespace().count());
+            println!("  Key points: {}", version.key_points.join("; "));
+            println!("\n--- Content ---\n{}", version.content);
             Ok(())
         }
     }
@@ -608,6 +699,49 @@ mod tests {
                 _ => panic!("expected CompanyResearch"),
             },
             _ => panic!("expected Ralph"),
+        }
+    }
+
+    #[test]
+    fn parse_cover_letter_generate() {
+        let cli = Cli::try_parse_from([
+            "lazyjob",
+            "cover-letter",
+            "generate",
+            "--job-id",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "--template",
+            "problem_solution",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::CoverLetter(args) => match args.command {
+                CoverLetterCommand::Generate { job_id, template } => {
+                    assert_eq!(job_id, "550e8400-e29b-41d4-a716-446655440000");
+                    assert_eq!(template, "problem_solution");
+                }
+            },
+            _ => panic!("expected CoverLetter"),
+        }
+    }
+
+    #[test]
+    fn parse_cover_letter_generate_default_template() {
+        let cli = Cli::try_parse_from([
+            "lazyjob",
+            "cover-letter",
+            "generate",
+            "--job-id",
+            "550e8400-e29b-41d4-a716-446655440000",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::CoverLetter(args) => match args.command {
+                CoverLetterCommand::Generate { template, .. } => {
+                    assert_eq!(template, "standard");
+                }
+            },
+            _ => panic!("expected CoverLetter"),
         }
     }
 }
