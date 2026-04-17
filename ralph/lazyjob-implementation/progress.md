@@ -989,3 +989,33 @@ Next iteration should know:
 - Salary negotiation and networking templates exist in registry but don't have per-loop Rust modules (they aren't in the 5 required by the task)
 - Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
 - Task 32 (anti-fabrication) is next
+
+## Task 32: anti-fabrication — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-llm/src/anti_fabrication.rs (new: FabricationLevel enum, ProhibitedPhrase struct, GroundingReport struct, is_grounded_claim(), check_grounding(), prohibited_phrase_detector(), prompt_injection_guard())
+- crates/lazyjob-llm/src/lib.rs (added pub mod anti_fabrication + re-exports)
+- crates/lazyjob-llm/src/prompts/resume_tailor.rs (added validate_grounding() function wiring anti-fabrication into pipeline)
+- crates/lazyjob-llm/src/prompts/cover_letter.rs (added validate_grounding() function wiring anti-fabrication into pipeline)
+- ralph/lazyjob-implementation/output/research-task-32.md (research doc)
+- ralph/lazyjob-implementation/output/plan-task-32.md (plan doc)
+Key decisions:
+- Evidence counting approach for grounding: each claim is checked against 8 evidence sources (company, position, skills, achievements, education, certifications, projects, metrics). >=2 matches = Grounded, 1 = Embellished, 0 = Fabricated.
+- 35 prohibited phrases covering common cover letter clichés (passionate about, synergy, proven track record, etc.)
+- 21 injection patterns for prompt_injection_guard covering role-switching (\n\nSystem:), instruction overrides (ignore/disregard/forget/override), persona switching (pretend you are, you are now), special tokens (<|im_start|>), and base64-encoded keywords
+- prompt_injection_guard is broader than the existing sanitizer::sanitize_user_value — sanitizer replaces patterns in template vars (preventive), injection_guard detects them in arbitrary input (detective)
+- base64 detection uses original case (not lowercased) since base64 is case-sensitive
+- validate_grounding() returns tuple (GroundingReport, Vec<ProhibitedPhrase>) — callers decide how to handle (warn, reject, etc.)
+- No new dependencies needed — all logic is pure string processing against LifeSheet types
+Learning tests written:
+- None required (no new external crates; all logic is string matching against existing types)
+Tests passing: 150 in lazyjob-llm (34 new: 26 in anti_fabrication tests, 4 in resume_tailor validate_grounding tests, 4 in cover_letter validate_grounding tests)
+Next iteration should know:
+- FabricationLevel, GroundingReport, ProhibitedPhrase are re-exported from lazyjob_llm crate root
+- is_grounded_claim(claim, life_sheet) -> FabricationLevel for single-claim checking
+- check_grounding(claims, life_sheet) -> GroundingReport for batch checking
+- prohibited_phrase_detector(text) -> Vec<ProhibitedPhrase> for cliché detection
+- prompt_injection_guard(input) -> bool for injection detection
+- resume_tailor::validate_grounding(output, life_sheet) and cover_letter::validate_grounding(output, life_sheet) are the pipeline integration points
+- Pre-existing DB test failures in lazyjob-core (TestDb connection issues) — not caused by this task
+- Task 33 (resume-tailoring) is next

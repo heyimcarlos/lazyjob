@@ -255,7 +255,7 @@
       "description": "In lazyjob-llm/src/anti_fabrication.rs, implement: FabricationLevel enum (Grounded, Embellished, Fabricated), is_grounded_claim(claim: &str, life_sheet: &LifeSheet) -> FabricationLevel that checks if the claim can be traced to actual LifeSheet data. Implement prohibited_phrase_detector(text: &str) -> Vec<ProhibitedPhrase> with a list of over-used cover letter clichés (passionate, dynamic, synergy, etc.). Implement prompt_injection_guard(user_input: &str) -> bool. Add fabrication check as a mandatory step in ResumeTailor and CoverLetter pipelines. Write unit tests for all checks.",
       "phase": "build",
       "spec": "specs/17-ralph-prompt-templates-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 33,

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 32: Anti-Fabrication Module</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+
+  /* Sidebar */
+  nav { width: 260px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 16px 0; flex-shrink: 0; }
+  nav h2 { color: #58a6ff; padding: 8px 16px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+  nav a { display: block; padding: 8px 16px; color: #8b949e; text-decoration: none; font-size: 13px; border-left: 3px solid transparent; transition: all 0.2s; }
+  nav a:hover, nav a.active { color: #c9d1d9; background: #1c2128; border-left-color: #58a6ff; }
+
+  /* Main content */
+  main { flex: 1; overflow-y: auto; padding: 40px; }
+  .slide { display: none; max-width: 900px; margin: 0 auto; }
+  .slide.active { display: block; }
+
+  h1 { color: #58a6ff; font-size: 28px; margin-bottom: 24px; border-bottom: 1px solid #30363d; padding-bottom: 12px; }
+  h2 { color: #79c0ff; font-size: 20px; margin: 24px 0 12px; }
+  h3 { color: #d2a8ff; font-size: 16px; margin: 16px 0 8px; }
+  p { line-height: 1.7; margin-bottom: 12px; color: #c9d1d9; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin: 2px; }
+  .badge-green { background: #238636; color: #fff; }
+  .badge-yellow { background: #9e6a03; color: #fff; }
+  .badge-red { background: #da3633; color: #fff; }
+  .badge-blue { background: #1f6feb; color: #fff; }
+  .badge-purple { background: #8957e5; color: #fff; }
+
+  pre { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 16px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+  code { color: #e6edf3; }
+  .kw { color: #ff7b72; }
+  .str { color: #a5d6ff; }
+  .fn { color: #d2a8ff; }
+  .ty { color: #79c0ff; }
+  .cm { color: #8b949e; }
+  .num { color: #79c0ff; }
+
+  .test-output { background: #0d1117; border: 1px solid #238636; border-radius: 6px; padding: 16px; margin: 12px 0; font-size: 12px; line-height: 1.6; }
+  .test-pass { color: #3fb950; }
+  .test-fail { color: #f85149; }
+
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+  th { background: #161b22; color: #79c0ff; text-align: left; padding: 8px 12px; border: 1px solid #30363d; font-size: 13px; }
+  td { padding: 8px 12px; border: 1px solid #30363d; font-size: 13px; }
+
+  .file-list { list-style: none; margin: 8px 0; }
+  .file-list li { padding: 4px 0; font-size: 13px; }
+  .file-list li::before { content: ''; color: #58a6ff; margin-right: 8px; }
+  .file-new::before { content: '+ '; color: #3fb950 !important; }
+  .file-mod::before { content: 'M '; color: #d29922 !important; }
+
+  .diagram { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 20px; margin: 16px 0; font-size: 13px; line-height: 1.8; text-align: center; }
+  .arrow { color: #58a6ff; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-value { font-size: 32px; color: #58a6ff; font-weight: bold; }
+  .stat-label { font-size: 12px; color: #8b949e; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 32</h2>
+  <a href="#" onclick="showSlide(0)" class="active" id="nav-0">Overview</a>
+  <a href="#" onclick="showSlide(1)" id="nav-1">Architecture</a>
+  <a href="#" onclick="showSlide(2)" id="nav-2">FabricationLevel</a>
+  <a href="#" onclick="showSlide(3)" id="nav-3">Grounding Engine</a>
+  <a href="#" onclick="showSlide(4)" id="nav-4">Prohibited Phrases</a>
+  <a href="#" onclick="showSlide(5)" id="nav-5">Injection Guard</a>
+  <a href="#" onclick="showSlide(6)" id="nav-6">Pipeline Integration</a>
+  <a href="#" onclick="showSlide(7)" id="nav-7">Test Results</a>
+  <a href="#" onclick="showSlide(8)" id="nav-8">Files Changed</a>
+</nav>
+
+<main>
+  <!-- Slide 0: Overview -->
+  <div class="slide active" id="slide-0">
+    <h1>Task 32: Anti-Fabrication Module</h1>
+    <p>A guardrail system that ensures AI-generated resumes and cover letters stay grounded in the user's real experience. Three complementary checks prevent LLM hallucination, cliche abuse, and prompt injection.</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value">3</div>
+        <div class="stat-label">Guard Functions</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">35</div>
+        <div class="stat-label">Prohibited Phrases</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">34</div>
+        <div class="stat-label">New Tests</div>
+      </div>
+    </div>
+
+    <h2>Three Lines of Defense</h2>
+    <table>
+      <tr><th>Guard</th><th>Purpose</th><th>Returns</th></tr>
+      <tr><td><code>is_grounded_claim()</code></td><td>Verify claims trace to LifeSheet data</td><td><span class="badge badge-green">Grounded</span> <span class="badge badge-yellow">Embellished</span> <span class="badge badge-red">Fabricated</span></td></tr>
+      <tr><td><code>prohibited_phrase_detector()</code></td><td>Flag overused cover letter cliches</td><td><code>Vec&lt;ProhibitedPhrase&gt;</code></td></tr>
+      <tr><td><code>prompt_injection_guard()</code></td><td>Detect prompt injection attempts</td><td><code>bool</code></td></tr>
+    </table>
+  </div>
+
+  <!-- Slide 1: Architecture -->
+  <div class="slide" id="slide-1">
+    <h1>Architecture</h1>
+
+    <div class="diagram">
+      <pre style="text-align: left; border: none; background: transparent;">
+  LLM Output (resume bullets, cover letter paragraphs)
+      |
+      v
+  +-------------------+     +---------------------+
+  | check_grounding() | --> | GroundingReport      |
+  | (per-claim check)  |     | .level: Grounded/   |
+  +-------------------+     |  Embellished/        |
+      |                      |  Fabricated          |
+      | compares against     | .evidence: [...]     |
+      v                      | .ungrounded: [...]   |
+  +------------------+      +---------------------+
+  | LifeSheet        |
+  | .work_experience |
+  | .skills          |      +---------------------+
+  | .education       |      | prohibited_phrase_   |
+  | .certifications  |      | detector()           |
+  | .projects        |      | -> Vec&lt;Prohibited    |
+  +------------------+      |    Phrase&gt;            |
+                             +---------------------+
+
+  User Input (job descriptions, etc.)
+      |
+      v
+  +----------------------+
+  | prompt_injection_    |
+  | guard() -> bool      |
+  | (21 patterns +       |
+  |  base64 detection)   |
+  +----------------------+
+      </pre>
+    </div>
+
+    <h2>Module Placement</h2>
+    <p><code>lazyjob-llm/src/anti_fabrication.rs</code> - Top-level module in lazyjob-llm crate (not under prompts/) since it serves multiple pipeline stages.</p>
+    <p>Re-exported from <code>lazyjob_llm</code> crate root: <code>FabricationLevel</code>, <code>GroundingReport</code>, <code>ProhibitedPhrase</code>, <code>is_grounded_claim</code>, <code>check_grounding</code>, <code>prohibited_phrase_detector</code>, <code>prompt_injection_guard</code>.</p>
+  </div>
+
+  <!-- Slide 2: FabricationLevel -->
+  <div class="slide" id="slide-2">
+    <h1>FabricationLevel Enum</h1>
+
+    <pre><code><span class="kw">pub enum</span> <span class="ty">FabricationLevel</span> {
+    <span class="ty">Grounded</span>,     <span class="cm">// >= 2 evidence matches from LifeSheet</span>
+    <span class="ty">Embellished</span>,  <span class="cm">// exactly 1 evidence match (partial truth)</span>
+    <span class="ty">Fabricated</span>,   <span class="cm">// 0 evidence matches (hallucinated)</span>
+}</code></pre>
+
+    <h2>Evidence Sources (8 checks)</h2>
+    <table>
+      <tr><th>#</th><th>Source</th><th>How It Matches</th></tr>
+      <tr><td>1</td><td>Companies</td><td>Claim contains company name from work_experience</td></tr>
+      <tr><td>2</td><td>Positions</td><td>Claim contains position title from work_experience</td></tr>
+      <tr><td>3</td><td>Skills</td><td>Claim contains skill name from any SkillCategory</td></tr>
+      <tr><td>4</td><td>Achievements</td><td>3+ significant words overlap with achievement description</td></tr>
+      <tr><td>5</td><td>Education</td><td>Claim contains institution, degree, or field</td></tr>
+      <tr><td>6</td><td>Certifications</td><td>Claim contains certification name</td></tr>
+      <tr><td>7</td><td>Projects</td><td>Claim contains project name</td></tr>
+      <tr><td>8</td><td>Metrics</td><td>Claim contains metric_value from achievements</td></tr>
+    </table>
+
+    <h2>Examples</h2>
+    <pre><code><span class="cm">// Grounded: matches company (Acme Corp) + skill (Rust) = 2 evidence</span>
+<span class="str">"At Acme Corp, I led the backend engineering team using Rust"</span>
+
+<span class="cm">// Embellished: matches skill (Rust) = 1 evidence, but adds unverifiable claims</span>
+<span class="str">"Expert Rust developer who architected a revolutionary platform"</span>
+
+<span class="cm">// Fabricated: no matches at all</span>
+<span class="str">"Founded a blockchain startup that raised $50M"</span></code></pre>
+  </div>
+
+  <!-- Slide 3: Grounding Engine -->
+  <div class="slide" id="slide-3">
+    <h1>Grounding Engine</h1>
+
+    <h2>check_grounding() - Batch Analysis</h2>
+    <pre><code><span class="kw">pub fn</span> <span class="fn">check_grounding</span>(
+    claims: &amp;[<span class="ty">String</span>],
+    life_sheet: &amp;<span class="ty">LifeSheet</span>,
+) -> <span class="ty">GroundingReport</span>
+
+<span class="kw">pub struct</span> <span class="ty">GroundingReport</span> {
+    <span class="kw">pub</span> level: <span class="ty">FabricationLevel</span>,       <span class="cm">// worst level across all claims</span>
+    <span class="kw">pub</span> evidence: <span class="ty">Vec</span>&lt;<span class="ty">String</span>&gt;,       <span class="cm">// claims with any evidence</span>
+    <span class="kw">pub</span> ungrounded_claims: <span class="ty">Vec</span>&lt;<span class="ty">String</span>&gt;, <span class="cm">// embellished + fabricated</span>
+}</code></pre>
+
+    <h2>Achievement Matching Detail</h2>
+    <p>Achievement matching uses a word-overlap heuristic: it filters words longer than 3 characters from both the claim and the achievement description, then checks if at least 3 significant words overlap. This catches paraphrased achievements without requiring exact string matches.</p>
+
+    <pre><code><span class="cm">// Achievement: "Led migration from Python to Rust reducing latency by 40%"</span>
+<span class="cm">// Claim:       "Led migration from Python to Rust, cutting latency by 40%"</span>
+<span class="cm">// Overlap words: "migration", "python", "rust", "reducing/cutting" (3+) -> MATCH</span></code></pre>
+  </div>
+
+  <!-- Slide 4: Prohibited Phrases -->
+  <div class="slide" id="slide-4">
+    <h1>Prohibited Phrase Detector</h1>
+    <p>Detects 35 overused cover letter cliches that make applications sound generic and AI-generated.</p>
+
+    <pre><code><span class="kw">pub fn</span> <span class="fn">prohibited_phrase_detector</span>(text: &amp;<span class="kw">str</span>) -> <span class="ty">Vec</span>&lt;<span class="ty">ProhibitedPhrase</span>&gt;
+
+<span class="kw">pub struct</span> <span class="ty">ProhibitedPhrase</span> {
+    <span class="kw">pub</span> phrase: <span class="ty">String</span>,     <span class="cm">// the detected cliche</span>
+    <span class="kw">pub</span> position: <span class="ty">usize</span>,   <span class="cm">// byte offset in text</span>
+}</code></pre>
+
+    <h2>Full Phrase List (35 entries)</h2>
+    <div style="column-count: 3; font-size: 12px; margin: 12px 0;">
+      <span class="badge badge-red">passionate about</span>
+      <span class="badge badge-red">dynamic individual</span>
+      <span class="badge badge-red">synergy</span>
+      <span class="badge badge-red">think outside the box</span>
+      <span class="badge badge-red">go-getter</span>
+      <span class="badge badge-red">team player</span>
+      <span class="badge badge-red">results-driven</span>
+      <span class="badge badge-red">detail-oriented</span>
+      <span class="badge badge-red">self-starter</span>
+      <span class="badge badge-red">hard worker</span>
+      <span class="badge badge-red">fast learner</span>
+      <span class="badge badge-red">people person</span>
+      <span class="badge badge-red">hit the ground running</span>
+      <span class="badge badge-red">value-add</span>
+      <span class="badge badge-red">paradigm shift</span>
+      <span class="badge badge-red">leverage my skills</span>
+      <span class="badge badge-red">proven track record</span>
+      <span class="badge badge-red">seasoned professional</span>
+      <span class="badge badge-red">highly motivated</span>
+      <span class="badge badge-red">strategic thinker</span>
+      <span class="badge badge-red">cutting-edge</span>
+      <span class="badge badge-red">move the needle</span>
+      <span class="badge badge-red">low-hanging fruit</span>
+      <span class="badge badge-red">circle back</span>
+      <span class="badge badge-red">deep dive</span>
+      <span class="badge badge-red">strong work ethic</span>
+      <span class="badge badge-red">excellent communication skills</span>
+      <span class="badge badge-red">above and beyond</span>
+      <span class="badge badge-red">wear many hats</span>
+      <span class="badge badge-red">mission-driven</span>
+      <span class="badge badge-red">stakeholder alignment</span>
+      <span class="badge badge-red">best of breed</span>
+      <span class="badge badge-red">unique opportunity</span>
+      <span class="badge badge-red">utilize my expertise</span>
+      <span class="badge badge-red">out of the box</span>
+    </div>
+
+    <h3>Case-insensitive detection</h3>
+    <pre><code><span class="cm">// Input: "I am a SELF-STARTER and HIGHLY MOTIVATED professional"</span>
+<span class="cm">// Detects: "self-starter" at position 7, "highly motivated" at position 25</span></code></pre>
+  </div>
+
+  <!-- Slide 5: Injection Guard -->
+  <div class="slide" id="slide-5">
+    <h1>Prompt Injection Guard</h1>
+    <p>Broader than the existing <code>sanitize_user_value()</code> in the sanitizer module. The sanitizer <em>replaces</em> injection patterns in template variables (preventive). The injection guard <em>detects</em> them in arbitrary user input (detective).</p>
+
+    <pre><code><span class="kw">pub fn</span> <span class="fn">prompt_injection_guard</span>(user_input: &amp;<span class="kw">str</span>) -> <span class="ty">bool</span>
+<span class="cm">// Returns true if injection attempt detected</span></code></pre>
+
+    <h2>21 Detection Patterns</h2>
+    <table>
+      <tr><th>Category</th><th>Patterns</th></tr>
+      <tr><td>Role switching</td><td><code>\n\nSystem:</code>, <code>\n\nUser:</code>, <code>\n\nAssistant:</code>, <code>\n\nHuman:</code></td></tr>
+      <tr><td>Instruction override</td><td><code>ignore previous/all prior/all previous instructions</code>, <code>disregard your/previous instructions</code>, <code>forget your instructions</code>, <code>override your instructions</code></td></tr>
+      <tr><td>Persona switching</td><td><code>you are now</code>, <code>act as if you</code>, <code>pretend you are</code></td></tr>
+      <tr><td>System prompt injection</td><td><code>new system prompt</code>, <code>system prompt override</code></td></tr>
+      <tr><td>Special tokens</td><td><code>&lt;|im_start|&gt;</code>, <code>&lt;|im_end|&gt;</code>, <code>```system</code>, <code>[system]</code>, <code>\\n\\nsystem:</code></td></tr>
+    </table>
+
+    <h3>Base64 Detection</h3>
+    <p>Also checks for base64-encoded versions of "system" (<code>c3lzdGVt</code>) and "ignore" (<code>aWdub3Jl</code>) to catch encoding-based evasion attempts. These are matched case-sensitively since base64 is case-sensitive.</p>
+  </div>
+
+  <!-- Slide 6: Pipeline Integration -->
+  <div class="slide" id="slide-6">
+    <h1>Pipeline Integration</h1>
+    <p>Both the ResumeTailor and CoverLetter prompt modules now have <code>validate_grounding()</code> functions that combine grounding analysis with prohibited phrase detection.</p>
+
+    <h2>Resume Tailor Pipeline</h2>
+    <pre><code><span class="cm">// crates/lazyjob-llm/src/prompts/resume_tailor.rs</span>
+<span class="kw">pub fn</span> <span class="fn">validate_grounding</span>(
+    output: &amp;<span class="ty">ResumeTailorOutput</span>,
+    life_sheet: &amp;<span class="ty">LifeSheet</span>,
+) -> (<span class="ty">GroundingReport</span>, <span class="ty">Vec</span>&lt;<span class="ty">ProhibitedPhrase</span>&gt;) {
+    <span class="cm">// Collects all bullets + summary as claims</span>
+    <span class="cm">// Runs check_grounding() against LifeSheet</span>
+    <span class="cm">// Runs prohibited_phrase_detector() on full text</span>
+}</code></pre>
+
+    <h2>Cover Letter Pipeline</h2>
+    <pre><code><span class="cm">// crates/lazyjob-llm/src/prompts/cover_letter.rs</span>
+<span class="kw">pub fn</span> <span class="fn">validate_grounding</span>(
+    output: &amp;<span class="ty">CoverLetterOutput</span>,
+    life_sheet: &amp;<span class="ty">LifeSheet</span>,
+) -> (<span class="ty">GroundingReport</span>, <span class="ty">Vec</span>&lt;<span class="ty">ProhibitedPhrase</span>&gt;) {
+    <span class="cm">// Uses paragraphs as claims</span>
+    <span class="cm">// Same dual-check pattern</span>
+}</code></pre>
+
+    <h2>Usage in Future Pipeline (Task 33+)</h2>
+    <pre><code><span class="kw">let</span> output = validate_output(llm_response)?;
+<span class="kw">let</span> (report, prohibited) = validate_grounding(&amp;output, &amp;life_sheet);
+
+<span class="kw">if</span> report.level == <span class="ty">FabricationLevel</span>::Fabricated {
+    <span class="cm">// Reject and re-generate with stronger grounding prompt</span>
+}
+<span class="kw">if</span> !prohibited.is_empty() {
+    <span class="cm">// Warn user or filter out cliches</span>
+}</code></pre>
+  </div>
+
+  <!-- Slide 7: Test Results -->
+  <div class="slide" id="slide-7">
+    <h1>Test Results</h1>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" style="color: #3fb950;">26</div>
+        <div class="stat-label">anti_fabrication tests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: #3fb950;">4</div>
+        <div class="stat-label">resume_tailor tests</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color: #3fb950;">4</div>
+        <div class="stat-label">cover_letter tests</div>
+      </div>
+    </div>
+
+    <div class="test-output">
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_matching_company ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_matching_skill ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_matching_achievement ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_education ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_certification ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_project ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::grounded_claim_with_metric ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::embellished_claim_partial_match ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::fabricated_claim_no_evidence ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::check_grounding_report_mixed ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::check_grounding_report_all_grounded ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::empty_life_sheet_fabricates_everything ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::prohibited_phrases_detected ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::prohibited_phrases_clean_text ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::prohibited_phrases_case_insensitive ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::prohibited_phrases_returns_positions ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::prohibited_phrase_detector_empty_text ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_detects_role_switch ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_detects_ignore_instructions ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_detects_disregard ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_detects_pretend ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_detects_special_tokens ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_detects_base64_encoded ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_clean_input ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_case_insensitive ... ok</span>
+<span class="test-pass">test anti_fabrication::tests::injection_guard_empty_input ... ok</span>
+
+<span class="test-pass">test result: ok. 26 passed; 0 failed; 0 ignored</span>
+    </div>
+
+    <h3>Full lazyjob-llm crate: 150 tests passing</h3>
+    <p>All non-DB crates pass: lazyjob-llm (150), lazyjob-tui (244), lazyjob-ralph (17), lazyjob-cli (45). Clippy clean with zero warnings.</p>
+  </div>
+
+  <!-- Slide 8: Files Changed -->
+  <div class="slide" id="slide-8">
+    <h1>Files Changed</h1>
+
+    <h2>New Files</h2>
+    <ul class="file-list">
+      <li class="file-new"><code>crates/lazyjob-llm/src/anti_fabrication.rs</code> - Core module with all 3 guard functions + 26 tests</li>
+      <li class="file-new"><code>ralph/lazyjob-implementation/output/research-task-32.md</code></li>
+      <li class="file-new"><code>ralph/lazyjob-implementation/output/plan-task-32.md</code></li>
+    </ul>
+
+    <h2>Modified Files</h2>
+    <ul class="file-list">
+      <li class="file-mod"><code>crates/lazyjob-llm/src/lib.rs</code> - Added pub mod + re-exports</li>
+      <li class="file-mod"><code>crates/lazyjob-llm/src/prompts/resume_tailor.rs</code> - Added validate_grounding() + 4 tests</li>
+      <li class="file-mod"><code>crates/lazyjob-llm/src/prompts/cover_letter.rs</code> - Added validate_grounding() + 4 tests</li>
+    </ul>
+
+    <h2>Key Design Decisions</h2>
+    <table>
+      <tr><th>Decision</th><th>Rationale</th></tr>
+      <tr><td>Evidence count >= 2 for Grounded</td><td>Single-match too lenient (a skill name could appear by coincidence). Two corroborating signals = strong evidence.</td></tr>
+      <tr><td>prompt_injection_guard separate from sanitizer</td><td>Sanitizer is preventive (replaces in template vars). Guard is detective (returns bool on arbitrary input). Different use cases.</td></tr>
+      <tr><td>validate_grounding returns tuple, not Result</td><td>Grounding issues are warnings, not errors. Callers decide whether to reject (Fabricated) or warn (Embellished + prohibited phrases).</td></tr>
+      <tr><td>No new dependencies</td><td>Pure string processing. No regex, no NLP crate. Fast and deterministic.</td></tr>
+    </table>
+  </div>
+</main>
+
+<script>
+function showSlide(n) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('slide-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.add('active');
+}
+</script>
+</body>
+</html>
