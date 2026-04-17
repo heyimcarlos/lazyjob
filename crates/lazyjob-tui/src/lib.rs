@@ -25,7 +25,7 @@ pub fn version() -> &'static str {
 pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
     let (_ralph_tx, ralph_rx) = broadcast::channel::<RalphUpdate>(64);
 
-    let app = match Database::connect(&config.database_url).await {
+    let mut app = match Database::connect(&config.database_url).await {
         Ok(db) => {
             let repo = RalphLoopRunRepository::new(db.pool().clone());
             let recovered = repo.recover_pending().await.unwrap_or(0);
@@ -40,6 +40,7 @@ pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
         }
     };
 
+    app.load_jobs().await;
     event_loop::run_event_loop(app).await
 }
 

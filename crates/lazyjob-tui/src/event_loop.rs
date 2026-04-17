@@ -8,7 +8,7 @@ use ratatui::backend::CrosstermBackend;
 use tokio::time::{self, Duration};
 
 use crate::action::Action;
-use crate::app::App;
+use crate::app::{App, InputMode};
 use crate::keybindings::{KeyCombo, KeyContext};
 use crate::render;
 use crate::views::View;
@@ -51,7 +51,11 @@ pub async fn run_event_loop(mut app: App) -> anyhow::Result<()> {
                 match maybe_event {
                     Some(Ok(event)) => {
                         if let Some(action) = map_event_to_action(&mut app, &event) {
+                            let is_refresh = matches!(action, Action::Refresh);
                             app.handle_action(action);
+                            if is_refresh {
+                                app.load_jobs().await;
+                            }
                         }
                     }
                     Some(Err(_)) => break,
@@ -88,6 +92,10 @@ fn map_event_to_action(app: &mut App, event: &Event) -> Option<Action> {
 fn map_key_to_action(app: &mut App, code: KeyCode, modifiers: KeyModifiers) -> Option<Action> {
     if app.help_open {
         return app.views.help_overlay.handle_key(code, modifiers);
+    }
+
+    if app.input_mode == InputMode::Search {
+        return app.active_view_mut().handle_key(code, modifiers);
     }
 
     let combo = KeyCombo::from_key_event(code, modifiers);

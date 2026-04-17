@@ -1,3 +1,5 @@
+use lazyjob_core::domain::JobId;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     Quit,
@@ -8,8 +10,11 @@ pub enum Action {
     ScrollDown,
     ScrollUp,
     Select,
+    OpenJob(JobId),
     CancelRalphLoop(String),
     RalphDetail(String),
+    EnterSearch,
+    ExitSearch,
 }
 
 impl Action {
@@ -23,8 +28,11 @@ impl Action {
             Self::ScrollDown => "Scroll Down",
             Self::ScrollUp => "Scroll Up",
             Self::Select => "Select",
+            Self::OpenJob(_) => "Open Job",
             Self::CancelRalphLoop(_) => "Cancel Loop",
             Self::RalphDetail(_) => "Loop Detail",
+            Self::EnterSearch => "Search",
+            Self::ExitSearch => "Exit Search",
         }
     }
 }

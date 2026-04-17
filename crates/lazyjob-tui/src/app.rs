@@ -5,6 +5,7 @@ use sqlx::PgPool;
 use tokio::sync::broadcast;
 
 use lazyjob_core::config::Config;
+use lazyjob_core::repositories::{JobRepository, Pagination};
 
 use crate::action::{Action, ViewId};
 use crate::keybindings::KeyMap;
@@ -127,7 +128,16 @@ impl App {
                     self.handle_action(action);
                 }
             }
+            Action::OpenJob(_id) => {
+                // TODO: Navigate to JobDetailView (task 28)
+            }
             Action::CancelRalphLoop(_) | Action::RalphDetail(_) => {}
+            Action::EnterSearch => {
+                self.input_mode = InputMode::Search;
+            }
+            Action::ExitSearch => {
+                self.input_mode = InputMode::Normal;
+            }
         }
     }
 
@@ -139,6 +149,19 @@ impl App {
             ViewId::Contacts => &mut self.views.contacts,
             ViewId::Ralph => &mut self.views.ralph_panel,
             ViewId::Settings => &mut self.views.settings,
+        }
+    }
+
+    pub async fn load_jobs(&mut self) {
+        let Some(pool) = &self.pool else { return };
+        let repo = JobRepository::new(pool.clone());
+        match repo.list(&Pagination::default()).await {
+            Ok(jobs) => {
+                self.views.jobs_list.set_jobs(jobs);
+            }
+            Err(err) => {
+                tracing::warn!("Failed to load jobs: {err}");
+            }
         }
     }
 
