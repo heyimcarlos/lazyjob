@@ -132,6 +132,8 @@ impl ContactsView {
         Line::from(vec![
             Span::styled("j/k", Style::default().fg(theme.primary)),
             Span::styled(" Navigate  ", Style::default().fg(theme.text_muted)),
+            Span::styled("d", Style::default().fg(theme.primary)),
+            Span::styled(" Draft Outreach  ", Style::default().fg(theme.text_muted)),
             Span::styled(
                 format!("{contacts_count} contacts"),
                 Style::default().fg(theme.text_secondary),
@@ -182,6 +184,14 @@ impl View for ContactsView {
                     i - 1
                 };
                 self.table_state.select(Some(next));
+                None
+            }
+            KeyCode::Char('d') => {
+                if let Some(i) = self.table_state.selected()
+                    && let Some(contact) = self.contacts.get(i)
+                {
+                    return Some(Action::DraftOutreach(contact.id));
+                }
                 None
             }
             _ => None,
@@ -336,5 +346,33 @@ mod tests {
         }
         assert!(found_alice, "Alice Smith should appear in rendered output");
         assert!(found_bob, "Bob Jones should appear in rendered output");
+    }
+
+    #[test]
+    fn d_key_emits_draft_outreach_action() {
+        let mut view = ContactsView::new();
+        let contacts = make_contacts();
+        let expected_id = contacts[0].id;
+        view.set_contacts(contacts);
+        let action = view.handle_key(KeyCode::Char('d'), KeyModifiers::NONE);
+        assert_eq!(action, Some(Action::DraftOutreach(expected_id)));
+    }
+
+    #[test]
+    fn d_key_on_second_contact() {
+        let mut view = ContactsView::new();
+        let contacts = make_contacts();
+        let expected_id = contacts[1].id;
+        view.set_contacts(contacts);
+        view.table_state.select(Some(1));
+        let action = view.handle_key(KeyCode::Char('d'), KeyModifiers::NONE);
+        assert_eq!(action, Some(Action::DraftOutreach(expected_id)));
+    }
+
+    #[test]
+    fn d_key_on_empty_contacts_does_nothing() {
+        let mut view = ContactsView::new();
+        let action = view.handle_key(KeyCode::Char('d'), KeyModifiers::NONE);
+        assert!(action.is_none());
     }
 }

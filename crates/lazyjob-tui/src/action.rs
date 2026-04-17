@@ -1,4 +1,4 @@
-use lazyjob_core::domain::{ApplicationId, ApplicationStage, JobId};
+use lazyjob_core::domain::{ApplicationId, ApplicationStage, ContactId, JobId};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -16,6 +16,7 @@ pub enum Action {
     ApplyToJob(JobId),
     TailorResume(JobId),
     GenerateCoverLetter(JobId),
+    DraftOutreach(ContactId),
     OpenUrl(String),
     CancelRalphLoop(String),
     RalphDetail(String),
@@ -41,6 +42,7 @@ impl Action {
             Self::ApplyToJob(_) => "Apply",
             Self::TailorResume(_) => "Tailor Resume",
             Self::GenerateCoverLetter(_) => "Cover Letter",
+            Self::DraftOutreach(_) => "Draft Outreach",
             Self::OpenUrl(_) => "Open URL",
             Self::CancelRalphLoop(_) => "Cancel Loop",
             Self::RalphDetail(_) => "Loop Detail",

@@ -5,6 +5,7 @@ pub mod engine;
 pub mod error;
 pub mod interview_prep;
 pub mod job_discovery;
+pub mod outreach;
 pub mod registry;
 pub mod resume_tailor;
 pub mod sanitizer;

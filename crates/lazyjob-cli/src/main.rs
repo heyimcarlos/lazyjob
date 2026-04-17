@@ -14,9 +14,10 @@ use lazyjob_core::cover_letter::{CoverLetterOptions, CoverLetterService, CoverLe
 use lazyjob_core::credentials::CredentialManager;
 use lazyjob_core::db::{DEFAULT_DATABASE_URL, Database};
 use lazyjob_core::discovery::{CompanyResearcher, Completer, DiscoveryService, SourceConfig};
-use lazyjob_core::domain::{CompanyId, Job};
+use lazyjob_core::domain::{CompanyId, ContactId, Job};
 use lazyjob_core::error::CoreError;
-use lazyjob_core::repositories::{JobRepository, Pagination};
+use lazyjob_core::networking::{OutreachDraftingService, OutreachTone};
+use lazyjob_core::repositories::{ContactRepository, JobRepository, Pagination};
 use lazyjob_llm::{ChatMessage, CompletionOptions, LlmBuilder, LlmProvider};
 
 #[derive(Parser)]
@@ -36,6 +37,7 @@ enum Commands {
     Config(ConfigArgs),
     Ralph(RalphArgs),
     CoverLetter(CoverLetterArgs),
+    Outreach(OutreachArgs),
     Tui,
     #[command(hide = true)]
     Worker,
@@ -117,6 +119,24 @@ enum CoverLetterCommand {
     },
 }
 
+#[derive(Parser)]
+struct OutreachArgs {
+    #[command(subcommand)]
+    command: OutreachCommand,
+}
+
+#[derive(Subcommand)]
+enum OutreachCommand {
+    Draft {
+        #[arg(long)]
+        contact_id: String,
+        #[arg(long)]
+        job_id: Option<String>,
+        #[arg(long, default_value = "professional")]
+        tone: String,
+    },
+}
+
 #[derive(Subcommand)]
 #[allow(clippy::enum_variant_names)]
 enum ConfigCommand {
@@ -184,6 +204,12 @@ async fn run(cli: Cli) -> Result<()> {
         Commands::CoverLetter(args) => {
             let db = connect_db(db_url).await?;
             let result = handle_cover_letter(args, &db).await;
+            db.close().await;
+            result
+        }
+        Commands::Outreach(args) => {
+            let db = connect_db(db_url).await?;
+            let result = handle_outreach(args, &db).await;
             db.close().await;
             result
         }
@@ -423,6 +449,78 @@ async fn handle_cover_letter(args: CoverLetterArgs, db: &Database) -> Result<()>
             println!("  Words: {}", version.plain_text.split_whitespace().count());
             println!("  Key points: {}", version.key_points.join("; "));
             println!("\n--- Content ---\n{}", version.content);
+            Ok(())
+        }
+    }
+}
+
+async fn handle_outreach(args: OutreachArgs, db: &Database) -> Result<()> {
+    match args.command {
+        OutreachCommand::Draft {
+            contact_id,
+            job_id,
+            tone,
+        } => {
+            let contact_uuid = contact_id
+                .parse::<uuid::Uuid>()
+                .context("invalid contact UUID")?;
+            let contact_id = ContactId::from_uuid(contact_uuid);
+
+            let contact_repo = ContactRepository::new(db.pool().clone());
+            let contact = contact_repo
+                .find_by_id(&contact_id)
+                .await?
+                .ok_or_else(|| anyhow::anyhow!("Contact not found: {contact_uuid}"))?;
+
+            let job = if let Some(jid) = job_id {
+                let job_uuid = jid.parse::<uuid::Uuid>().context("invalid job UUID")?;
+                let job_repo = JobRepository::new(db.pool().clone());
+                job_repo
+                    .find_by_id(&lazyjob_core::domain::JobId::from_uuid(job_uuid))
+                    .await?
+            } else {
+                None
+            };
+
+            let life_sheet = lazyjob_core::life_sheet::load_from_db(db.pool())
+                .await
+                .context("failed to load life sheet — run `lazyjob profile import` first")?;
+
+            let config = Config::load().unwrap_or_default();
+            let creds = CredentialManager::new();
+            let provider =
+                LlmBuilder::from_config(&config, &creds).map_err(|e| anyhow::anyhow!("{e}"))?;
+
+            let completer = Arc::new(LlmProviderCompleter { provider });
+            let outreach_tone = OutreachTone::from_str_loose(&tone);
+            let svc = OutreachDraftingService::new(completer, db.pool().clone());
+
+            println!(
+                "Drafting {} outreach to {}...",
+                outreach_tone.as_str(),
+                contact.name
+            );
+
+            let draft = svc
+                .draft(&contact, job.as_ref(), outreach_tone, &life_sheet)
+                .await
+                .map_err(|e| anyhow::anyhow!("{e}"))?;
+
+            println!("\n--- Outreach Draft ---");
+            println!(
+                "To: {} ({})",
+                contact.name,
+                contact.email.as_deref().unwrap_or("-")
+            );
+            println!("Tone: {}", draft.tone.label());
+            println!("Words: {} | Chars: {}", draft.word_count, draft.char_count);
+            if !draft.fabrication_warnings.is_empty() {
+                println!("\nWarnings:");
+                for w in &draft.fabrication_warnings {
+                    println!("  - {w}");
+                }
+            }
+            println!("\n{}", draft.body);
             Ok(())
         }
     }
@@ -754,5 +852,59 @@ mod tests {
     fn parse_worker_subcommand() {
         let cli = Cli::try_parse_from(["lazyjob", "worker"]).unwrap();
         assert!(matches!(cli.command, Commands::Worker));
+    }
+
+    #[test]
+    fn parse_outreach_draft() {
+        let cli = Cli::try_parse_from([
+            "lazyjob",
+            "outreach",
+            "draft",
+            "--contact-id",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "--job-id",
+            "660e8400-e29b-41d4-a716-446655440000",
+            "--tone",
+            "warm",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Outreach(args) => match args.command {
+                OutreachCommand::Draft {
+                    contact_id,
+                    job_id,
+                    tone,
+                } => {
+                    assert_eq!(contact_id, "550e8400-e29b-41d4-a716-446655440000");
+                    assert_eq!(
+                        job_id.as_deref(),
+                        Some("660e8400-e29b-41d4-a716-446655440000")
+                    );
+                    assert_eq!(tone, "warm");
+                }
+            },
+            _ => panic!("expected Outreach"),
+        }
+    }
+
+    #[test]
+    fn parse_outreach_draft_default_tone() {
+        let cli = Cli::try_parse_from([
+            "lazyjob",
+            "outreach",
+            "draft",
+            "--contact-id",
+            "550e8400-e29b-41d4-a716-446655440000",
+        ])
+        .unwrap();
+        match cli.command {
+            Commands::Outreach(args) => match args.command {
+                OutreachCommand::Draft { tone, job_id, .. } => {
+                    assert_eq!(tone, "professional");
+                    assert!(job_id.is_none());
+                }
+            },
+            _ => panic!("expected Outreach"),
+        }
     }
 }

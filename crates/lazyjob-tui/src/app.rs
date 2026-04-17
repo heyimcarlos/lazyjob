@@ -222,6 +222,7 @@ impl App {
             Action::CancelRalphLoop(run_id) => {
                 let _ = self.ralph_cmd_tx.send(RalphCommand::Cancel { run_id });
             }
+            Action::DraftOutreach(_contact_id) => {}
             Action::RalphDetail(_) => {}
             Action::EnterSearch => {
                 self.input_mode = InputMode::Search;
