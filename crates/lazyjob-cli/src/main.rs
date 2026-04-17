@@ -1,3 +1,5 @@
+mod worker;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -35,6 +37,8 @@ enum Commands {
     Ralph(RalphArgs),
     CoverLetter(CoverLetterArgs),
     Tui,
+    #[command(hide = true)]
+    Worker,
 }
 
 #[derive(Parser)]
@@ -183,6 +187,7 @@ async fn run(cli: Cli) -> Result<()> {
             db.close().await;
             result
         }
+        Commands::Worker => worker::run_worker(db_url).await,
     }
 }
 
@@ -743,5 +748,11 @@ mod tests {
             },
             _ => panic!("expected CoverLetter"),
         }
+    }
+
+    #[test]
+    fn parse_worker_subcommand() {
+        let cli = Cli::try_parse_from(["lazyjob", "worker"]).unwrap();
+        assert!(matches!(cli.command, Commands::Worker));
     }
 }

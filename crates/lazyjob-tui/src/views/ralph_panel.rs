@@ -57,6 +57,18 @@ impl RalphPanelView {
 
     pub fn on_update(&mut self, update: RalphUpdate) {
         match update {
+            RalphUpdate::Started { id, loop_type } => {
+                self.active.push(ActiveEntry {
+                    run_id: id,
+                    loop_type,
+                    phase: "starting".into(),
+                    progress: 0.0,
+                    message: "Starting...".into(),
+                    started_at: Instant::now(),
+                    log_lines: Vec::new(),
+                });
+                self.clamp_selected();
+            }
             RalphUpdate::Progress { id, phase, percent } => {
                 if let Some(entry) = self.active.iter_mut().find(|e| e.run_id == id) {
                     entry.phase = phase.clone();

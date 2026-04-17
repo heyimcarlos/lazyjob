@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 lazyjob-core = { workspace = true }
 lazyjob-llm = { workspace = true }
+lazyjob-ralph = { workspace = true }
 lazyjob-tui = { workspace = true }
 secrecy = { workspace = true }
 anyhow = { workspace = true }

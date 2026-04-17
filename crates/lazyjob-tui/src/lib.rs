@@ -10,20 +10,21 @@ pub mod widgets;
 
 use std::sync::Arc;
 
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc};
 
 use lazyjob_core::config::Config;
 use lazyjob_core::db::Database;
 use lazyjob_core::repositories::RalphLoopRunRepository;
 
-use crate::app::{App, RalphUpdate};
+use crate::app::{App, RalphCommand, RalphUpdate};
 
 pub fn version() -> &'static str {
     env!("CARGO_PKG_VERSION")
 }
 
 pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
-    let (_ralph_tx, ralph_rx) = broadcast::channel::<RalphUpdate>(64);
+    let (ralph_tx, ralph_rx) = broadcast::channel::<RalphUpdate>(64);
+    let (ralph_cmd_tx, ralph_cmd_rx) = mpsc::unbounded_channel::<RalphCommand>();
 
     let mut app = match Database::connect(&config.database_url).await {
         Ok(db) => {
@@ -32,18 +33,18 @@ pub async fn run(config: Arc<Config>) -> anyhow::Result<()> {
             if recovered > 0 {
                 tracing::info!("Recovered {recovered} stale ralph loop runs marked as failed");
             }
-            App::new(config, ralph_rx).with_pool(db.pool().clone())
+            App::new(config, ralph_rx, ralph_cmd_tx).with_pool(db.pool().clone())
         }
         Err(err) => {
             tracing::warn!("Could not connect to database at startup: {err}");
-            App::new(config, ralph_rx)
+            App::new(config, ralph_rx, ralph_cmd_tx)
         }
     };
 
     app.load_jobs().await;
     app.load_applications().await;
     app.load_dashboard_stats().await;
-    event_loop::run_event_loop(app).await
+    event_loop::run_event_loop(app, ralph_tx, ralph_cmd_rx).await
 }
 
 #[cfg(test)]

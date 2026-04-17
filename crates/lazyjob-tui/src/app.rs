@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crossterm::event::{KeyCode, KeyModifiers};
 use sqlx::PgPool;
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc};
 
 use lazyjob_core::config::Config;
 use lazyjob_core::repositories::{ApplicationRepository, JobRepository, Pagination};
@@ -24,6 +24,10 @@ pub enum InputMode {
 
 #[derive(Debug, Clone)]
 pub enum RalphUpdate {
+    Started {
+        id: String,
+        loop_type: String,
+    },
     Progress {
         id: String,
         phase: String,
@@ -42,6 +46,17 @@ pub enum RalphUpdate {
     },
 }
 
+#[derive(Debug, Clone)]
+pub enum RalphCommand {
+    Spawn {
+        loop_type: String,
+        params: serde_json::Value,
+    },
+    Cancel {
+        run_id: String,
+    },
+}
+
 pub struct App {
     pub active_view: ViewId,
     pub prev_view: Option<ViewId>,
@@ -52,13 +67,18 @@ pub struct App {
     pub theme: &'static Theme,
     pub config: Arc<Config>,
     pub ralph_rx: broadcast::Receiver<RalphUpdate>,
+    pub ralph_cmd_tx: mpsc::UnboundedSender<RalphCommand>,
     pub views: Views,
     pub keymap: KeyMap,
     pub pool: Option<PgPool>,
 }
 
 impl App {
-    pub fn new(config: Arc<Config>, ralph_rx: broadcast::Receiver<RalphUpdate>) -> Self {
+    pub fn new(
+        config: Arc<Config>,
+        ralph_rx: broadcast::Receiver<RalphUpdate>,
+        ralph_cmd_tx: mpsc::UnboundedSender<RalphCommand>,
+    ) -> Self {
         let keymap = KeyMap::default_keymap().with_overrides(&config.keybindings);
         Self {
             active_view: ViewId::Dashboard,
@@ -70,6 +90,7 @@ impl App {
             theme: &Theme::DARK,
             config,
             ralph_rx,
+            ralph_cmd_tx,
             views: Views::new(),
             keymap,
             pool: None,
@@ -84,7 +105,8 @@ impl App {
     #[cfg(test)]
     pub fn new_for_test() -> Self {
         let (_tx, rx) = broadcast::channel(16);
-        Self::new(Arc::new(Config::default()), rx)
+        let (cmd_tx, _cmd_rx) = mpsc::unbounded_channel();
+        Self::new(Arc::new(Config::default()), rx, cmd_tx)
     }
 
     pub fn handle_action(&mut self, action: Action) {
@@ -169,11 +191,34 @@ impl App {
                 }
             }
             Action::TransitionApplication(_, _) => {}
-            Action::ApplyToJob(_) | Action::TailorResume(_) | Action::GenerateCoverLetter(_) => {}
+            Action::ApplyToJob(_) => {}
+            Action::TailorResume(job_id) => {
+                let params = serde_json::json!({
+                    "job_id": job_id.as_uuid().to_string(),
+                    "database_url": self.config.database_url,
+                });
+                let _ = self.ralph_cmd_tx.send(RalphCommand::Spawn {
+                    loop_type: "resume-tailor".into(),
+                    params,
+                });
+            }
+            Action::GenerateCoverLetter(job_id) => {
+                let params = serde_json::json!({
+                    "job_id": job_id.as_uuid().to_string(),
+                    "database_url": self.config.database_url,
+                });
+                let _ = self.ralph_cmd_tx.send(RalphCommand::Spawn {
+                    loop_type: "cover-letter".into(),
+                    params,
+                });
+            }
             Action::OpenUrl(url) => {
                 let _ = open::that(&url);
             }
-            Action::CancelRalphLoop(_) | Action::RalphDetail(_) => {}
+            Action::CancelRalphLoop(run_id) => {
+                let _ = self.ralph_cmd_tx.send(RalphCommand::Cancel { run_id });
+            }
+            Action::RalphDetail(_) => {}
             Action::EnterSearch => {
                 self.input_mode = InputMode::Search;
             }
@@ -397,5 +442,75 @@ mod tests {
         let mut app = test_app();
         app.active_view = ViewId::Jobs;
         assert_eq!(app.active_view_mut().name(), "Jobs");
+    }
+
+    #[test]
+    fn tailor_resume_sends_spawn_command() {
+        use lazyjob_core::domain::JobId;
+
+        let (_ralph_tx, ralph_rx) = broadcast::channel(16);
+        let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel();
+        let mut app = App::new(Arc::new(Config::default()), ralph_rx, cmd_tx);
+
+        let job_id = JobId::new();
+        app.handle_action(Action::TailorResume(job_id));
+
+        let cmd = cmd_rx.try_recv().unwrap();
+        match cmd {
+            RalphCommand::Spawn { loop_type, params } => {
+                assert_eq!(loop_type, "resume-tailor");
+                assert_eq!(params["job_id"], job_id.as_uuid().to_string());
+            }
+            _ => panic!("expected Spawn command"),
+        }
+    }
+
+    #[test]
+    fn generate_cover_letter_sends_spawn_command() {
+        use lazyjob_core::domain::JobId;
+
+        let (_ralph_tx, ralph_rx) = broadcast::channel(16);
+        let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel();
+        let mut app = App::new(Arc::new(Config::default()), ralph_rx, cmd_tx);
+
+        let job_id = JobId::new();
+        app.handle_action(Action::GenerateCoverLetter(job_id));
+
+        let cmd = cmd_rx.try_recv().unwrap();
+        match cmd {
+            RalphCommand::Spawn { loop_type, params } => {
+                assert_eq!(loop_type, "cover-letter");
+                assert_eq!(params["job_id"], job_id.as_uuid().to_string());
+            }
+            _ => panic!("expected Spawn command"),
+        }
+    }
+
+    #[test]
+    fn cancel_ralph_loop_sends_cancel_command() {
+        let (_ralph_tx, ralph_rx) = broadcast::channel(16);
+        let (cmd_tx, mut cmd_rx) = mpsc::unbounded_channel();
+        let mut app = App::new(Arc::new(Config::default()), ralph_rx, cmd_tx);
+
+        app.handle_action(Action::CancelRalphLoop("run-123".into()));
+
+        let cmd = cmd_rx.try_recv().unwrap();
+        match cmd {
+            RalphCommand::Cancel { run_id } => assert_eq!(run_id, "run-123"),
+            _ => panic!("expected Cancel command"),
+        }
+    }
+
+    #[test]
+    fn handle_ralph_update_started_creates_entry() {
+        let mut app = test_app();
+        app.handle_ralph_update(RalphUpdate::Started {
+            id: "run-1".into(),
+            loop_type: "resume-tailor".into(),
+        });
+        assert_eq!(
+            app.views.ralph_panel.selected_run_id(),
+            Some("run-1".into())
+        );
     }
 }

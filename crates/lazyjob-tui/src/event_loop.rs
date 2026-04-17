@@ -5,10 +5,14 @@ use crossterm::terminal::{EnterAlternateScreen, LeaveAlternateScreen};
 use futures::StreamExt;
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
+use tokio::sync::{broadcast, mpsc};
 use tokio::time::{self, Duration};
 
+use lazyjob_ralph::RalphProcessManager;
+use lazyjob_ralph::protocol::WorkerEvent;
+
 use crate::action::Action;
-use crate::app::{App, InputMode};
+use crate::app::{App, InputMode, RalphCommand, RalphUpdate};
 use crate::keybindings::{KeyCombo, KeyContext};
 use crate::render;
 use crate::views::View;
@@ -37,10 +41,17 @@ impl Drop for TerminalGuard {
     }
 }
 
-pub async fn run_event_loop(mut app: App) -> anyhow::Result<()> {
+pub async fn run_event_loop(
+    mut app: App,
+    ralph_tx: broadcast::Sender<RalphUpdate>,
+    mut ralph_cmd_rx: mpsc::UnboundedReceiver<RalphCommand>,
+) -> anyhow::Result<()> {
     let mut guard = TerminalGuard::new()?;
     let mut event_reader = EventStream::new();
     let mut tick = time::interval(TICK_RATE);
+
+    let mut process_manager = RalphProcessManager::new();
+    let mut pm_rx = process_manager.subscribe();
 
     loop {
         guard.terminal.draw(|f| render::render(f, &mut app))?;
@@ -67,6 +78,65 @@ pub async fn run_event_loop(mut app: App) -> anyhow::Result<()> {
             result = app.ralph_rx.recv() => {
                 if let Ok(update) = result {
                     app.handle_ralph_update(update);
+                }
+            }
+            Some(cmd) = ralph_cmd_rx.recv() => {
+                match cmd {
+                    RalphCommand::Spawn { loop_type, params } => {
+                        match process_manager.spawn(&loop_type, params).await {
+                            Ok(run_id) => {
+                                let _ = ralph_tx.send(RalphUpdate::Started {
+                                    id: run_id.to_string(),
+                                    loop_type,
+                                });
+                            }
+                            Err(e) => {
+                                tracing::warn!("Failed to spawn ralph loop: {e}");
+                            }
+                        }
+                    }
+                    RalphCommand::Cancel { run_id } => {
+                        let active = process_manager.active_runs();
+                        if let Some(rid) = active.iter().find(|r| r.to_string() == run_id) {
+                            let rid = *rid;
+                            if let Err(e) = process_manager.cancel(&rid).await {
+                                tracing::warn!("Failed to cancel ralph loop {run_id}: {e}");
+                            }
+                        }
+                    }
+                }
+            }
+            result = pm_rx.recv() => {
+                if let Ok((run_id, event)) = result {
+                    let id = run_id.to_string();
+                    let update = match event {
+                        WorkerEvent::Status { phase, progress, message: _ } => {
+                            RalphUpdate::Progress {
+                                id,
+                                phase: phase.clone(),
+                                percent: progress as f64,
+                            }
+                        }
+                        WorkerEvent::Results { data } => {
+                            let summary = if let Some(label) = data.get("label").and_then(|v| v.as_str()) {
+                                label.to_string()
+                            } else {
+                                "Completed".to_string()
+                            };
+                            RalphUpdate::LogLine { id, line: summary }
+                        }
+                        WorkerEvent::Error { code: _, message } => {
+                            RalphUpdate::Failed { id, reason: message }
+                        }
+                        WorkerEvent::Done { success } => {
+                            if success {
+                                RalphUpdate::Completed { id }
+                            } else {
+                                RalphUpdate::Failed { id, reason: "Loop failed".into() }
+                            }
+                        }
+                    };
+                    let _ = ralph_tx.send(update);
                 }
             }
         }
