@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 33: Resume Tailoring Pipeline</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+nav { width: 280px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 16px 0; flex-shrink: 0; }
+nav h2 { padding: 8px 16px; font-size: 14px; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
+nav a { display: block; padding: 8px 16px; color: #c9d1d9; text-decoration: none; font-size: 14px; border-left: 3px solid transparent; }
+nav a:hover, nav a.active { background: #1f2937; border-left-color: #58a6ff; color: #58a6ff; }
+main { flex: 1; overflow-y: auto; padding: 40px; }
+.slide { display: none; max-width: 900px; margin: 0 auto; }
+.slide.active { display: block; }
+h1 { font-size: 32px; color: #58a6ff; margin-bottom: 8px; }
+h2 { font-size: 24px; color: #79c0ff; margin: 24px 0 12px; }
+h3 { font-size: 18px; color: #d2a8ff; margin: 16px 0 8px; }
+p, li { line-height: 1.7; margin-bottom: 8px; }
+ul { padding-left: 24px; }
+code { background: #1f2937; padding: 2px 6px; border-radius: 4px; font-size: 13px; color: #f0883e; }
+pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+.badge { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.badge-green { background: #238636; color: #fff; }
+.badge-blue { background: #1f6feb; color: #fff; }
+.badge-purple { background: #8957e5; color: #fff; }
+.badge-yellow { background: #9e6a03; color: #fff; }
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+.stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+.stat-card .num { font-size: 28px; font-weight: 700; color: #58a6ff; }
+.stat-card .label { font-size: 12px; color: #8b949e; margin-top: 4px; }
+.pipeline { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+.pipeline .stage { background: #1f2937; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 120px; text-align: center; }
+.pipeline .stage .num { font-size: 20px; font-weight: 700; color: #58a6ff; }
+.pipeline .stage .name { font-size: 11px; color: #8b949e; margin-top: 4px; }
+.arrow { color: #30363d; font-size: 20px; display: flex; align-items: center; }
+table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #30363d; font-size: 14px; }
+th { color: #8b949e; font-weight: 600; }
+</style>
+</head>
+<body>
+<nav>
+<h2>Task 33</h2>
+<a href="#" data-slide="overview" class="active">Overview</a>
+<a href="#" data-slide="architecture">Architecture</a>
+<a href="#" data-slide="pipeline">6-Stage Pipeline</a>
+<a href="#" data-slide="types">Domain Types</a>
+<a href="#" data-slide="jd-parser">JD Parser</a>
+<a href="#" data-slide="gap-analyzer">Gap Analyzer</a>
+<a href="#" data-slide="content-drafter">Content Drafter</a>
+<a href="#" data-slide="fabrication">Fabrication Auditor</a>
+<a href="#" data-slide="repository">Repository</a>
+<a href="#" data-slide="tests">Test Results</a>
+<a href="#" data-slide="decisions">Key Decisions</a>
+</nav>
+<main>
+
+<div class="slide active" id="overview">
+<h1>Task 33: Resume Tailoring Pipeline</h1>
+<p>Complete 6-stage AI-powered resume tailoring pipeline in <code>lazyjob-core/src/resume/</code></p>
+
+<div class="stat-grid">
+<div class="stat-card"><div class="num">7</div><div class="label">New Files</div></div>
+<div class="stat-card"><div class="num">64</div><div class="label">New Tests</div></div>
+<div class="stat-card"><div class="num">656</div><div class="label">Total Tests Passing</div></div>
+</div>
+
+<h2>What Was Built</h2>
+<ul>
+<li><span class="badge badge-blue">JD Parser</span> LLM-backed with regex fallback</li>
+<li><span class="badge badge-green">Gap Analyzer</span> Pure sync skill matching with strsim fuzzy matching</li>
+<li><span class="badge badge-purple">Content Drafter</span> LLM bullet rewriting + summary generation</li>
+<li><span class="badge badge-yellow">Fabrication Auditor</span> Credential fraud detection + unsupported claim detection</li>
+<li><span class="badge badge-blue">Repository</span> PostgreSQL persistence with JSONB columns</li>
+<li><span class="badge badge-green">Orchestrator</span> ResumeTailor with progress events over mpsc channel</li>
+</ul>
+</div>
+
+<div class="slide" id="architecture">
+<h1>Architecture</h1>
+<h2>Circular Dependency Solution</h2>
+<p><code>lazyjob-llm</code> depends on <code>lazyjob-core</code> (for LifeSheet types). So <code>lazyjob-core</code> cannot depend on <code>lazyjob-llm</code>.</p>
+<p>Solution: Reuse the existing <code>Completer</code> trait from <code>lazyjob_core::discovery::company</code>:</p>
+<pre>
+#[async_trait]
+pub trait Completer: Send + Sync {
+    async fn complete(&self, system: &str, user: &str) -> Result&lt;String&gt;;
+}
+</pre>
+<p>All LLM calls in the resume pipeline go through this trait. The CLI/Ralph layer bridges <code>LlmProvider</code> to <code>Completer</code>.</p>
+
+<h2>Module Structure</h2>
+<pre>
+lazyjob-core/src/resume/
+  mod.rs              -- ResumeTailor orchestrator
+  types.rs            -- All domain types (18 structs/enums)
+  jd_parser.rs        -- LlmJdParser + RegexJdParser
+  gap_analyzer.rs     -- DefaultGapAnalyzer (pure logic)
+  content_drafter.rs  -- LlmContentDrafter
+  fabrication.rs      -- DefaultFabricationAuditor
+  repository.rs       -- ResumeVersionRepository (PgPool)
+</pre>
+</div>
+
+<div class="slide" id="pipeline">
+<h1>6-Stage Pipeline</h1>
+<div class="pipeline">
+<div class="stage"><div class="num">1</div><div class="name">Parse JD</div></div>
+<div class="arrow">&rarr;</div>
+<div class="stage"><div class="num">2</div><div class="name">Gap Analysis</div></div>
+<div class="arrow">&rarr;</div>
+<div class="stage"><div class="num">3</div><div class="name">Fab Pre-Check</div></div>
+<div class="arrow">&rarr;</div>
+<div class="stage"><div class="num">4</div><div class="name">Rewrite Bullets</div></div>
+<div class="arrow">&rarr;</div>
+<div class="stage"><div class="num">5</div><div class="name">Gen Summary</div></div>
+<div class="arrow">&rarr;</div>
+<div class="stage"><div class="num">6</div><div class="name">Assemble</div></div>
+</div>
+
+<h2>API</h2>
+<pre>
+let tailor = ResumeTailor::new(completer);
+let (content, gap_report, fab_report) = tailor
+    .tailor(&amp;job, &amp;life_sheet, options, Some(progress_tx))
+    .await?;
+
+// Persist
+let version = ResumeTailor::build_resume_version(
+    &amp;job, content, gap_report, fab_report, options, "v1".into()
+);
+repo.save(&amp;version).await?;
+</pre>
+
+<h2>Progress Events</h2>
+<pre>
+ParsingJd { pct: 10 }
+GapAnalysis { pct: 25 }
+FabricationPreCheck { pct: 35 }
+RewritingBullets { pct: 50 }
+Assembling { pct: 85 }
+Done { match_score: 75.0 }
+</pre>
+</div>
+
+<div class="slide" id="types">
+<h1>Domain Types</h1>
+<table>
+<tr><th>Type</th><th>Purpose</th></tr>
+<tr><td><code>ResumeContent</code></td><td>Structured resume: summary, experience, skills, education, projects</td></tr>
+<tr><td><code>ExperienceSection</code></td><td>Company, title, date_range, bullets with rewritten_indices</td></tr>
+<tr><td><code>SkillsSection</code></td><td>Primary (JD-matched) and secondary skills</td></tr>
+<tr><td><code>JobDescriptionAnalysis</code></td><td>Parsed JD: required/nice-to-have skills, keywords, responsibilities</td></tr>
+<tr><td><code>GapReport</code></td><td>Matched/missing skills, match_score (0-100), experience ranking</td></tr>
+<tr><td><code>FabricationReport</code></td><td>Items, warnings, errors, is_safe_to_submit flag</td></tr>
+<tr><td><code>TailoringOptions</code></td><td>Aggressiveness, max years, bullets per entry, strict fabrication</td></tr>
+<tr><td><code>ResumeVersion</code></td><td>Persisted version with all JSON reports</td></tr>
+<tr><td><code>ProgressEvent</code></td><td>6 pipeline progress variants for TUI integration</td></tr>
+</table>
+</div>
+
+<div class="slide" id="jd-parser">
+<h1>JD Parser</h1>
+<h2>LLM-Backed (Primary)</h2>
+<p>Sends JD to LLM with structured JSON system prompt. Extracts:</p>
+<ul>
+<li>Required skills with canonical (lowercase) names</li>
+<li>Nice-to-have skills</li>
+<li>Keywords for bullet rewriting</li>
+<li>Responsibilities for summary generation</li>
+</ul>
+<p>Handles preamble text and markdown fences via <code>extract_json()</code>.</p>
+
+<h2>Regex Fallback</h2>
+<p>Activated automatically when LLM fails. Uses section header detection (Requirements/Nice to Have/Responsibilities) and 26 tech keyword patterns.</p>
+<pre>
+let jd = match self.jd_parser.parse(raw_jd).await {
+    Ok(jd) =&gt; jd,
+    Err(_) =&gt; self.fallback_parser.parse_sync(raw_jd)?,
+};
+</pre>
+</div>
+
+<div class="slide" id="gap-analyzer">
+<h1>Gap Analyzer</h1>
+<p>Pure sync logic. No LLM calls, no I/O.</p>
+<h2>Skill Evidence Search (Priority Order)</h2>
+<ol>
+<li><strong>Explicit skills</strong> in LifeSheet.skills (strength: 1.0)</li>
+<li><strong>Tech stack</strong> in work_experience (strength: 0.9)</li>
+<li><strong>Achievement descriptions</strong> (strength: 0.8)</li>
+<li><strong>Project highlights</strong> (strength: 0.7)</li>
+<li><strong>Certifications</strong> (strength: 0.85)</li>
+</ol>
+
+<h2>Fabrication Risk for Missing Skills</h2>
+<table>
+<tr><th>Risk</th><th>Condition</th></tr>
+<tr><td><span class="badge badge-purple">Forbidden</span></td><td>Certification keywords (PMP, CPA, licensed, etc.)</td></tr>
+<tr><td><span class="badge badge-yellow">Low</span></td><td>Jaro-Winkler &ge; 0.88 against known skills</td></tr>
+<tr><td><span class="badge badge-green">High</span></td><td>No match at all</td></tr>
+</table>
+
+<h3>Learning Test: strsim Jaro-Winkler</h3>
+<pre>
+"postgresql" vs "postgres"  -> 0.96 (> 0.88) -- Low risk
+"rust" vs "ruby"            -> 0.68 (&lt; 0.88) -- High risk
+"kubernetes" vs "k8s"       -> 0.56 (&lt; 0.88) -- High risk
+</pre>
+</div>
+
+<div class="slide" id="content-drafter">
+<h1>Content Drafter</h1>
+<h2>Summary Generation (1 LLM call)</h2>
+<p>Generates 3-sentence summary using matched skills and JD responsibilities. Anti-cliche system prompt.</p>
+
+<h2>Bullet Rewriting (1 LLM call per experience)</h2>
+<p>Sends original bullets + target keywords. Returns JSON array of rewritten bullets. Falls back to originals on parse failure.</p>
+
+<h2>Skills Ordering (No LLM)</h2>
+<p>Sorts skills into primary (JD-matched) and secondary. No LLM call needed.</p>
+</div>
+
+<div class="slide" id="fabrication">
+<h1>Fabrication Auditor</h1>
+<h2>Skill Risk Assessment</h2>
+<ul>
+<li><strong>Forbidden:</strong> Claims certifications not in LifeSheet (PMP, CISSP, CPA, etc.)</li>
+<li><strong>High:</strong> No evidence in skills, tech_stack, or projects</li>
+<li><strong>Low:</strong> Fuzzy match (Jaro-Winkler &ge; 0.88)</li>
+<li><strong>None:</strong> Exact match in LifeSheet</li>
+</ul>
+
+<h2>Unsupported Claim Detection</h2>
+<p>For rewritten bullets, extracts numeric claims (N%, Nx, $N, NK/NM) and checks against original achievement metrics. Custom char-by-char parser, no regex dependency needed.</p>
+<pre>
+"Improved throughput by 500%" -- 500% not in life sheet -> WARNING
+"Reduced latency by 40%"     -- 40% matches life sheet -> OK
+</pre>
+</div>
+
+<div class="slide" id="repository">
+<h1>Repository</h1>
+<h2>Migration (004_resume_versions.sql)</h2>
+<pre>
+CREATE TABLE resume_versions (
+    id UUID PRIMARY KEY,
+    job_id UUID NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    application_id UUID REFERENCES applications(id),
+    label TEXT NOT NULL DEFAULT 'v1',
+    content_json JSONB NOT NULL,
+    gap_report_json JSONB NOT NULL,
+    fabrication_report_json JSONB NOT NULL,
+    options_json JSONB NOT NULL,
+    is_submitted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+</pre>
+
+<h2>API</h2>
+<table>
+<tr><th>Method</th><th>Purpose</th></tr>
+<tr><td><code>save(&version)</code></td><td>Insert resume version with JSONB serialization</td></tr>
+<tr><td><code>get(&id)</code></td><td>Load full version with deserialization</td></tr>
+<tr><td><code>list_for_job(&job_id)</code></td><td>Lightweight summaries (no content blobs)</td></tr>
+<tr><td><code>mark_submitted(&id)</code></td><td>Pin version to application</td></tr>
+<tr><td><code>count_for_job(&job_id)</code></td><td>Auto-label versioning (v1, v2, ...)</td></tr>
+</table>
+</div>
+
+<div class="slide" id="tests">
+<h1>Test Results</h1>
+<div class="stat-grid">
+<div class="stat-card"><div class="num">64</div><div class="label">New Tests</div></div>
+<div class="stat-card"><div class="num">0</div><div class="label">Failures</div></div>
+<div class="stat-card"><div class="num">656</div><div class="label">Total Passing</div></div>
+</div>
+
+<table>
+<tr><th>Module</th><th>Tests</th><th>Highlights</th></tr>
+<tr><td>types.rs</td><td>6</td><td>Serde round-trips, defaults</td></tr>
+<tr><td>jd_parser.rs</td><td>11</td><td>LLM parse, markdown fences, regex fallback, empty JD</td></tr>
+<tr><td>gap_analyzer.rs</td><td>12</td><td>Skill matching, fuzzy match, cert forbidden, experience ranking</td></tr>
+<tr><td>content_drafter.rs</td><td>8</td><td>Full draft, bullet fallback, skills ordering</td></tr>
+<tr><td>fabrication.rs</td><td>8</td><td>Clean pass, unknown skill, forged cert, metric detection</td></tr>
+<tr><td>repository.rs</td><td>5</td><td>CRUD with TestDb (PostgreSQL)</td></tr>
+<tr><td>mod.rs (orchestrator)</td><td>6</td><td>Full pipeline, fallback, empty sheet, no desc, progress events</td></tr>
+<tr><td>gap_analyzer.rs</td><td>1</td><td>Learning test: strsim Jaro-Winkler behavior</td></tr>
+</table>
+
+<h3>Verification</h3>
+<pre>
+$ cargo build              -- PASS (0 errors)
+$ cargo clippy -D warnings -- PASS (0 warnings)
+$ cargo test               -- 656 passing (64 new)
+$ cargo fmt --all          -- formatted
+</pre>
+</div>
+
+<div class="slide" id="decisions">
+<h1>Key Decisions</h1>
+<ul>
+<li><strong>Completer trait reuse:</strong> Used existing <code>discovery::Completer</code> to avoid circular dependency. Same pattern as CompanyResearcher.</li>
+<li><strong>No regex crate:</strong> Custom char-by-char numeric parser for claim detection. Avoids adding dependency for simple pattern matching.</li>
+<li><strong>JSONB storage:</strong> All report data stored as JSONB in PostgreSQL for flexible querying and schema evolution.</li>
+<li><strong>Automatic fallback:</strong> LLM JD parser falls back to regex parser transparently. Bullet rewriting falls back to original bullets on LLM failure.</li>
+<li><strong>Progress events optional:</strong> <code>Option&lt;mpsc::Sender&gt;</code> pattern - callers not using TUI can pass <code>None</code>.</li>
+<li><strong>Pre-check + post-check:</strong> Fabrication auditor runs twice - once on raw LifeSheet (pre-check) and once on generated content (post-check).</li>
+</ul>
+</div>
+
+</main>
+<script>
+document.querySelectorAll('nav a').forEach(link => {
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        const target = link.dataset.slide;
+        document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        document.getElementById(target).classList.add('active');
+        link.classList.add('active');
+    });
+});
+</script>
+</body>
+</html>

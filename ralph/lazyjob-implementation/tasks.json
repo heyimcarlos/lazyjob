@@ -263,7 +263,7 @@
       "description": "In lazyjob-core/src/resume/, implement ResumeTailor::tailor(job_id, life_sheet) as a 6-stage pipeline: (1) parse JD to extract required/preferred skills using LLM, (2) run GapMatrix::compute() mapping LifeSheet skills to JD requirements, (3) fabrication pre-check on LifeSheet bullets, (4) LLM bullet rewriting for matched skills (grounding each bullet to LifeSheet evidence), (5) generate 3-sentence summary, (6) assemble final resume struct. Store result in resumes table. Emit progress events. Write tests for each stage in isolation using MockLlmProvider.",
       "phase": "build",
       "spec": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 34,

@@ -1019,3 +1019,43 @@ Next iteration should know:
 - resume_tailor::validate_grounding(output, life_sheet) and cover_letter::validate_grounding(output, life_sheet) are the pipeline integration points
 - Pre-existing DB test failures in lazyjob-core (TestDb connection issues) — not caused by this task
 - Task 33 (resume-tailoring) is next
+
+## Task 33: resume-tailoring — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-core/src/resume/mod.rs (new: ResumeTailor orchestrator with 6-stage pipeline, build_resume_version, progress events)
+- crates/lazyjob-core/src/resume/types.rs (new: ResumeVersion, ResumeContent, ExperienceSection, SkillsSection, EducationEntry, ProjectEntry, TailoringOptions, JobDescriptionAnalysis, SkillRequirement, GapReport, MatchedSkill, MissingSkill, SkillEvidenceSource, FabricationRisk, FabricationReport, FabricationItem, ResumeVersionId, ResumeVersionSummary, ProgressEvent)
+- crates/lazyjob-core/src/resume/jd_parser.rs (new: LlmJdParser using Completer trait, RegexJdParser fallback with tech keyword extraction, JobDescriptionParser trait)
+- crates/lazyjob-core/src/resume/gap_analyzer.rs (new: DefaultGapAnalyzer with find_skill_evidence, compute_fabrication_risk with strsim Jaro-Winkler, rank_experiences)
+- crates/lazyjob-core/src/resume/content_drafter.rs (new: LlmContentDrafter with generate_summary and rewrite_experience, ContentDrafter trait, order_skills)
+- crates/lazyjob-core/src/resume/fabrication.rs (new: DefaultFabricationAuditor with assess_skill_risk, detect_unsupported_claim, extract_numeric_claims)
+- crates/lazyjob-core/src/resume/repository.rs (new: ResumeVersionRepository with save/get/list_for_job/mark_submitted/count_for_job using PgPool)
+- crates/lazyjob-core/migrations/004_resume_versions.sql (new: resume_versions table with JSONB columns for content, gap report, fabrication report, options)
+- crates/lazyjob-core/src/lib.rs (added pub mod resume)
+- crates/lazyjob-core/Cargo.toml (added strsim dependency)
+- Cargo.toml (added strsim = "0.11" to workspace deps)
+Key decisions:
+- Used existing Completer trait from lazyjob_core::discovery::company to avoid circular dependency (lazyjob-core cannot depend on lazyjob-llm)
+- LLM calls go through Completer::complete(system, user) -> Result<String>; MockCompleter defined locally in test modules
+- JD parser has LLM-backed primary path with regex fallback; pipeline auto-falls-back on LLM failure
+- Gap analyzer is pure sync logic with strsim::jaro_winkler (>=0.88 threshold) for fuzzy skill matching
+- Fabrication auditor detects: forbidden certifications, high-risk unmatched skills, unsupported numeric claims in rewritten bullets
+- Numeric claim detection uses custom char-by-char parser (no regex crate needed) for patterns: N%, Nx, $N, NK/NM
+- Pipeline stages: (1) parse JD, (2) gap analysis, (3) fabrication pre-check on life sheet, (4+5) content drafting (summary + bullet rewriting), (6) final fabrication audit
+- Resume versions stored as JSONB in PostgreSQL — content_json, gap_report_json, fabrication_report_json, options_json
+- Progress events emitted via tokio::mpsc channel (optional) for TUI integration
+- ResumeVersionId is a newtype over Uuid (unlike JobId which uses a macro — followed same pattern as existing code)
+Learning tests written:
+- strsim_jaro_winkler_behavior — proves Jaro-Winkler similarity for "postgresql"/"postgres" (>0.88), "rust"/"ruby" (<0.88), "kubernetes"/"k8s" (<0.88)
+Tests passing: 656 total (64 new in resume module: 6 types, 11 jd_parser, 12 gap_analyzer, 8 content_drafter, 8 fabrication, 5 repository, 6 orchestrator, 1 learning)
+Next iteration should know:
+- ResumeTailor is in lazyjob_core::resume, all types re-exported via pub use types::*
+- ResumeTailor::new(completer: Arc<dyn Completer>) — same Completer trait as company.rs
+- ResumeTailor::tailor(job, life_sheet, options, progress_tx) -> Result<(ResumeContent, GapReport, FabricationReport)>
+- ResumeTailor::build_resume_version(job, content, gap, fab, opts, label) -> ResumeVersion (static method)
+- ResumeVersionRepository::new(pool) for persistence; save/get/list_for_job/mark_submitted/count_for_job
+- Migration 004 creates resume_versions table — runs automatically with Database::connect()
+- ContentDrafter trait exists in content_drafter.rs for future alternative implementations
+- DOCX generation is NOT included (task 34) — pipeline outputs ResumeContent struct
+- Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
+- Task 34 (docx-generator) is next
