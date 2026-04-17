@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 28 — job-detail-tui</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+
+  nav {
+    width: 220px; min-width: 220px; background: #161b22; border-right: 1px solid #30363d;
+    display: flex; flex-direction: column; overflow-y: auto;
+  }
+  nav h2 { padding: 16px; font-size: 13px; color: #58a6ff; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #30363d; }
+  nav a {
+    display: block; padding: 10px 16px; font-size: 13px; color: #8b949e;
+    text-decoration: none; border-left: 3px solid transparent; transition: all 0.15s;
+  }
+  nav a:hover { color: #c9d1d9; background: #1c2128; }
+  nav a.active { color: #58a6ff; border-left-color: #58a6ff; background: #1c2128; }
+
+  main { flex: 1; overflow-y: auto; padding: 40px; }
+  .slide { display: none; }
+  .slide.active { display: block; }
+
+  h1 { font-size: 28px; color: #e6edf3; margin-bottom: 8px; }
+  h2 { font-size: 20px; color: #58a6ff; margin: 24px 0 12px; }
+  h3 { font-size: 16px; color: #79c0ff; margin: 16px 0 8px; }
+  p { line-height: 1.6; color: #8b949e; margin-bottom: 12px; }
+  .subtitle { color: #58a6ff; font-size: 15px; margin-bottom: 24px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-green { background: #0d4a1e; color: #3fb950; border: 1px solid #238636; }
+  .badge-blue { background: #0c2d6b; color: #79c0ff; border: 1px solid #1f6feb; }
+  .badge-purple { background: #2d1f6e; color: #d2a8ff; border: 1px solid #6e40c9; }
+  .badge-orange { background: #4a2d0d; color: #ffa657; border: 1px solid #d29922; }
+
+  pre {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.5;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace; margin-bottom: 16px;
+  }
+  code { color: #e6edf3; }
+  .kw { color: #ff7b72; }
+  .ty { color: #ffa657; }
+  .str { color: #a5d6ff; }
+  .fn { color: #d2a8ff; }
+
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 14px; }
+  th { background: #21262d; color: #8b949e; padding: 10px 14px; text-align: left; border-bottom: 2px solid #30363d; }
+  td { padding: 9px 14px; border-bottom: 1px solid #21262d; }
+  tr:hover td { background: #161b22; }
+
+  ul { margin: 0 0 16px 24px; line-height: 1.8; color: #8b949e; }
+  li { margin-bottom: 4px; }
+
+  .stats { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+  .stat { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 24px; text-align: center; min-width: 140px; }
+  .stat .num { font-size: 28px; font-weight: 700; display: block; color: #79c0ff; }
+  .stat .label { font-size: 12px; color: #8b949e; margin-top: 4px; }
+
+  .layout-diagram {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    line-height: 1.4; white-space: pre; margin-bottom: 16px; color: #58a6ff;
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 28</h2>
+  <a href="#" onclick="show(0)" class="active" id="nav-0">Overview</a>
+  <a href="#" onclick="show(1)" id="nav-1">Layout Design</a>
+  <a href="#" onclick="show(2)" id="nav-2">Sub-view Pattern</a>
+  <a href="#" onclick="show(3)" id="nav-3">Metadata Panel</a>
+  <a href="#" onclick="show(4)" id="nav-4">Description Scroll</a>
+  <a href="#" onclick="show(5)" id="nav-5">Action Keys</a>
+  <a href="#" onclick="show(6)" id="nav-6">New Actions</a>
+  <a href="#" onclick="show(7)" id="nav-7">Test Results</a>
+</nav>
+
+<main>
+
+<!-- Slide 0: Overview -->
+<div class="slide active" id="slide-0">
+  <h1>Task 28: Job Detail TUI</h1>
+  <p class="subtitle">Full-page job detail view with metadata, scrollable description, and action keys</p>
+
+  <div class="stats">
+    <div class="stat"><span class="num">8</span><span class="label">Files Modified</span></div>
+    <div class="stat"><span class="num">24</span><span class="label">New Tests</span></div>
+    <div class="stat"><span class="num">195</span><span class="label">Total TUI Tests</span></div>
+    <div class="stat"><span class="num">4</span><span class="label">New Actions</span></div>
+  </div>
+
+  <h2>What Was Built</h2>
+  <ul>
+    <li>Full JobDetailView with two-column layout (35% metadata, 65% description)</li>
+    <li>Left panel: company, location, salary, posted date, match score, ghost score, source, stage, URL, notes</li>
+    <li>Right panel: scrollable job description with j/k or arrow keys</li>
+    <li>Application history timeline with transition arrows and timestamps</li>
+    <li>Action bar: a=Apply, r=Resume, c=Cover Letter, o=Open URL, Esc=Back</li>
+    <li>Sub-view routing pattern: detail view lives inside the Jobs tab</li>
+  </ul>
+
+  <h2>Files Changed</h2>
+  <table>
+    <tr><th>File</th><th>Change</th></tr>
+    <tr><td>views/job_detail.rs</td><td>Full rewrite: struct fields, layout, keys, tests</td></tr>
+    <tr><td>app.rs</td><td>viewing_job_detail flag, OpenJob wiring, active_view_mut</td></tr>
+    <tr><td>action.rs</td><td>4 new Action variants</td></tr>
+    <tr><td>views/jobs_list.rs</td><td>Added pub jobs() accessor</td></tr>
+    <tr><td>Cargo.toml (root)</td><td>Added open = "5" to workspace deps</td></tr>
+    <tr><td>Cargo.toml (tui)</td><td>Added open, uuid deps</td></tr>
+  </table>
+</div>
+
+<!-- Slide 1: Layout Design -->
+<div class="slide" id="slide-1">
+  <h1>Layout Design</h1>
+  <p class="subtitle">Two-column split with action bar</p>
+
+  <div class="layout-diagram">+-------------------------------------------------------+
+| Job Detail: Senior Rust Engineer                      |
++-------------------+-----------------------------------+
+| METADATA    (35%) | DESCRIPTION                 (65%) |
+|                   |                                   |
+| Company: Acme     | We are looking for a Rust         |
+| Location: Remote  | developer with experience in...   |
+| Salary: $120k-180k|                                   |
+| Posted: 2d ago    | (scrollable with j/k)             |
+|                   |                                   |
+| Match: 85%        |                                   |
+| Ghost: Low        |                                   |
+| Source: greenhouse |                                   |
+|                   |                                   |
+| Stage: Applied    |                                   |
+|-------------------+                                   |
+| History:          |                                   |
+| * Applied (2d ago)|                                   |
++-------------------+-----------------------------------+
+| j/k=Scroll a=Apply r=Resume c=Cover o=Open Esc=Back  |
++-------------------------------------------------------+</div>
+
+  <h2>Layout Implementation</h2>
+  <p>The layout uses nested ratatui Layouts:</p>
+  <ul>
+    <li>Outer Block with borders and job title</li>
+    <li>Vertical split: body (Fill) + action bar (Length 1)</li>
+    <li>Horizontal split of body: metadata (35%) + description (65%)</li>
+    <li>Metadata split: info section + history section (dynamic sizing)</li>
+  </ul>
+</div>
+
+<!-- Slide 2: Sub-view Pattern -->
+<div class="slide" id="slide-2">
+  <h1>Sub-view Pattern</h1>
+  <p class="subtitle">How job detail lives inside the Jobs tab</p>
+
+  <h2>The Problem</h2>
+  <p>ViewId is a simple enum (Copy, no payload) used for tab navigation (1-6 keys). Adding ViewId::JobDetail would break tab_index() and complicate the header tabs.</p>
+
+  <h2>The Solution</h2>
+  <p>A <code>viewing_job_detail: bool</code> flag on App:</p>
+
+  <pre><code><span class="kw">pub fn</span> <span class="fn">active_view_mut</span>(&<span class="kw">mut self</span>) -> &<span class="kw">mut dyn</span> <span class="ty">View</span> {
+    <span class="kw">match</span> self.active_view {
+        <span class="ty">ViewId</span>::Jobs => {
+            <span class="kw">if</span> self.viewing_job_detail {
+                &<span class="kw">mut</span> self.views.job_detail
+            } <span class="kw">else</span> {
+                &<span class="kw">mut</span> self.views.jobs_list
+            }
+        }
+        <span class="cmt">// ... other views</span>
+    }
+}</code></pre>
+
+  <h2>Navigation Flow</h2>
+  <ul>
+    <li><strong>Enter on job</strong> -> OpenJob(id) -> sets viewing_job_detail = true</li>
+    <li><strong>Esc</strong> -> NavigateBack -> clears viewing_job_detail (stays on Jobs tab)</li>
+    <li><strong>Tab switch (1-6)</strong> -> NavigateTo -> clears viewing_job_detail</li>
+    <li>Header tab stays highlighted on "Jobs" the whole time</li>
+  </ul>
+</div>
+
+<!-- Slide 3: Metadata Panel -->
+<div class="slide" id="slide-3">
+  <h1>Metadata Panel</h1>
+  <p class="subtitle">Rich job information with color-coded indicators</p>
+
+  <h2>Displayed Fields</h2>
+  <table>
+    <tr><th>Field</th><th>Display</th><th>Color</th></tr>
+    <tr><td>Company</td><td>Name or dash</td><td>text_primary</td></tr>
+    <tr><td>Location</td><td>String or dash</td><td>text_primary</td></tr>
+    <tr><td>Salary</td><td>$120k - $180k format</td><td>text_primary</td></tr>
+    <tr><td>Posted</td><td>Relative time (2d ago)</td><td>text_primary</td></tr>
+    <tr><td>Match Score</td><td>Percentage + bold</td><td>green/yellow/red by threshold</td></tr>
+    <tr><td>Ghost Score</td><td>Low/Medium/High</td><td>green/yellow/red by threshold</td></tr>
+    <tr><td>Source</td><td>greenhouse, lever, etc.</td><td>text_primary</td></tr>
+    <tr><td>Stage</td><td>Application stage or "Not applied"</td><td>primary (blue) + bold</td></tr>
+    <tr><td>URL</td><td>Truncated to 35 chars</td><td>primary (blue)</td></tr>
+    <tr><td>Notes</td><td>Full text</td><td>text_primary</td></tr>
+  </table>
+
+  <h2>Salary Formatting</h2>
+  <pre><code><span class="kw">fn</span> <span class="fn">format_salary</span>(min: <span class="ty">Option</span>&lt;<span class="ty">i64</span>&gt;, max: <span class="ty">Option</span>&lt;<span class="ty">i64</span>&gt;) -> <span class="ty">String</span> {
+    <span class="kw">match</span> (min, max) {
+        (<span class="ty">Some</span>(lo), <span class="ty">Some</span>(hi)) => <span class="str">"$120k - $180k"</span>,
+        (<span class="ty">Some</span>(lo), <span class="ty">None</span>)    => <span class="str">"$120k+"</span>,
+        (<span class="ty">None</span>, <span class="ty">Some</span>(hi))    => <span class="str">"Up to $180k"</span>,
+        (<span class="ty">None</span>, <span class="ty">None</span>)        => <span class="str">"--"</span>,
+    }
+}</code></pre>
+</div>
+
+<!-- Slide 4: Description Scroll -->
+<div class="slide" id="slide-4">
+  <h1>Description Scrolling</h1>
+  <p class="subtitle">Smooth scrolling through long job descriptions</p>
+
+  <h2>Implementation</h2>
+  <p>Uses ratatui's built-in Paragraph scroll support:</p>
+
+  <pre><code><span class="kw">let</span> desc_para = <span class="ty">Paragraph</span>::new(description)
+    .wrap(<span class="ty">Wrap</span> { trim: <span class="kw">false</span> })
+    .scroll((self.scroll_offset, <span class="num">0</span>))
+    .block(<span class="ty">Block</span>::default()
+        .title(<span class="str">" Description "</span>));</code></pre>
+
+  <h2>Scroll Controls</h2>
+  <table>
+    <tr><th>Key</th><th>Action</th></tr>
+    <tr><td>j / Down</td><td>Scroll down one line</td></tr>
+    <tr><td>k / Up</td><td>Scroll up one line (clamped to 0)</td></tr>
+  </table>
+
+  <p>Scroll offset resets to 0 when a new job is loaded via <code>set_job()</code>.</p>
+</div>
+
+<!-- Slide 5: Action Keys -->
+<div class="slide" id="slide-5">
+  <h1>Action Keys</h1>
+  <p class="subtitle">Context-sensitive action bar</p>
+
+  <h2>Key Bindings</h2>
+  <table>
+    <tr><th>Key</th><th>Action</th><th>Status</th></tr>
+    <tr><td>a</td><td>Apply to job (creates application)</td><td><span class="badge badge-orange">Future (task 36)</span></td></tr>
+    <tr><td>r</td><td>Run ResumeTailor pipeline</td><td><span class="badge badge-orange">Future (task 36)</span></td></tr>
+    <tr><td>c</td><td>Generate cover letter</td><td><span class="badge badge-orange">Future (task 36)</span></td></tr>
+    <tr><td>o</td><td>Open job URL in browser</td><td><span class="badge badge-green">Working</span></td></tr>
+    <tr><td>Esc</td><td>Return to jobs list</td><td><span class="badge badge-green">Working</span></td></tr>
+  </table>
+
+  <h2>Context Sensitivity</h2>
+  <ul>
+    <li><strong>a key</strong> is disabled when already applied (returns None)</li>
+    <li><strong>o key</strong> is disabled when job has no URL</li>
+    <li>Action bar text changes based on application state</li>
+  </ul>
+
+  <h2>Application History</h2>
+  <p>When a job has an application, the history timeline shows transitions in reverse chronological order:</p>
+  <pre><code>History:
+* Applied -> Phone Screen (2d ago -- recruiter called)
+* Interested -> Applied (5d ago -- Submitted online)</code></pre>
+</div>
+
+<!-- Slide 6: New Actions -->
+<div class="slide" id="slide-6">
+  <h1>New Action Variants</h1>
+  <p class="subtitle">4 new actions added to the Action enum</p>
+
+  <pre><code><span class="kw">pub enum</span> <span class="ty">Action</span> {
+    <span class="cmt">// ... existing variants ...</span>
+    <span class="fn">ApplyToJob</span>(<span class="ty">JobId</span>),         <span class="cmt">// a key - future task</span>
+    <span class="fn">TailorResume</span>(<span class="ty">JobId</span>),       <span class="cmt">// r key - future task</span>
+    <span class="fn">GenerateCoverLetter</span>(<span class="ty">JobId</span>),<span class="cmt">// c key - future task</span>
+    <span class="fn">OpenUrl</span>(<span class="ty">String</span>),           <span class="cmt">// o key - opens browser</span>
+}</code></pre>
+
+  <h2>OpenUrl Implementation</h2>
+  <p>Uses the <code>open</code> crate (v5) for cross-platform URL opening:</p>
+  <pre><code><span class="ty">Action</span>::OpenUrl(url) => {
+    <span class="kw">let</span> _ = open::that(&url);
+}</code></pre>
+  <p>Fire-and-forget: errors are silently ignored (browser may not be available).</p>
+</div>
+
+<!-- Slide 7: Test Results -->
+<div class="slide" id="slide-7">
+  <h1>Test Results</h1>
+  <p class="subtitle">24 new tests, all passing</p>
+
+  <div class="stats">
+    <div class="stat"><span class="num">195</span><span class="label">Total TUI Tests</span></div>
+    <div class="stat"><span class="num">24</span><span class="label">New Tests</span></div>
+    <div class="stat"><span class="num">0</span><span class="label">Failures</span></div>
+  </div>
+
+  <h2>JobDetailView Tests (18)</h2>
+  <table>
+    <tr><th>Test</th><th>Verifies</th></tr>
+    <tr><td>set_job_stores_data</td><td>Job data is stored correctly</td></tr>
+    <tr><td>set_job_resets_scroll</td><td>Scroll resets on new job</td></tr>
+    <tr><td>clear_removes_data</td><td>All state cleared</td></tr>
+    <tr><td>handle_key_returns_none_when_no_job</td><td>No actions without a job</td></tr>
+    <tr><td>handle_key_j_scrolls_down</td><td>j and Down keys scroll</td></tr>
+    <tr><td>handle_key_k_scrolls_up</td><td>k and Up keys scroll</td></tr>
+    <tr><td>handle_key_k_clamps_to_zero</td><td>Can't scroll past top</td></tr>
+    <tr><td>handle_key_o_returns_open_url</td><td>o returns OpenUrl action</td></tr>
+    <tr><td>handle_key_o_returns_none_when_no_url</td><td>o is no-op without URL</td></tr>
+    <tr><td>handle_key_a_returns_apply_when_not_applied</td><td>a returns ApplyToJob</td></tr>
+    <tr><td>handle_key_a_returns_none_when_already_applied</td><td>a disabled after applying</td></tr>
+    <tr><td>handle_key_r_returns_tailor_resume</td><td>r returns TailorResume</td></tr>
+    <tr><td>handle_key_c_returns_cover_letter</td><td>c returns GenerateCoverLetter</td></tr>
+    <tr><td>renders_empty_state</td><td>Empty view renders without panic</td></tr>
+    <tr><td>renders_with_job_data</td><td>Job data appears in rendered buffer</td></tr>
+    <tr><td>renders_with_application_history</td><td>History renders correctly</td></tr>
+    <tr><td>renders_salary_formatting</td><td>All salary format cases</td></tr>
+    <tr><td>set_application_stores_data</td><td>Application data stored</td></tr>
+  </table>
+
+  <h2>App Tests (6)</h2>
+  <table>
+    <tr><th>Test</th><th>Verifies</th></tr>
+    <tr><td>open_job_activates_detail_view</td><td>OpenJob sets flag + loads job</td></tr>
+    <tr><td>open_job_with_unknown_id_does_nothing</td><td>Unknown ID is safe no-op</td></tr>
+    <tr><td>navigate_back_from_detail_returns_to_jobs</td><td>Esc clears detail flag</td></tr>
+    <tr><td>tab_switch_clears_detail_view</td><td>Tab navigation exits detail</td></tr>
+    <tr><td>active_view_mut_returns_job_detail_when_flag_set</td><td>Correct view dispatch</td></tr>
+    <tr><td>active_view_mut_returns_jobs_list_when_flag_not_set</td><td>Normal Jobs routing</td></tr>
+  </table>
+</div>
+
+</main>
+
+<script>
+function show(n) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('slide-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.add('active');
+}
+</script>
+</body>
+</html>

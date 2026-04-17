@@ -836,3 +836,38 @@ Next iteration should know:
 - App::load_jobs() is async and queries JobRepository — called at TUI startup and on Ctrl+R
 - application_stages is populated externally via set_application_stages(HashMap<JobId, String>) — no automatic loading from DB yet (needs Application → Job join query)
 - Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` fails when DATABASE_URL env var is set (clap env feature picks it up). Not related to this task.
+
+## Task 28: job-detail-tui — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-tui/src/views/job_detail.rs (full rewrite: JobDetailView with metadata panel, description scroll, action keys, history timeline)
+- crates/lazyjob-tui/src/app.rs (added viewing_job_detail flag, wired OpenJob/NavigateBack/NavigateTo, updated active_view_mut routing)
+- crates/lazyjob-tui/src/action.rs (added ApplyToJob, TailorResume, GenerateCoverLetter, OpenUrl action variants)
+- crates/lazyjob-tui/src/views/jobs_list.rs (added pub jobs() accessor)
+- Cargo.toml (added open = "5" to workspace deps)
+- crates/lazyjob-tui/Cargo.toml (added open, uuid deps)
+- ralph/lazyjob-implementation/output/research-task-28.md (research doc)
+- ralph/lazyjob-implementation/output/plan-task-28.md (plan doc)
+Key decisions:
+- Used sub-view pattern: `viewing_job_detail: bool` flag on App instead of adding a ViewId::JobDetail variant — keeps ViewId simple (Copy, no payload, clean tab_index), header tab stays on "Jobs" naturally
+- OpenJob(id) finds the job in jobs_list.jobs() by id, calls job_detail.set_job(), sets viewing_job_detail = true
+- active_view_mut() returns &mut views.job_detail when active_view == Jobs && viewing_job_detail — job detail gets rendered and receives key events seamlessly
+- NavigateBack clears viewing_job_detail first before popping prev_view — correct back navigation
+- NavigateTo always clears viewing_job_detail — tab switching exits detail view
+- Two-column layout: 35% metadata (company, location, salary, posted, match%, ghost, source, stage, URL, notes) + 65% scrollable description
+- Application history timeline rendered in reverse chronological order with bullet markers
+- Action bar shows context-sensitive hints (hides "a=Apply" when already applied)
+- Action::OpenUrl uses `open` crate (v5) for cross-platform URL opening
+- ApplyToJob/TailorResume/GenerateCoverLetter are no-ops in handle_action — will be wired in tasks 33-36
+Learning tests written:
+- None required (no new external crates needing API verification; open crate is fire-and-forget)
+Tests passing: 195 in lazyjob-tui (20 new: set_job_stores_data, set_job_resets_scroll, clear_removes_data, handle_key_returns_none_when_no_job, handle_key_j_scrolls_down, handle_key_k_scrolls_up, handle_key_k_clamps_to_zero, handle_key_o_returns_open_url, handle_key_o_returns_none_when_no_url, handle_key_a_returns_apply_when_not_applied, handle_key_a_returns_none_when_already_applied, handle_key_r_returns_tailor_resume, handle_key_c_returns_cover_letter, renders_empty_state, renders_with_job_data, renders_with_application_history, renders_salary_formatting, set_application_stores_data, open_job_activates_detail_view, open_job_with_unknown_id_does_nothing, navigate_back_from_detail_returns_to_jobs, tab_switch_clears_detail_view, active_view_mut_returns_job_detail_when_flag_set, active_view_mut_returns_jobs_list_when_flag_not_set)
+Next iteration should know:
+- JobDetailView is now fully implemented with two-column layout, scroll, and action keys
+- Sub-view pattern: App.viewing_job_detail bool flag controls whether jobs_list or job_detail is the active view within the Jobs tab
+- Action::ApplyToJob, TailorResume, GenerateCoverLetter, OpenUrl exist but are no-ops in handle_action (except OpenUrl which calls open::that)
+- JobsListView now has pub jobs() -> &[Job] accessor
+- open v5 and uuid are now in lazyjob-tui deps
+- Application data and transition history can be loaded via set_application() — not yet wired to DB loading (needs ApplicationRepository query by job_id)
+- Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
+- Task 29 (applications-kanban-tui) is next

@@ -223,7 +223,7 @@
       "description": "Implement JobDetailView in lazyjob-tui/src/views/job_detail.rs. Layout: left panel (job metadata: title, company, location, salary, posted date, match score, ghost score), right panel (scrollable job description). Action bar at bottom: a=Apply (transition to Applied), r=Run ResumeTailor, c=Run CoverLetter, o=Open URL in browser. Show application history timeline if already applied. Write render tests.",
       "phase": "build",
       "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 29,
