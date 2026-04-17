@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 36: Resume Tailor Ralph Loop</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; display: flex; height: 100vh; background: #0d1117; color: #c9d1d9; }
+  nav { width: 260px; background: #161b22; border-right: 1px solid #30363d; padding: 16px; overflow-y: auto; flex-shrink: 0; }
+  nav h2 { font-size: 14px; color: #58a6ff; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+  nav a { display: block; padding: 8px 12px; margin-bottom: 4px; border-radius: 6px; text-decoration: none; color: #8b949e; font-size: 13px; transition: all 0.2s; }
+  nav a:hover, nav a.active { background: #21262d; color: #c9d1d9; }
+  nav a.active { border-left: 3px solid #58a6ff; }
+  main { flex: 1; overflow-y: auto; padding: 40px; }
+  .slide { display: none; max-width: 960px; margin: 0 auto; }
+  .slide.active { display: block; }
+  h1 { font-size: 32px; color: #58a6ff; margin-bottom: 8px; }
+  h2 { font-size: 24px; color: #79c0ff; margin-bottom: 16px; }
+  h3 { font-size: 18px; color: #d2a8ff; margin: 20px 0 10px; }
+  p, li { line-height: 1.7; font-size: 15px; }
+  ul { padding-left: 24px; margin-bottom: 16px; }
+  li { margin-bottom: 6px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-done { background: #238636; color: #fff; }
+  .badge-new { background: #1f6feb; color: #fff; }
+  code { background: #21262d; padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: 'Fira Code', monospace; }
+  pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 16px 0; font-size: 13px; line-height: 1.5; }
+  pre code { background: none; padding: 0; }
+  .diagram { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin: 16px 0; font-family: monospace; font-size: 13px; white-space: pre; line-height: 1.6; color: #8b949e; }
+  .highlight { color: #58a6ff; }
+  .arrow { color: #f0883e; }
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  th, td { border: 1px solid #30363d; padding: 10px 14px; text-align: left; font-size: 14px; }
+  th { background: #161b22; color: #79c0ff; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center; }
+  .stat-card .value { font-size: 36px; font-weight: bold; color: #58a6ff; }
+  .stat-card .label { font-size: 13px; color: #8b949e; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 36</h2>
+  <a href="#" data-slide="0" class="active">Overview</a>
+  <a href="#" data-slide="1">Architecture</a>
+  <a href="#" data-slide="2">Worker Subprocess</a>
+  <a href="#" data-slide="3">TUI Wiring</a>
+  <a href="#" data-slide="4">Event Bridge</a>
+  <a href="#" data-slide="5">Ralph Panel</a>
+  <a href="#" data-slide="6">Tests</a>
+  <a href="#" data-slide="7">Summary</a>
+</nav>
+
+<main>
+
+<!-- Slide 0: Overview -->
+<div class="slide active" id="slide-0">
+  <h1>Task 36: Resume Tailor Ralph Loop</h1>
+  <p style="color:#8b949e; margin-bottom:24px;">Wire ResumeTailor & CoverLetterService into the Ralph subprocess system</p>
+
+  <div class="stats">
+    <div class="stat-card"><div class="value">10</div><div class="label">Files Modified</div></div>
+    <div class="stat-card"><div class="value">9</div><div class="label">New Tests</div></div>
+    <div class="stat-card"><div class="value">317</div><div class="label">Tests Passing</div></div>
+  </div>
+
+  <h3>What Was Built</h3>
+  <ul>
+    <li><span class="badge badge-new">NEW</span> Hidden <code>lazyjob worker</code> CLI subcommand for Ralph subprocess execution</li>
+    <li><span class="badge badge-new">NEW</span> Worker handlers for <code>resume-tailor</code> and <code>cover-letter</code> loop types</li>
+    <li><span class="badge badge-done">WIRED</span> TUI actions: <code>r</code>=TailorResume, <code>c</code>=CoverLetter from JobDetailView</li>
+    <li><span class="badge badge-done">WIRED</span> RalphProcessManager spawning real subprocesses from the event loop</li>
+    <li><span class="badge badge-done">WIRED</span> WorkerEvent &rarr; RalphUpdate bridge for live progress in Ralph panel</li>
+    <li><span class="badge badge-new">NEW</span> <code>RalphUpdate::Started</code> variant for proper loop_type display</li>
+  </ul>
+</div>
+
+<!-- Slide 1: Architecture -->
+<div class="slide" id="slide-1">
+  <h1>Architecture</h1>
+  <h3>End-to-End Data Flow</h3>
+  <div class="diagram">
+<span class="highlight">User presses 'r' in JobDetailView</span>
+        |
+        v
+<span class="highlight">Action::TailorResume(job_id)</span>
+        |
+        v
+<span class="highlight">App::handle_action()</span> <span class="arrow">--sends--></span> RalphCommand::Spawn
+        |                              via mpsc channel
+        v
+<span class="highlight">event_loop select!</span> <span class="arrow">--receives--></span> RalphCommand
+        |
+        v
+<span class="highlight">RalphProcessManager::spawn("resume-tailor", params)</span>
+        |
+        v
+<span class="highlight">lazyjob worker</span> subprocess (reads stdin, runs pipeline)
+        |
+        v  (stdout NDJSON)
+<span class="highlight">WorkerEvent::Status/Results/Done</span>
+        |
+        v
+<span class="highlight">pm_rx.recv()</span> in event_loop <span class="arrow">--maps--></span> RalphUpdate
+        |
+        v
+<span class="highlight">ralph_tx.send(update)</span>
+        |
+        v
+<span class="highlight">app.ralph_rx.recv()</span> <span class="arrow">--></span> ralph_panel.on_update()
+  </div>
+</div>
+
+<!-- Slide 2: Worker Subprocess -->
+<div class="slide" id="slide-2">
+  <h1>Worker Subprocess</h1>
+  <p><code>crates/lazyjob-cli/src/worker.rs</code> <span class="badge badge-new">NEW</span></p>
+
+  <h3>Entry Point</h3>
+  <pre><code>pub async fn run_worker(db_url: &str) -> Result&lt;()&gt; {
+    // 1. Read WorkerCommand::Start from stdin
+    // 2. Dispatch to handler based on loop_type:
+    //    "resume-tailor" -> run_resume_tailor()
+    //    "cover-letter"  -> run_cover_letter()
+    // 3. Emit WorkerEvent NDJSON to stdout
+}</code></pre>
+
+  <h3>Resume Tailor Handler</h3>
+  <ul>
+    <li>Connects to DB, loads Job by ID</li>
+    <li>Loads LifeSheet from DB</li>
+    <li>Creates LlmProviderCompleter via Config + CredentialManager</li>
+    <li>Runs <code>ResumeTailor::tailor()</code> with progress channel</li>
+    <li>Maps ProgressEvent &rarr; WorkerEvent::Status at each stage</li>
+    <li>Saves ResumeVersion to DB, emits Results + Done</li>
+  </ul>
+
+  <h3>Cover Letter Handler</h3>
+  <ul>
+    <li>Same DB/profile loading pattern</li>
+    <li>Runs <code>CoverLetterService::generate()</code></li>
+    <li>Maps CL ProgressEvent &rarr; WorkerEvent::Status</li>
+    <li>Emits Results with version_id, template, word count</li>
+  </ul>
+</div>
+
+<!-- Slide 3: TUI Wiring -->
+<div class="slide" id="slide-3">
+  <h1>TUI Wiring</h1>
+
+  <h3>New Types in app.rs</h3>
+  <pre><code>pub enum RalphUpdate {
+    Started { id: String, loop_type: String },  // NEW
+    Progress { id, phase, percent },
+    LogLine { id, line },
+    Completed { id },
+    Failed { id, reason },
+}
+
+pub enum RalphCommand {
+    Spawn { loop_type: String, params: Value },
+    Cancel { run_id: String },
+}</code></pre>
+
+  <h3>Action Handlers</h3>
+  <table>
+    <tr><th>Action</th><th>Behavior</th></tr>
+    <tr><td><code>TailorResume(job_id)</code></td><td>Sends <code>RalphCommand::Spawn { "resume-tailor", {job_id, db_url} }</code></td></tr>
+    <tr><td><code>GenerateCoverLetter(job_id)</code></td><td>Sends <code>RalphCommand::Spawn { "cover-letter", {job_id, db_url} }</code></td></tr>
+    <tr><td><code>CancelRalphLoop(run_id)</code></td><td>Sends <code>RalphCommand::Cancel { run_id }</code></td></tr>
+  </table>
+
+  <h3>App::new() Signature Change</h3>
+  <pre><code>pub fn new(
+    config: Arc&lt;Config&gt;,
+    ralph_rx: broadcast::Receiver&lt;RalphUpdate&gt;,
+    ralph_cmd_tx: mpsc::UnboundedSender&lt;RalphCommand&gt;,  // NEW
+) -> Self</code></pre>
+</div>
+
+<!-- Slide 4: Event Bridge -->
+<div class="slide" id="slide-4">
+  <h1>Event Loop Bridge</h1>
+  <p><code>crates/lazyjob-tui/src/event_loop.rs</code></p>
+
+  <h3>New select! Branches</h3>
+  <pre><code>tokio::select! {
+    // ... tick, keyboard events, ralph_rx (existing) ...
+
+    // NEW: Process ralph commands from App
+    Some(cmd) = ralph_cmd_rx.recv() => {
+        match cmd {
+            RalphCommand::Spawn { loop_type, params } => {
+                let run_id = process_manager.spawn(&loop_type, params).await?;
+                ralph_tx.send(RalphUpdate::Started { id, loop_type });
+            }
+            RalphCommand::Cancel { run_id } => {
+                process_manager.cancel(&run_id).await;
+            }
+        }
+    }
+
+    // NEW: Bridge process manager events to TUI
+    result = pm_rx.recv() => {
+        if let Ok((run_id, event)) = result {
+            let update = map_worker_event_to_ralph_update(run_id, event);
+            ralph_tx.send(update);
+        }
+    }
+}</code></pre>
+
+  <h3>Event Mapping</h3>
+  <table>
+    <tr><th>WorkerEvent</th><th>RalphUpdate</th></tr>
+    <tr><td>Status { phase, progress, .. }</td><td>Progress { id, phase, percent }</td></tr>
+    <tr><td>Results { data }</td><td>LogLine { id, summary }</td></tr>
+    <tr><td>Error { message, .. }</td><td>Failed { id, reason }</td></tr>
+    <tr><td>Done { success: true }</td><td>Completed { id }</td></tr>
+    <tr><td>Done { success: false }</td><td>Failed { id, "Loop failed" }</td></tr>
+  </table>
+</div>
+
+<!-- Slide 5: Ralph Panel -->
+<div class="slide" id="slide-5">
+  <h1>Ralph Panel Update</h1>
+  <p><code>crates/lazyjob-tui/src/views/ralph_panel.rs</code></p>
+
+  <h3>New Started Handler</h3>
+  <pre><code>RalphUpdate::Started { id, loop_type } => {
+    self.active.push(ActiveEntry {
+        run_id: id,
+        loop_type,           // Was always "unknown" before!
+        phase: "starting".into(),
+        progress: 0.0,
+        message: "Starting...".into(),
+        started_at: Instant::now(),
+        log_lines: Vec::new(),
+    });
+    self.clamp_selected();
+}</code></pre>
+
+  <h3>Before vs After</h3>
+  <table>
+    <tr><th>Before</th><th>After</th></tr>
+    <tr><td>New Progress for unknown ID creates entry with <code>loop_type: "unknown"</code></td><td>Started creates entry with correct <code>loop_type: "resume-tailor"</code></td></tr>
+    <tr><td>ralph_tx dropped immediately (no sender)</td><td>ralph_tx kept alive, events flow through bridge</td></tr>
+    <tr><td>TailorResume/GenerateCoverLetter are no-ops</td><td>They spawn real subprocesses via RalphProcessManager</td></tr>
+  </table>
+</div>
+
+<!-- Slide 6: Tests -->
+<div class="slide" id="slide-6">
+  <h1>Tests</h1>
+
+  <h3>9 New Tests</h3>
+  <table>
+    <tr><th>Test</th><th>Crate</th><th>Validates</th></tr>
+    <tr><td><code>emit_event_produces_valid_json</code></td><td>lazyjob-cli</td><td>WorkerEvent serialization format</td></tr>
+    <tr><td><code>worker_command_start_deserializes</code></td><td>lazyjob-cli</td><td>Stdin command parsing</td></tr>
+    <tr><td><code>worker_command_cancel_deserializes</code></td><td>lazyjob-cli</td><td>Cancel command parsing</td></tr>
+    <tr><td><code>results_event_serializes_with_data</code></td><td>lazyjob-cli</td><td>Results JSON includes data payload</td></tr>
+    <tr><td><code>parse_worker_subcommand</code></td><td>lazyjob-cli</td><td>CLI parses "worker" subcommand</td></tr>
+    <tr><td><code>tailor_resume_sends_spawn_command</code></td><td>lazyjob-tui</td><td>Action sends correct RalphCommand</td></tr>
+    <tr><td><code>generate_cover_letter_sends_spawn_command</code></td><td>lazyjob-tui</td><td>Action sends correct RalphCommand</td></tr>
+    <tr><td><code>cancel_ralph_loop_sends_cancel_command</code></td><td>lazyjob-tui</td><td>Cancel action flows through channel</td></tr>
+    <tr><td><code>handle_ralph_update_started_creates_entry</code></td><td>lazyjob-tui</td><td>Started variant creates panel entry</td></tr>
+  </table>
+
+  <div class="stats">
+    <div class="stat-card"><div class="value">24</div><div class="label">CLI Tests</div></div>
+    <div class="stat-card"><div class="value">248</div><div class="label">TUI Tests</div></div>
+    <div class="stat-card"><div class="value">45</div><div class="label">Ralph Tests</div></div>
+  </div>
+</div>
+
+<!-- Slide 7: Summary -->
+<div class="slide" id="slide-7">
+  <h1>Summary</h1>
+
+  <h3>Files Changed</h3>
+  <ul>
+    <li><code>crates/lazyjob-cli/src/worker.rs</code> <span class="badge badge-new">NEW</span> Worker subprocess (265 lines)</li>
+    <li><code>crates/lazyjob-cli/src/main.rs</code> Worker subcommand + mod declaration</li>
+    <li><code>crates/lazyjob-cli/Cargo.toml</code> Added lazyjob-ralph dep</li>
+    <li><code>crates/lazyjob-tui/src/app.rs</code> RalphCommand, Started variant, action wiring</li>
+    <li><code>crates/lazyjob-tui/src/lib.rs</code> Channel setup, ralph_tx kept alive</li>
+    <li><code>crates/lazyjob-tui/src/event_loop.rs</code> ProcessManager + event bridge</li>
+    <li><code>crates/lazyjob-tui/src/views/ralph_panel.rs</code> Started handler</li>
+    <li><code>crates/lazyjob-tui/Cargo.toml</code> Added serde_json dep</li>
+  </ul>
+
+  <h3>Key Design Decisions</h3>
+  <ul>
+    <li>mpsc::unbounded channel decouples sync handle_action from async spawn</li>
+    <li>RalphProcessManager lives in event_loop, not App (avoids &mut self async issues)</li>
+    <li>Worker subprocess is same binary (lazyjob worker) for zero-config deployment</li>
+    <li>Each worker loads its own Config + credentials (separate process)</li>
+  </ul>
+
+  <h3>Next: Task 37 &mdash; Networking Contacts</h3>
+  <p>LinkedIn CSV import, ContactsView, warm path detection</p>
+</div>
+
+</main>
+
+<script>
+document.querySelectorAll('nav a').forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    const idx = link.dataset.slide;
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById('slide-' + idx).classList.add('active');
+    link.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

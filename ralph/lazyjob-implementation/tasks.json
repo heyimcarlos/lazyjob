@@ -287,7 +287,7 @@
       "description": "Wire ResumeTailor and CoverLetterService into the Ralph subprocess system. Implement the `ralph resume-tailor` and `ralph cover-letter` CLI subcommands that read job_id + life_sheet_path from stdin WorkerCommand, run the pipeline, emit WorkerEvent::Status progress updates at each stage, and emit WorkerEvent::Results with the output path on completion. Trigger these from JobDetailView (r=ResumeTailor, c=CoverLetter keys). Show the Ralph Panel automatically when triggered. Write integration tests.",
       "phase": "build",
       "spec": "specs/07-resume-tailoring-pipeline-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 37,

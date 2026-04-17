@@ -1133,3 +1133,49 @@ Next iteration should know:
 - Prohibited phrase check runs in-service; lazyjob-llm grounding check should be called from CLI/TUI layer (circular dep prevents import in lazyjob-core)
 - Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
 - Task 36 (resume-tailor-ralph-loop) is next
+
+## Task 36: resume-tailor-ralph-loop — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-cli/src/worker.rs (new: Worker subprocess handler with run_resume_tailor and run_cover_letter, WorkerEvent emission, LlmProviderCompleter)
+- crates/lazyjob-cli/src/main.rs (added mod worker, Worker hidden subcommand variant, match arm calling worker::run_worker)
+- crates/lazyjob-cli/Cargo.toml (added lazyjob-ralph dependency)
+- crates/lazyjob-tui/src/app.rs (added RalphUpdate::Started variant, RalphCommand enum, ralph_cmd_tx channel, wired TailorResume/GenerateCoverLetter/CancelRalphLoop actions)
+- crates/lazyjob-tui/src/lib.rs (kept ralph_tx alive, created RalphCommand unbounded channel, passed both to run_event_loop)
+- crates/lazyjob-tui/src/event_loop.rs (added RalphProcessManager creation, spawn/cancel command handling, WorkerEvent→RalphUpdate bridge)
+- crates/lazyjob-tui/src/views/ralph_panel.rs (added RalphUpdate::Started handler creating ActiveEntry with correct loop_type)
+- crates/lazyjob-tui/Cargo.toml (added serde_json dependency)
+- ralph/lazyjob-implementation/output/research-task-36.md (research doc)
+- ralph/lazyjob-implementation/output/plan-task-36.md (plan doc)
+Key decisions:
+- Worker subprocess is a hidden `lazyjob worker` subcommand in the CLI binary — same binary the process manager spawns via current_exe()
+- RalphCommand channel (mpsc::unbounded) decouples sync handle_action from async spawn/cancel operations
+- Event bridge in event_loop maps (RunId, WorkerEvent) from RalphProcessManager broadcast to RalphUpdate on the TUI's broadcast channel
+- RalphUpdate::Started variant added so ralph_panel knows the loop_type from the moment of spawn (instead of defaulting to "unknown")
+- Worker reads WorkerCommand::Start from stdin, dispatches to resume-tailor or cover-letter handler
+- Each handler connects to DB, loads job + life sheet, creates LlmProviderCompleter, runs pipeline with progress channel
+- Progress events from lazyjob-core pipelines are mapped to WorkerEvent::Status and written to stdout as NDJSON
+- Results include version_id, label, match_score for resume-tailor; version_id, version, template, words for cover-letter
+- No duplicate LlmProviderCompleter — worker.rs has its own copy (same pattern as CLI main.rs) since it runs in a separate process
+Learning tests written:
+- None required (no new external crates introduced; all protocol/process infrastructure was already proven in tasks 18-19)
+Tests passing: 317 across lazyjob-cli (24), lazyjob-tui (248), lazyjob-ralph (45) — 9 new tests:
+- worker::tests::emit_event_produces_valid_json
+- worker::tests::worker_command_start_deserializes
+- worker::tests::worker_command_cancel_deserializes
+- worker::tests::results_event_serializes_with_data
+- tests::parse_worker_subcommand
+- app::tests::tailor_resume_sends_spawn_command
+- app::tests::generate_cover_letter_sends_spawn_command
+- app::tests::cancel_ralph_loop_sends_cancel_command
+- app::tests::handle_ralph_update_started_creates_entry
+Next iteration should know:
+- `lazyjob worker` is the hidden CLI subcommand for Ralph subprocess execution — reads WorkerCommand from stdin, writes WorkerEvent to stdout
+- Worker handles "resume-tailor" and "cover-letter" loop types; unknown types emit Error + Done{false}
+- TUI action flow: handle_action → RalphCommand → event_loop → RalphProcessManager::spawn → subprocess → WorkerEvent → RalphUpdate → ralph_panel
+- RalphCommand enum (Spawn, Cancel) lives in app.rs; processed in event_loop.rs
+- RalphProcessManager lives in event_loop (not in App) — App communicates via mpsc channel
+- RalphUpdate now has 5 variants: Started, Progress, LogLine, Completed, Failed
+- Pre-existing issue: 48 lazyjob-core DB integration tests fail due to TestDb auth issues (not caused by this task)
+- Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
+- Task 37 (networking-contacts) is next
