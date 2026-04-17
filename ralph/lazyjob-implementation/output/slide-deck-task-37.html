@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task 37: Networking Contacts - LazyJob</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0d1117; color: #c9d1d9; display: flex; height: 100vh; }
+
+  /* Navigation sidebar */
+  nav { width: 260px; background: #161b22; border-right: 1px solid #30363d; overflow-y: auto; padding: 16px 0; flex-shrink: 0; }
+  nav h2 { padding: 8px 16px; color: #58a6ff; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  nav a { display: block; padding: 8px 16px; color: #8b949e; text-decoration: none; font-size: 13px; border-left: 3px solid transparent; transition: all 0.2s; }
+  nav a:hover, nav a.active { color: #c9d1d9; background: #1c2128; border-left-color: #58a6ff; }
+
+  /* Main content */
+  main { flex: 1; overflow-y: auto; padding: 40px; }
+  .slide { display: none; max-width: 960px; margin: 0 auto; }
+  .slide.active { display: block; }
+  .slide h1 { font-size: 32px; color: #58a6ff; margin-bottom: 8px; }
+  .slide h2 { font-size: 24px; color: #c9d1d9; margin: 24px 0 12px; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+  .slide h3 { font-size: 18px; color: #8b949e; margin: 16px 0 8px; }
+  .slide p { line-height: 1.7; margin: 8px 0; color: #8b949e; }
+  .slide ul { margin: 8px 0 8px 24px; }
+  .slide li { margin: 4px 0; line-height: 1.6; }
+  .slide code { background: #1c2128; padding: 2px 6px; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 13px; color: #79c0ff; }
+  .slide pre { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-x: auto; margin: 12px 0; font-size: 13px; line-height: 1.5; }
+  .slide pre code { background: none; padding: 0; color: #c9d1d9; }
+
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+  .badge-new { background: #1f6feb33; color: #58a6ff; }
+  .badge-modified { background: #3fb95033; color: #3fb950; }
+  .badge-test { background: #d2992233; color: #d29922; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+  .stat-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+  .stat-card .value { font-size: 36px; font-weight: 700; color: #58a6ff; }
+  .stat-card .label { font-size: 13px; color: #8b949e; margin-top: 4px; }
+
+  .file-list { list-style: none; margin: 0; padding: 0; }
+  .file-list li { padding: 6px 12px; border-bottom: 1px solid #21262d; display: flex; align-items: center; gap: 8px; }
+  .file-list li:last-child { border-bottom: none; }
+
+  .decision { background: #161b22; border-left: 3px solid #58a6ff; padding: 12px 16px; margin: 8px 0; border-radius: 0 8px 8px 0; }
+  .decision strong { color: #c9d1d9; }
+</style>
+</head>
+<body>
+
+<nav>
+  <h2>Task 37</h2>
+  <a href="#" onclick="show(0)" class="active" id="nav-0">Overview</a>
+  <a href="#" onclick="show(1)" id="nav-1">Architecture</a>
+  <a href="#" onclick="show(2)" id="nav-2">Migration & Domain</a>
+  <a href="#" onclick="show(3)" id="nav-3">CSV Import</a>
+  <a href="#" onclick="show(4)" id="nav-4">Warm Path Mapper</a>
+  <a href="#" onclick="show(5)" id="nav-5">ContactsView TUI</a>
+  <a href="#" onclick="show(6)" id="nav-6">JobDetail Warm Paths</a>
+  <a href="#" onclick="show(7)" id="nav-7">App Wiring</a>
+  <a href="#" onclick="show(8)" id="nav-8">Tests & Verification</a>
+  <a href="#" onclick="show(9)" id="nav-9">Key Decisions</a>
+</nav>
+
+<main>
+
+<!-- Slide 0: Overview -->
+<div class="slide active" id="slide-0">
+  <h1>Task 37: Networking Contacts</h1>
+  <h3>LinkedIn CSV import, warm path mapping, and TUI integration</h3>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="value">17</div>
+      <div class="label">Files Created/Modified</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">29</div>
+      <div class="label">New Tests</div>
+    </div>
+    <div class="stat-card">
+      <div class="value">664</div>
+      <div class="label">Total Tests Passing</div>
+    </div>
+  </div>
+
+  <h2>What Was Built</h2>
+  <ul>
+    <li><strong>LinkedIn CSV Import</strong> - Parse LinkedIn connection exports with flexible header matching</li>
+    <li><strong>Contact Browsing</strong> - Full TUI table view with j/k navigation, name/company/role/email columns</li>
+    <li><strong>Warm Path Mapping</strong> - Find contacts at the same company as a job posting</li>
+    <li><strong>Job Detail Integration</strong> - Show warm paths (connections) in the job detail metadata panel</li>
+    <li><strong>Data Pipeline</strong> - Contacts load on startup and refresh, warm paths auto-populate on job open</li>
+  </ul>
+</div>
+
+<!-- Slide 1: Architecture -->
+<div class="slide" id="slide-1">
+  <h1>Architecture</h1>
+
+  <h2>Module Layout</h2>
+  <pre><code>lazyjob-core/
+  src/
+    networking/
+      mod.rs              # Module root + re-exports
+      types.rs            # WarmPath, ImportResult
+      csv_import.rs       # parse_linkedin_csv()
+      connection_mapper.rs # warm_paths_for_job()
+    domain/
+      contact.rs          # Extended with current_company, source
+    repositories/
+      contact.rs          # Extended with find_by_company, upsert_by_email
+  migrations/
+    006_contacts_networking.sql
+
+lazyjob-tui/
+  src/
+    views/
+      contacts.rs         # Full table view (was stub)
+      job_detail.rs       # + warm paths rendering
+    app.rs                # + load_contacts(), update_warm_paths()
+    event_loop.rs         # + load_contacts() on refresh
+    lib.rs                # + load_contacts() on startup</code></pre>
+
+  <h2>Data Flow</h2>
+  <pre><code>CSV File --> parse_linkedin_csv() --> Vec&lt;Contact&gt;
+                                        |
+DB (contacts table) --> ContactRepository::list() --> ContactsView (TUI table)
+                                        |
+                   warm_paths_for_job() --> Vec&lt;WarmPath&gt; --> JobDetailView (metadata)</code></pre>
+</div>
+
+<!-- Slide 2: Migration & Domain -->
+<div class="slide" id="slide-2">
+  <h1>Migration & Domain Changes</h1>
+
+  <h2>Migration 006</h2>
+  <pre><code>ALTER TABLE contacts ADD COLUMN IF NOT EXISTS current_company TEXT;
+ALTER TABLE contacts ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_contacts_email_unique
+  ON contacts(email) WHERE email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_contacts_current_company
+  ON contacts(LOWER(current_company));</code></pre>
+
+  <h2>Extended Contact Type</h2>
+  <pre><code>pub struct Contact {
+    pub id: ContactId,
+    pub name: String,
+    pub role: Option&lt;String&gt;,
+    pub email: Option&lt;String&gt;,
+    pub linkedin_url: Option&lt;String&gt;,
+    pub company_id: Option&lt;CompanyId&gt;,
+    pub current_company: Option&lt;String&gt;,  // NEW
+    pub source: Option&lt;String&gt;,           // NEW
+    pub relationship: Option&lt;String&gt;,
+    pub notes: Option&lt;String&gt;,
+}</code></pre>
+
+  <p><code>current_company</code> stores the company name as text (from CSV) for warm path matching. <code>source</code> tracks where the contact came from ("manual", "linkedin_csv").</p>
+</div>
+
+<!-- Slide 3: CSV Import -->
+<div class="slide" id="slide-3">
+  <h1>LinkedIn CSV Import</h1>
+
+  <h2>Flexible Header Matching</h2>
+  <p>The parser accepts multiple header name variants for each field:</p>
+  <pre><code>First Name: "First Name", "first_name", "FirstName"
+Last Name:  "Last Name", "last_name", "LastName"
+Email:      "Email Address", "email", "Email"
+Company:    "Company", "company", "Organization"
+Position:   "Position", "position", "Title", "Job Title"
+URL:        "URL", "Profile URL", "linkedin_url"</code></pre>
+
+  <h2>Core Function</h2>
+  <pre><code>pub fn parse_linkedin_csv&lt;R: Read&gt;(reader: R) -> Result&lt;Vec&lt;Contact&gt;&gt;</code></pre>
+
+  <h2>Behavior</h2>
+  <ul>
+    <li>Requires at least First Name or Last Name header</li>
+    <li>Skips rows with empty names</li>
+    <li>Trims whitespace from all values</li>
+    <li>Handles flexible column counts (extra/missing columns)</li>
+    <li>Sets <code>source = "linkedin_csv"</code> on all imported contacts</li>
+  </ul>
+</div>
+
+<!-- Slide 4: Warm Path Mapper -->
+<div class="slide" id="slide-4">
+  <h1>Warm Path Mapper</h1>
+
+  <h2>ConnectionMapper</h2>
+  <pre><code>pub fn warm_paths_for_job(contacts: &[Contact], job: &Job) -> Vec&lt;WarmPath&gt;</code></pre>
+
+  <h2>WarmPath Type</h2>
+  <pre><code>pub struct WarmPath {
+    pub contact_name: String,
+    pub contact_role: Option&lt;String&gt;,
+    pub contact_email: Option&lt;String&gt;,
+}</code></pre>
+
+  <h2>Matching Logic</h2>
+  <ul>
+    <li>Pure function - no DB queries, works on in-memory data</li>
+    <li>Case-insensitive company name matching</li>
+    <li>Returns empty if job has no company_name</li>
+    <li>Filters contacts whose <code>current_company</code> matches job's <code>company_name</code></li>
+  </ul>
+
+  <h2>Example</h2>
+  <pre><code>// Contact: Alice Smith @ "ACME CORP"
+// Job: Senior Engineer @ "acme corp"
+// Result: [WarmPath { contact_name: "Alice Smith", ... }]</code></pre>
+</div>
+
+<!-- Slide 5: ContactsView TUI -->
+<div class="slide" id="slide-5">
+  <h1>ContactsView TUI</h1>
+
+  <h2>Features</h2>
+  <ul>
+    <li>Scrollable table with 5 columns: Name, Company, Role, Email, Source</li>
+    <li>j/k navigation with wrap-around</li>
+    <li>Highlighted selection row</li>
+    <li>Contact count in title bar</li>
+    <li>Empty state with import instructions</li>
+    <li>Status bar with keybinding hints</li>
+  </ul>
+
+  <h2>Column Widths</h2>
+  <pre><code>Name:    22%
+Company: 22%
+Role:    22%
+Email:   26%
+Source:   8%</code></pre>
+
+  <h2>Empty State</h2>
+  <pre><code>Your professional network
+
+No contacts imported yet.
+
+Use `lazyjob contacts import --file connections.csv`
+to import LinkedIn connections.</code></pre>
+</div>
+
+<!-- Slide 6: JobDetail Warm Paths -->
+<div class="slide" id="slide-6">
+  <h1>JobDetail Warm Paths</h1>
+
+  <h2>Integration</h2>
+  <p>When opening a job detail, warm paths are automatically computed and displayed in the metadata panel.</p>
+
+  <h2>Rendering</h2>
+  <pre><code>Warm Paths (2):
+&#9679; Alice Smith (Staff Engineer)
+&#9679; Bob Jones (Engineering Manager)</code></pre>
+
+  <ul>
+    <li>Green color theme for warm path indicators</li>
+    <li>Shows up to 5 contacts with "+N more" overflow</li>
+    <li>Displays contact name and role in parentheses</li>
+    <li>Section only appears when warm paths exist</li>
+  </ul>
+
+  <h2>New Methods on JobDetailView</h2>
+  <pre><code>pub fn job(&self) -> Option&lt;&Job&gt;
+pub fn set_warm_paths(&mut self, paths: Vec&lt;WarmPath&gt;)</code></pre>
+</div>
+
+<!-- Slide 7: App Wiring -->
+<div class="slide" id="slide-7">
+  <h1>App Wiring</h1>
+
+  <h2>Data Loading Pipeline</h2>
+  <pre><code>// Startup (lib.rs)
+app.load_jobs().await;
+app.load_applications().await;
+app.load_dashboard_stats().await;
+app.load_contacts().await;         // NEW
+
+// Refresh (event_loop.rs, Ctrl+R)
+app.load_contacts().await;         // NEW</code></pre>
+
+  <h2>Warm Path Auto-Update</h2>
+  <pre><code>// In handle_action OpenJob:
+self.views.job_detail.set_job(job);
+self.update_warm_paths();          // NEW
+self.viewing_job_detail = true;</code></pre>
+
+  <h2>update_warm_paths()</h2>
+  <pre><code>pub fn update_warm_paths(&mut self) {
+    let job = match self.views.job_detail.job() {
+        Some(j) => j.clone(),
+        None => return,
+    };
+    let warm_paths = networking::warm_paths_for_job(
+        self.views.contacts.contacts(), &job
+    );
+    self.views.job_detail.set_warm_paths(warm_paths);
+}</code></pre>
+</div>
+
+<!-- Slide 8: Tests -->
+<div class="slide" id="slide-8">
+  <h1>Tests & Verification</h1>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="value" style="color: #3fb950;">0</div>
+      <div class="label">Build Errors</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" style="color: #3fb950;">0</div>
+      <div class="label">Clippy Warnings</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" style="color: #3fb950;">29</div>
+      <div class="label">New Tests</div>
+    </div>
+  </div>
+
+  <h2>Learning Tests (2)</h2>
+  <ul>
+    <li><span class="badge badge-test">LEARN</span> <code>csv_crate_parses_headers_and_records</code> - Proves csv::Reader parses headers and StringRecords</li>
+    <li><span class="badge badge-test">LEARN</span> <code>csv_crate_flexible_mode</code> - Proves flexible mode handles varying column counts</li>
+  </ul>
+
+  <h2>CSV Import Tests (9)</h2>
+  <ul>
+    <li>Standard LinkedIn format, missing columns, empty names, first-name-only</li>
+    <li>Whitespace trimming, URL column, missing name headers rejection, empty file</li>
+  </ul>
+
+  <h2>Connection Mapper Tests (6)</h2>
+  <ul>
+    <li>Company match, case-insensitive, no matches, missing company, role/email inclusion</li>
+  </ul>
+
+  <h2>TUI Tests (11)</h2>
+  <ul>
+    <li>Render empty/populated, set_contacts selects first, j/k navigation, wrap-around, name rendering</li>
+  </ul>
+
+  <h2>Type Tests (1)</h2>
+  <ul>
+    <li>WarmPath serde round-trip, ImportResult defaults</li>
+  </ul>
+</div>
+
+<!-- Slide 9: Key Decisions -->
+<div class="slide" id="slide-9">
+  <h1>Key Decisions</h1>
+
+  <div class="decision">
+    <strong>Extended Contact rather than new type</strong>
+    <p>Added <code>current_company</code> and <code>source</code> fields to existing Contact domain type rather than creating parallel networking-specific types. Minimizes duplication while enabling CSV import and warm path matching.</p>
+  </div>
+
+  <div class="decision">
+    <strong>Text-based company matching</strong>
+    <p>Warm paths match by <code>current_company</code> text (case-insensitive) rather than <code>company_id</code> FK. CSV imports have company names, not UUIDs. Simple string comparison is sufficient for MVP.</p>
+  </div>
+
+  <div class="decision">
+    <strong>Partial unique index on email</strong>
+    <p>Created <code>WHERE email IS NOT NULL</code> unique index to support upsert deduplication while allowing multiple contacts without email addresses.</p>
+  </div>
+
+  <div class="decision">
+    <strong>Pure function for warm path computation</strong>
+    <p><code>warm_paths_for_job()</code> operates on in-memory slices rather than querying the database. Contacts are already loaded in the TUI, so no additional DB round-trips needed.</p>
+  </div>
+
+  <div class="decision">
+    <strong>500-contact limit on initial load</strong>
+    <p><code>load_contacts()</code> uses <code>Pagination { limit: 500, offset: 0 }</code>. Most users will have < 500 contacts imported. Future tasks can add pagination/search.</p>
+  </div>
+</div>
+
+</main>
+
+<script>
+function show(n) {
+  document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('slide-' + n).classList.add('active');
+  document.getElementById('nav-' + n).classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1179,3 +1179,48 @@ Next iteration should know:
 - Pre-existing issue: 48 lazyjob-core DB integration tests fail due to TestDb auth issues (not caused by this task)
 - Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
 - Task 37 (networking-contacts) is next
+
+## Task 37: networking-contacts — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-core/migrations/006_contacts_networking.sql (new: adds current_company, source columns, unique email index, company name index)
+- crates/lazyjob-core/src/networking/mod.rs (new: module root with re-exports)
+- crates/lazyjob-core/src/networking/types.rs (new: WarmPath, ImportResult)
+- crates/lazyjob-core/src/networking/csv_import.rs (new: parse_linkedin_csv with flexible header matching)
+- crates/lazyjob-core/src/networking/connection_mapper.rs (new: warm_paths_for_job with case-insensitive company matching)
+- crates/lazyjob-core/src/domain/contact.rs (modified: added current_company, source fields)
+- crates/lazyjob-core/src/repositories/contact.rs (modified: updated all queries for new fields, added find_by_company, upsert_by_email)
+- crates/lazyjob-core/src/lib.rs (added pub mod networking)
+- crates/lazyjob-core/Cargo.toml (added csv dependency)
+- Cargo.toml (added csv = "1" to workspace deps)
+- crates/lazyjob-tui/src/views/contacts.rs (full rewrite: scrollable Table with name/company/role/email/source columns, j/k navigation)
+- crates/lazyjob-tui/src/app.rs (added load_contacts(), update_warm_paths(), ContactRepository import, warm paths on OpenJob)
+- crates/lazyjob-tui/src/event_loop.rs (call load_contacts() on Refresh)
+- crates/lazyjob-tui/src/lib.rs (call load_contacts() on startup)
+- crates/lazyjob-tui/src/views/job_detail.rs (added warm_paths field, set_warm_paths(), job() accessor, WarmPath rendering in metadata)
+- ralph/lazyjob-implementation/output/research-task-37.md (research doc)
+- ralph/lazyjob-implementation/output/plan-task-37.md (plan doc)
+Key decisions:
+- Extended existing Contact domain type rather than creating new types — added current_company (text) and source (text) fields
+- Migration 006 adds columns + unique partial index on email (WHERE email IS NOT NULL) for upsert deduplication
+- CSV parser uses flexible header matching: accepts "First Name", "first_name", "FirstName" etc. for broad LinkedIn export compatibility
+- warm_paths_for_job is a pure function taking &[Contact] and &Job — no DB queries, matching done in-memory by company name
+- ContactsView uses ratatui Table with TableState for stateful selection (same pattern as JobsListView)
+- Warm paths rendered in JobDetailView metadata section with green color and bullet points, max 5 shown with "+N more" overflow
+- load_contacts() uses Pagination { limit: 500, offset: 0 } to load a reasonable batch
+- upsert_by_email added to ContactRepository for CSV import dedup — ON CONFLICT(email) WHERE email IS NOT NULL
+Learning tests written:
+- csv_crate_parses_headers_and_records — proves csv::Reader parses headers and iterates StringRecords correctly
+- csv_crate_flexible_mode — proves ReaderBuilder::flexible(true) handles rows with varying column counts
+Tests passing: 664 non-DB tests across all crates (18 new in networking module: 2 learning, 9 csv_import, 6 connection_mapper, 1 types; 11 new in contacts TUI: 8 view behavior, 3 render tests)
+Next iteration should know:
+- networking module is in lazyjob_core::networking with public re-exports: WarmPath, ImportResult, parse_linkedin_csv, warm_paths_for_job
+- Contact now has current_company: Option<String> and source: Option<String> fields
+- ContactRepository has find_by_company(company_name) and upsert_by_email(contact) methods
+- ContactsView is a fully functional table view with set_contacts(), contacts(), j/k navigation
+- JobDetailView has set_warm_paths(Vec<WarmPath>), job() -> Option<&Job>; warm paths auto-populated when opening job detail
+- load_contacts() runs on startup and Ctrl+R refresh alongside load_jobs/load_applications/load_dashboard_stats
+- CSV import is parsing only — no CLI command added yet (task 38 should add CLI contact import subcommand or it can be added as a small task)
+- Pre-existing issue: 48 lazyjob-core DB integration tests fail due to TestDb auth issues (not caused by this task)
+- Pre-existing issue: lazyjob-cli test database_url_defaults_to_none still fails when DATABASE_URL env var is set
+- Task 38 (outreach-drafting) is next

@@ -295,7 +295,7 @@
       "description": "In lazyjob-core/src/networking/, implement LinkedIn CSV contact import: parse LinkedIn Connections export CSV, map to Contact domain type, upsert into contacts table. Implement ContactsView in TUI (table with name, company, title, warmth indicator, last contact date). Implement ConnectionMapper::warm_paths_for_job(job_id) -> Vec<WarmPath> that queries contacts at the same company as the job. Show warm path indicator in JobDetailView. Write tests for CSV parsing and connection mapping.",
       "phase": "build",
       "spec": "specs/12-15-interview-salary-networking-notifications-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 38,
