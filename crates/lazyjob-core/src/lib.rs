@@ -6,6 +6,7 @@ pub mod domain;
 pub mod error;
 pub mod life_sheet;
 pub mod repositories;
+pub mod stats;
 #[cfg(any(test, feature = "integration"))]
 pub mod test_db;
 

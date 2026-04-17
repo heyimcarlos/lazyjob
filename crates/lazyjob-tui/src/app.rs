@@ -6,6 +6,7 @@ use tokio::sync::broadcast;
 
 use lazyjob_core::config::Config;
 use lazyjob_core::repositories::{ApplicationRepository, JobRepository, Pagination};
+use lazyjob_core::stats;
 
 use crate::action::{Action, ViewId};
 use crate::keybindings::KeyMap;
@@ -240,6 +241,25 @@ impl App {
                 tracing::warn!("Failed to load applications: {err}");
             }
         }
+    }
+
+    pub async fn load_dashboard_stats(&mut self) {
+        let Some(pool) = &self.pool else { return };
+        let stats = match stats::compute_dashboard_stats(pool).await {
+            Ok(s) => s,
+            Err(err) => {
+                tracing::warn!("Failed to load dashboard stats: {err}");
+                return;
+            }
+        };
+        let stale = match stats::find_stale_applications(pool).await {
+            Ok(s) => s,
+            Err(err) => {
+                tracing::warn!("Failed to load stale applications: {err}");
+                Vec::new()
+            }
+        };
+        self.views.dashboard.set_stats(stats, stale);
     }
 
     pub fn handle_ralph_update(&mut self, update: RalphUpdate) {
