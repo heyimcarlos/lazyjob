@@ -120,6 +120,10 @@ impl JobsListView {
         self.jobs.get(*idx)
     }
 
+    pub fn jobs(&self) -> &[Job] {
+        &self.jobs
+    }
+
     fn apply_filter_sort(&mut self) {
         let query = self.search_query.to_lowercase();
 

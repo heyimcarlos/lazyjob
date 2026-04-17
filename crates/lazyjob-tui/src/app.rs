@@ -44,6 +44,7 @@ pub enum RalphUpdate {
 pub struct App {
     pub active_view: ViewId,
     pub prev_view: Option<ViewId>,
+    pub viewing_job_detail: bool,
     pub should_quit: bool,
     pub help_open: bool,
     pub input_mode: InputMode,
@@ -61,6 +62,7 @@ impl App {
         Self {
             active_view: ViewId::Dashboard,
             prev_view: None,
+            viewing_job_detail: false,
             should_quit: false,
             help_open: false,
             input_mode: InputMode::Normal,
@@ -90,13 +92,17 @@ impl App {
                 self.should_quit = true;
             }
             Action::NavigateTo(view) => {
+                self.viewing_job_detail = false;
                 if self.active_view != view {
                     self.prev_view = Some(self.active_view);
                     self.active_view = view;
                 }
             }
             Action::NavigateBack => {
-                if let Some(prev) = self.prev_view.take() {
+                if self.viewing_job_detail {
+                    self.viewing_job_detail = false;
+                    self.views.job_detail.clear();
+                } else if let Some(prev) = self.prev_view.take() {
                     self.active_view = prev;
                 }
             }
@@ -128,8 +134,26 @@ impl App {
                     self.handle_action(action);
                 }
             }
-            Action::OpenJob(_id) => {
-                // TODO: Navigate to JobDetailView (task 28)
+            Action::OpenJob(id) => {
+                let job = self
+                    .views
+                    .jobs_list
+                    .jobs()
+                    .iter()
+                    .find(|j| j.id == id)
+                    .cloned();
+                if let Some(job) = job {
+                    self.views.job_detail.set_job(job);
+                    self.viewing_job_detail = true;
+                    if self.active_view != ViewId::Jobs {
+                        self.prev_view = Some(self.active_view);
+                        self.active_view = ViewId::Jobs;
+                    }
+                }
+            }
+            Action::ApplyToJob(_) | Action::TailorResume(_) | Action::GenerateCoverLetter(_) => {}
+            Action::OpenUrl(url) => {
+                let _ = open::that(&url);
             }
             Action::CancelRalphLoop(_) | Action::RalphDetail(_) => {}
             Action::EnterSearch => {
@@ -144,7 +168,13 @@ impl App {
     pub fn active_view_mut(&mut self) -> &mut dyn crate::views::View {
         match self.active_view {
             ViewId::Dashboard => &mut self.views.dashboard,
-            ViewId::Jobs => &mut self.views.jobs_list,
+            ViewId::Jobs => {
+                if self.viewing_job_detail {
+                    &mut self.views.job_detail
+                } else {
+                    &mut self.views.jobs_list
+                }
+            }
             ViewId::Applications => &mut self.views.applications,
             ViewId::Contacts => &mut self.views.contacts,
             ViewId::Ralph => &mut self.views.ralph_panel,
@@ -234,5 +264,71 @@ mod tests {
     fn default_input_mode_is_normal() {
         let app = test_app();
         assert_eq!(app.input_mode, InputMode::Normal);
+    }
+
+    #[test]
+    fn open_job_activates_detail_view() {
+        use lazyjob_core::domain::Job;
+        let mut app = test_app();
+        app.active_view = ViewId::Jobs;
+        let job = Job::new("Test Job");
+        let job_id = job.id;
+        app.views.jobs_list.set_jobs(vec![job]);
+        app.handle_action(Action::OpenJob(job_id));
+        assert!(app.viewing_job_detail);
+    }
+
+    #[test]
+    fn open_job_with_unknown_id_does_nothing() {
+        use lazyjob_core::domain::JobId;
+        let mut app = test_app();
+        app.active_view = ViewId::Jobs;
+        app.handle_action(Action::OpenJob(JobId::new()));
+        assert!(!app.viewing_job_detail);
+    }
+
+    #[test]
+    fn navigate_back_from_detail_returns_to_jobs() {
+        use lazyjob_core::domain::Job;
+        let mut app = test_app();
+        app.active_view = ViewId::Jobs;
+        let job = Job::new("Test Job");
+        let job_id = job.id;
+        app.views.jobs_list.set_jobs(vec![job]);
+        app.handle_action(Action::OpenJob(job_id));
+        assert!(app.viewing_job_detail);
+        app.handle_action(Action::NavigateBack);
+        assert!(!app.viewing_job_detail);
+        assert_eq!(app.active_view, ViewId::Jobs);
+    }
+
+    #[test]
+    fn tab_switch_clears_detail_view() {
+        use lazyjob_core::domain::Job;
+        let mut app = test_app();
+        app.active_view = ViewId::Jobs;
+        let job = Job::new("Test Job");
+        let job_id = job.id;
+        app.views.jobs_list.set_jobs(vec![job]);
+        app.handle_action(Action::OpenJob(job_id));
+        assert!(app.viewing_job_detail);
+        app.handle_action(Action::NavigateTo(ViewId::Dashboard));
+        assert!(!app.viewing_job_detail);
+        assert_eq!(app.active_view, ViewId::Dashboard);
+    }
+
+    #[test]
+    fn active_view_mut_returns_job_detail_when_flag_set() {
+        let mut app = test_app();
+        app.active_view = ViewId::Jobs;
+        app.viewing_job_detail = true;
+        assert_eq!(app.active_view_mut().name(), "Job Detail");
+    }
+
+    #[test]
+    fn active_view_mut_returns_jobs_list_when_flag_not_set() {
+        let mut app = test_app();
+        app.active_view = ViewId::Jobs;
+        assert_eq!(app.active_view_mut().name(), "Jobs");
     }
 }
