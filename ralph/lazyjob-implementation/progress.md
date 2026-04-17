@@ -871,3 +871,37 @@ Next iteration should know:
 - Application data and transition history can be loaded via set_application() — not yet wired to DB loading (needs ApplicationRepository query by job_id)
 - Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
 - Task 29 (applications-kanban-tui) is next
+
+## Task 29: applications-kanban-tui — DONE
+Date: 2026-04-17
+Files created/modified:
+- crates/lazyjob-tui/src/views/applications.rs (full rewrite: ApplicationCard, ApplicationsView kanban board with 9 columns, ConfirmState, navigation, confirmation dialog)
+- crates/lazyjob-tui/src/action.rs (added TransitionApplication(ApplicationId, ApplicationStage), ScrollLeft, ScrollRight variants)
+- crates/lazyjob-tui/src/app.rs (added load_applications() method, handle ScrollLeft/ScrollRight/TransitionApplication actions)
+- crates/lazyjob-tui/src/event_loop.rs (call load_applications() on Refresh)
+- crates/lazyjob-tui/src/lib.rs (call load_applications() on startup)
+- ralph/lazyjob-implementation/output/research-task-29.md (research doc)
+- ralph/lazyjob-implementation/output/plan-task-29.md (plan doc)
+Key decisions:
+- 9 columns (one per ApplicationStage), equal-width via Constraint::Ratio(1, 9)
+- ApplicationCard is a denormalized struct with title+company from Job join, stored in the view
+- forward_stage() picks the first non-terminal, non-Withdrawn/Rejected transition as the "natural next" step
+- M (shift-m) triggers Withdrawn confirmation (since state machine is forward-only, no backward transitions exist)
+- ConfirmState held in the view; ConfirmDialog widget renders as overlay when confirming is Some
+- Confirmation flow: m opens dialog, h/l switch Yes/No, Enter confirms, Esc/n cancels, y shortcut confirms
+- Days in stage coloring: green (<7d), yellow (7-13d), red (14d+)
+- Cards show 3 lines: title, company, days badge with color
+- load_applications() queries ApplicationRepository + JobRepository to denormalize title/company
+- Action::TransitionApplication is emitted on confirmed transition but is a no-op in handle_action (wiring to DB deferred to task 36)
+- ScrollLeft/ScrollRight actions added for h/l column navigation via keymap delegation pattern
+Learning tests written:
+- None required (no new external crates introduced; ratatui and chrono already proven)
+Tests passing: 489 total across workspace (230 in lazyjob-tui, 30 new: navigation tests, confirmation flow tests, render tests, days_color tests, forward_stage tests, card selection tests)
+Next iteration should know:
+- ApplicationsView is now fully implemented with horizontal kanban board, 9 columns, card navigation, stage transition confirmation
+- ApplicationCard is in lazyjob_tui::views::applications — public struct for App::load_applications() to populate
+- Action::TransitionApplication(ApplicationId, ApplicationStage) exists but is a no-op in handle_action — task 36 should wire it to ApplicationRepository::transition_stage()
+- Action::ScrollLeft and Action::ScrollRight exist for h/l delegation, same pattern as ScrollDown/ScrollUp
+- load_applications() is called on startup and on Ctrl+R Refresh
+- Pre-existing issue: lazyjob-cli test `database_url_defaults_to_none` still fails when DATABASE_URL env var is set
+- Task 30 (dashboard-stats) is next

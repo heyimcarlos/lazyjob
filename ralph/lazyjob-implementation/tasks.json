@@ -231,7 +231,7 @@
       "description": "Implement ApplicationsView in lazyjob-tui/src/views/applications.rs as a horizontal kanban board. 9 columns one per ApplicationStage. Each card shows: job title, company, days in stage (color: green<7d, yellow<14d, red>14d). Navigation: h/l to move between columns, j/k within column, m to move selected application to next stage (calls transition_stage), M to move to previous. Show confirmation dialog on stage transition. Write render tests with fixture applications.",
       "phase": "build",
       "spec": "specs/09-tui-design-keybindings-implementation-plan.md",
-      "done": false
+      "done": true
     },
     {
       "id": 30,
